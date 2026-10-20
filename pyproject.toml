@@ -7,7 +7,10 @@ authors = [
     { name = "regnartsw", email = "regnarts22@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.6",
+]
 
 [project.scripts]
 freight-lineitems = "freight_lineitems:main"
