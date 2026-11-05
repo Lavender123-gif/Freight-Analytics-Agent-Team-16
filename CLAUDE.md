@@ -26,3 +26,11 @@ CMU Intro to AI client project (Team 16) for PPG. Convert the free-text explanat
 - Every tool has unit tests built from dev-split examples.
 - Commands: `uv run pytest`, `uv add <package>`.
 - Keep changes small and explain what changed and why.
+
+## 收尾检查
+每个任务结束前都执行：
+1. 卡片内容只改 `docs/status/cards.yaml`，然后运行生成脚本（`sh scratch/status/run.sh`），重新生成中英两版看板；不手改生成的 Markdown。
+2. 卡片变色必须有对应级别的测试报告：浅绿要样本内证据和交付物，深绿要独立样本或人工审核证据且达到事先写定的门槛。
+3. 门槛在跑检验之前写进卡片的完成标准。
+4. 本任务改动了流程结构的，更新 `docs/status/flow_src/` 并用 Archify 重新生成两版流程图。
+5. 最终回报里列出：哪些卡片变了、从什么变成什么、依据哪份测试报告；没有变化写明"状态文件已检查，无变化"。

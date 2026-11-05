@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "bbcca6f3-0a22-4e6f-ae80-415fbe08af75",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/zizhangwang/Projects/freight-lineitems/docs/status/flow_src/pipeline_flow.zh.workflow.json",
+  "output": "/Users/zizhangwang/Projects/freight-lineitems/docs/status/pipeline_flow.zh.html",
+  "specification": {
+    "sha256": "f6a102f38f78641912665a94e9b4be13bbc123d05c10078067c09d6bbd27093f",
+    "bytes": 9338
+  },
+  "artifact": {
+    "sha256": "31c88fe1b45e72b99932f93aacc2a92be8b9bc1636f1032841ff84d39f88ed3c",
+    "bytes": 850231
+  }
+}

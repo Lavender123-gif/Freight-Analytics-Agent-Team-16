@@ -1,0 +1,411 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "PPG freight dispute pipeline v5 (per 2026-11-04 decisions)",
+    "locale": "en",
+    "output": "docs/status/pipeline_flow.en.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Light-green card: in-sample evidence + deliverable"
+        },
+        "cloud": {
+          "label": "Yellow card: partly done"
+        },
+        "security": {
+          "label": "Red card: not started"
+        },
+        "external": {
+          "label": "No card (people, interface)"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "carrier",
+      "label": "Carrier"
+    },
+    {
+      "id": "code",
+      "label": "Processing (code)"
+    },
+    {
+      "id": "llm",
+      "label": "Understanding (LLM)"
+    },
+    {
+      "id": "rules",
+      "label": "Flags & recommendation (code)"
+    },
+    {
+      "id": "assets",
+      "label": "Knowledge assets & data"
+    },
+    {
+      "id": "reviewer",
+      "label": "Reviewer"
+    }
+  ],
+  "phases": [
+    {
+      "id": "prep",
+      "label": "Preparation",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "content",
+      "label": "Fact layer: blind parse & checks",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "action",
+      "label": "Judgment layer & review",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "submit",
+    "read",
+    "nums",
+    "llminput",
+    "understand",
+    "tool",
+    "history",
+    "flags",
+    "decide",
+    "review"
+  ],
+  "nodes": [
+    {
+      "id": "submit",
+      "lane": "carrier",
+      "col": 0,
+      "type": "external",
+      "label": "Submit dispute",
+      "sublabel": "invoice + free text"
+    },
+    {
+      "id": "pushback",
+      "lane": "carrier",
+      "col": 5,
+      "type": "external",
+      "label": "Receives return",
+      "sublabel": "via OTM"
+    },
+    {
+      "id": "read",
+      "lane": "code",
+      "col": 0,
+      "type": "backend",
+      "label": "0-1 Read",
+      "sublabel": "keep · redact · inject",
+      "tag": "B01 · to revise"
+    },
+    {
+      "id": "nums",
+      "lane": "code",
+      "col": 1,
+      "type": "backend",
+      "label": "2 Number parse",
+      "sublabel": "find · number · cover",
+      "tag": "B02"
+    },
+    {
+      "id": "llminput",
+      "lane": "code",
+      "col": 2,
+      "type": "security",
+      "label": "Model input",
+      "sublabel": "no Delta",
+      "tag": "B04"
+    },
+    {
+      "id": "tool",
+      "lane": "code",
+      "col": 3,
+      "type": "cloud",
+      "label": "4-5 Checks",
+      "sublabel": "math · padding · basis",
+      "tag": "B07 · to revise"
+    },
+    {
+      "id": "history",
+      "lane": "code",
+      "col": 4,
+      "type": "cloud",
+      "label": "5.5 Duplicates",
+      "sublabel": "row · invoice · shipment",
+      "tag": "B08 · to revise"
+    },
+    {
+      "id": "understand",
+      "lane": "llm",
+      "col": 2,
+      "type": "security",
+      "label": "3 Blind parse",
+      "sublabel": "agent loop · no Delta",
+      "tag": "B04"
+    },
+    {
+      "id": "flags",
+      "lane": "rules",
+      "col": 4,
+      "type": "cloud",
+      "label": "6a Flags",
+      "sublabel": "rules · evidence · → first",
+      "tag": "B09"
+    },
+    {
+      "id": "draft",
+      "lane": "rules",
+      "col": 5,
+      "type": "backend",
+      "label": "6c Return draft",
+      "sublabel": "reviewer only, never sent",
+      "tag": "C1 · to revise",
+      "yOffset": -48
+    },
+    {
+      "id": "decide",
+      "lane": "rules",
+      "col": 5,
+      "type": "cloud",
+      "label": "6b Recommendation",
+      "sublabel": "normal · flagged · return suggested",
+      "tag": "B09 · to revise",
+      "yOffset": 48
+    },
+    {
+      "id": "skill",
+      "lane": "assets",
+      "col": 0,
+      "type": "cloud",
+      "label": "SKILL.md",
+      "sublabel": "procedure · examples",
+      "tag": "B05 · to revise"
+    },
+    {
+      "id": "taxonomy",
+      "lane": "assets",
+      "col": 1,
+      "type": "cloud",
+      "label": "Code table",
+      "sublabel": "codes · aliases · labels",
+      "tag": "C3"
+    },
+    {
+      "id": "taxrules",
+      "lane": "assets",
+      "col": 3,
+      "type": "cloud",
+      "label": "Tools · tax",
+      "sublabel": "calc · tax · cases",
+      "tag": "B06 · to revise"
+    },
+    {
+      "id": "store",
+      "lane": "assets",
+      "col": 4,
+      "type": "backend",
+      "label": "7 Parse store",
+      "sublabel": "facts ≠ judgments",
+      "tag": "B10 · to revise"
+    },
+    {
+      "id": "rulesyaml",
+      "lane": "assets",
+      "col": 5,
+      "type": "cloud",
+      "label": "rules.yaml",
+      "sublabel": "dups · flags · plain text",
+      "tag": "C2",
+      "yOffset": -48
+    },
+    {
+      "id": "catalog",
+      "lane": "assets",
+      "col": 5,
+      "type": "backend",
+      "label": "Diagnostics",
+      "sublabel": "fixed wording",
+      "tag": "C1",
+      "yOffset": 48
+    },
+    {
+      "id": "review",
+      "lane": "reviewer",
+      "col": 5,
+      "type": "external",
+      "label": "Review UI (end)",
+      "sublabel": "decide · reason"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-submit-read",
+      "from": "submit",
+      "to": "read",
+      "label": "OTM Excel export"
+    },
+    {
+      "id": "e-read-nums",
+      "from": "read",
+      "to": "nums",
+      "label": "redacted text"
+    },
+    {
+      "id": "e-nums-llminput",
+      "from": "nums",
+      "to": "llminput",
+      "label": "numbers + diagnostics"
+    },
+    {
+      "id": "e-llminput-understand",
+      "from": "llminput",
+      "to": "understand",
+      "label": "no Delta"
+    },
+    {
+      "id": "e-skill-understand",
+      "from": "skill",
+      "to": "understand",
+      "label": "procedure"
+    },
+    {
+      "id": "e-taxonomy-understand",
+      "from": "taxonomy",
+      "to": "understand",
+      "label": "codes + aliases"
+    },
+    {
+      "id": "e-understand-tool",
+      "from": "understand",
+      "to": "tool",
+      "label": "readings · claim · math"
+    },
+    {
+      "id": "e-tool-understand",
+      "from": "tool",
+      "to": "understand",
+      "label": "mismatch: keep or revise",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "id": "e-taxrules-tool",
+      "from": "taxrules",
+      "to": "tool",
+      "label": "tax rates"
+    },
+    {
+      "id": "e-tool-history",
+      "from": "tool",
+      "to": "history",
+      "label": "attempts + status"
+    },
+    {
+      "id": "e-store-history",
+      "from": "store",
+      "to": "history",
+      "label": "earlier parses",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "id": "e-history-flags",
+      "from": "history",
+      "to": "flags",
+      "label": "all diagnostics"
+    },
+    {
+      "id": "e-flags-decide",
+      "from": "flags",
+      "to": "decide",
+      "label": "flags"
+    },
+    {
+      "id": "e-rulesyaml-decide",
+      "from": "rulesyaml",
+      "to": "decide",
+      "label": "rules"
+    },
+    {
+      "id": "e-catalog-draft",
+      "from": "catalog",
+      "to": "draft",
+      "label": "fixed wording"
+    },
+    {
+      "id": "e-decide-draft",
+      "from": "decide",
+      "to": "draft",
+      "label": "if return"
+    },
+    {
+      "id": "e-decide-review",
+      "from": "decide",
+      "to": "review",
+      "label": "all three colours",
+      "role": "branch",
+      "fromSide": "right"
+    },
+    {
+      "id": "e-decide-store",
+      "from": "decide",
+      "to": "store",
+      "label": "facts + judgments",
+      "fromSide": "bottom"
+    },
+    {
+      "id": "e-review-pushback",
+      "from": "review",
+      "to": "pushback",
+      "label": "reviewer returns",
+      "role": "branch"
+    },
+    {
+      "id": "e-review-store",
+      "from": "review",
+      "to": "store",
+      "label": "decision · reason",
+      "role": "return",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Colour = status-board card",
+      "items": [
+        "Light green: in-sample evidence + deliverable; yellow: partly done; red: not started",
+        "Tag = card ID; \"to revise\" = current code conflicts with the 2026-11-04 decisions, colour unchanged for now"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Main changes from v4 (2026-11-04 decisions)",
+      "items": [
+        "Auto-reject pre-check and auto notice removed; every record goes to the model and to a reviewer (2.1, 2.2)",
+        "Blind parse: the model never sees Delta; on a mismatch it is told so, and every attempt is kept (3.1, 3.2)",
+        "We store our own parses for multi-level, cross-batch duplicate checks (4.1, 5.2)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Two output layers",
+      "items": [
+        "Facts: the parse; downstream reads only records that passed the checks (3.9)",
+        "Judgments: diagnostics, flags, colour, return draft; for the reviewer (2.3)",
+        "Node notes: docs/plan/2026-11-05_status_and_plan.en.md section 2"
+      ]
+    }
+  ]
+}

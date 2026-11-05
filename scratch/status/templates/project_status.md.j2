@@ -1,0 +1,177 @@
+{% macro t(x) %}{{ x[lang] }}{% endmacro %}
+{% macro badge(c) %}{{ m.colors[c.color].emoji }} {{ m.colors[c.color].name[lang] }}{% endmacro %}
+{% macro item(c, key) %}
+{% set it = c[key] %}
+{% if it.lead[lang] %}
+{{ it.lead[lang] }}
+{% endif %}
+{% if it.get("bullets") %}
+{% if it.lead[lang] %}
+
+{% endif %}
+{% for b in it.bullets %}
+- {{ b[lang] }}
+{% endfor %}
+{% endif %}
+{% endmacro %}
+<!-- {{ "由 docs/status/cards.yaml 生成，不要手改" if lang == "zh" else "Generated from docs/status/cards.yaml; do not edit by hand" }} -->
+# {{ L.title }}
+
+> **{{ L.generated }}** {{ L.generated_how }}
+
+- **{{ L.updated }}**{{ L.sep }}{{ m.updated }}
+- **{{ L.task }}**{{ L.sep }}{{ t(m.task) }}
+- {{ L.authoritative }}
+- {{ t(m.flow_note) }}
+
+<a id="progress"></a>
+## {{ L.progress }}
+
+| {{ L.shaped }} | {{ L.verified }} |
+|---|---|
+| **{{ p.shaped_pct }}%** ({{ p.shaped }} / {{ p.total }}) | **{{ p.verified_pct }}%** ({{ p.verified }} / {{ p.total }}) |
+
+{{ t(m.progress.difference) }}
+
+{% for k, col in m.colors.items() %}{{ col.emoji }} {{ col.name[lang] }} {{ p.counts[k] }}{% if not loop.last %} · {% endif %}{% endfor %}
+
+
+**{{ L.progress_formula }}**{{ L.sep }}{{ t(m.progress.note) }}
+
+<a id="standard"></a>
+## {{ L.standard }}
+
+| {{ L.color }} | {{ L.meaning }} |
+|---|---|
+{% for k, col in m.colors.items() %}
+| {{ col.emoji }} {{ col.name[lang] }} | {{ col.meaning[lang] }} |
+{% endfor %}
+
+{{ L.evidence_intro }}
+
+{% for k, ev in m.evidence_levels.items() if k != "none" %}
+- **{{ ev.name[lang] }}**{{ L.sep }}{{ ev.meaning[lang] }}
+{% endfor %}
+
+**{{ L.rules }}**:
+
+{% for r in m.rules[lang] %}
+{{ loop.index }}. {{ r }}
+{% endfor %}
+
+{{ t(m.stable_ids) }}
+
+{{ t(m.source_tags) }}
+
+<a id="overview"></a>
+## {{ L.overview }}
+
+{{ L.edges_from_yaml }}
+
+```mermaid
+flowchart LR
+{% for col in d.columns %}
+  subgraph {{ col.id }}["{{ col.id }} {{ col.name[lang] }}"]
+{% for c in by_col[col.id] %}
+    {{ c.id }}["{{ c.id }} {{ c.name[lang] }}"]
+{% endfor %}
+  end
+{% endfor %}
+{% for chain in d.overview_edges %}
+  {{ chain | join(" --> ") }}
+{% endfor %}
+{% for k, col in m.colors.items() %}
+  classDef {{ k }} fill:{{ col.fill }},stroke:{{ col.stroke }},color:{{ col.text }}
+{% endfor %}
+{% for k in m.colors %}
+{% set members = d.cards | selectattr("color", "equalto", k) | map(attribute="id") | list %}
+{% if members %}
+  class {{ members | join(",") }} {{ k }}
+{% endif %}
+{% endfor %}
+```
+
+<a id="card-table"></a>
+## {{ L.table }}
+
+| {{ L.col_id }} | {{ L.col_card }} | {{ L.color }} | {{ L.evidence }} | {{ L.col_status }} | {{ L.col_summary }} | {{ L.col_deliv }} | {{ L.col_report }} |
+|---|---|---|---|---|---|---|---|
+{% for c in d.cards %}
+| {{ c.id }} | {{ c.name[lang] }} | {{ badge(c) }} | {{ m.evidence_levels[c.evidence_level].name[lang] }} | {{ c.status_line[lang] }} | [{{ L.summary_link }}](#card-{{ c.id | lower }}) | {% if c.get("deliverable_dir") %}[{{ L.folder }}]({{ c.deliverable_dir | rel }}){% else %}{{ L.none }}{% endif %} | {% if c.get("test_report") %}[{{ L.report }}]({{ c.test_report[lang] | rel }}){% else %}{{ L.none }}{% endif %} |
+{% endfor %}
+{% for col in d.columns %}
+
+---
+
+## {{ col.id }} {{ col.name[lang] }}
+{% for c in by_col[col.id] %}
+
+<a id="card-{{ c.id | lower }}"></a>
+### {{ c.id }} {{ c.name[lang] }} · {{ badge(c) }}
+
+{% if c.get("note") %}
+{{ t(c.note) }}
+
+**{{ L.needs_b04 }}**{{ L.sep }}{{ L.b04[c.needs_b04.value] }}{{ L.period }}{{ t(c.needs_b04.note) }}
+
+[↑ {{ L.back }}](#card-table)
+{% else %}
+**{{ L.what_is }}**{{ L.sep }}{{ c.what_is.lead[lang] }}
+{% if c.kind == "analysis" %}
+
+*{{ L.kind_analysis }}*
+{% endif %}
+
+#### {{ L.one_screen }}
+
+| | |
+|---|---|
+| {{ L.color }} | {{ badge(c) }} |
+| {{ L.evidence }} | {{ m.evidence_levels[c.evidence_level].name[lang] }} |
+{% if c.get("summary") %}
+{% for k in ("claim", "tested", "data", "result_vs_threshold", "limits") %}
+| {{ L[k] }} | {{ c.summary[k][lang] }} |
+{% endfor %}
+{% else %}
+| {{ L.claim }} | {{ L.no_summary }} {{ c.status_line[lang] }} |
+{% endif %}
+
+**{{ L.status_detail }}**{{ L.sep }}{{ item(c, "status_detail") }}
+#### {{ L.links }}
+
+- **{{ L.deliverable }}**{{ L.sep }}{% if c.get("deliverable_dir") %}[`{{ c.deliverable_dir }}`]({{ c.deliverable_dir | rel }}){% else %}{{ L.none }}{% endif %}
+
+- **{{ L.test_report }}**{{ L.sep }}{% if c.get("test_report") %}[`{{ c.test_report[lang] }}`]({{ c.test_report[lang] | rel }}){% else %}{{ L.none }}{% endif %}
+
+- **{{ L.deliverable_note }}**{{ L.sep }}{{ item(c, "deliverable_note") }}
+#### {{ L.completion }}
+
+{{ item(c, "completion_text") }}
+{% set cr = c.criteria %}
+**{{ L.criteria.format(target=m.colors[cr.target].emoji ~ " " ~ m.colors[cr.target].name[lang]) }}**{{ L.sep | trim }}
+
+- {{ L.method }}{{ L.sep }}{{ cr.method[lang] }}
+- {{ L.data }}{{ L.sep }}{{ cr.data[lang] }}
+- {{ L.threshold }}{{ L.sep }}{{ cr.threshold[lang] }}
+- {{ L.preset }}{{ L.sep }}{{ L.yes if cr.threshold_preset else L.no }}
+
+#### {{ L.start_conditions }}
+
+{{ item(c, "start_conditions") }}
+#### {{ L.approach }}
+
+{{ item(c, "approach") }}
+#### {{ L.depends }}
+
+{{ item(c, "depends") }}
+#### {{ L.open_items }}
+
+{{ item(c, "open_items") }}
+#### {{ L.needs_b04 }}
+
+{{ L.b04[c.needs_b04.value] }}{{ L.period }}{{ t(c.needs_b04.note) }}
+
+[↑ {{ L.back }}](#card-table)
+{% endif %}
+{% endfor %}
+{% endfor %}

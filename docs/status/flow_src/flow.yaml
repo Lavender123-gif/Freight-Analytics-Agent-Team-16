@@ -1,0 +1,216 @@
+# Pipeline flow source. Edit this file, then regenerate both HTML files (see README.md in this folder).
+# Layout: each node sits in one lane (row) and one column (col, 0-based, left to right).
+# card: the status-board card the node belongs to; its colour comes from `status` below.
+# Keep `status` in sync with docs/status/project_status.zh.md.
+version: flow-v4
+based_on:
+  zh: 依据 02 §1.2、§1.3 和 scratch/prototype/ 当前代码（任务 03 更新）
+  en: Based on 02 §1.2, §1.3 and the current code in scratch/prototype/ (updated in task 03)
+
+title:
+  zh: PPG 运费争议处理流程 v4
+  en: PPG freight dispute pipeline v4
+
+status:   # card -> green | yellow | red | grey
+  B01: green
+  B02: green
+  B03: green
+  B04: red
+  B05: yellow
+  B06: yellow
+  B07: yellow
+  B08: yellow
+  B09: yellow
+  B10: green
+  C1: green
+  C2: yellow
+  C3: yellow
+
+lanes:
+  - id: carrier
+    zh: 承运商
+    en: Carrier
+  - id: code
+    zh: 处理（代码）
+    en: Processing (code)
+  - id: llm
+    zh: 理解（LLM）
+    en: Understanding (LLM)
+  - id: rules
+    zh: 动作规则（代码）
+    en: Action rules (code)
+  - id: assets
+    zh: 知识资产与数据
+    en: Knowledge assets & data
+  - id: reviewer
+    zh: 审核员
+    en: Reviewer
+
+stages:   # column bands drawn behind the lanes
+  - {from: 0, to: 2, zh: 准备, en: Preparation}
+  - {from: 3, to: 5, zh: 内容层：理解与核对, en: "Content layer: understand & check"}
+  - {from: 6, to: 7, zh: 动作层, en: Action layer}
+
+nodes:
+  - id: submit
+    lane: carrier
+    col: 0
+    zh: 提交争议
+    en: Submit dispute
+    sub: {zh: 发票 + 文字说明, en: invoice + free text}
+  - id: read
+    lane: code
+    col: 0
+    card: B01
+    zh: 0-1 读入与门控
+    en: 0-1 Read & gate
+    sub: {zh: 合并重复 · 脱敏 · 注入检查, en: collapse · redact · injection}
+  - id: nums
+    lane: code
+    col: 1
+    card: B02
+    zh: 2 数字识别
+    en: 2 Number parse
+    sub: {zh: 找全 · 编号 · 覆盖检查, en: find all · number · coverage}
+  - id: precheck
+    lane: code
+    col: 2
+    card: B03
+    zh: 打回预判
+    en: Auto-reject pre-check
+    sub: {zh: 空 / 只有数字 · 只看更早, en: empty / numbers only}
+    tag: {zh: 新增 D4, en: new D4}
+  - id: understand
+    lane: llm
+    col: 3
+    card: B04
+    zh: 3 理解（agent 循环）
+    en: 3 Understand (agent loop)
+    sub: {zh: 单一模型 · 五个工具, en: one model · five tools}
+  - id: tool
+    lane: code
+    col: 4
+    card: B07
+    zh: 4-5 提交检查
+    en: 4-5 Submission checks
+    sub: {zh: 在提交工具内部, en: inside the submit tool}
+    tag: {zh: 退回 / 只记录, en: return / record}
+  - id: history
+    lane: code
+    col: 5
+    card: B08
+    zh: 5.5 历史检查
+    en: 5.5 History checks
+    sub: {zh: 预判一遍 + 模型后一遍, en: pre-check + post-model}
+  - id: flags
+    lane: rules
+    col: 5
+    card: B09
+    zh: 6a 汇总成 flag
+    en: 6a Aggregate flags
+    sub: {zh: 按代码、位置去重 · 带证据, en: dedupe by code & place · evidence}
+  - id: decide
+    lane: rules
+    col: 6
+    card: B09
+    zh: 6b 处置规则
+    en: 6b Disposition rules
+    sub: {zh: 自动打回 · 转人工 · 拆分可信, en: auto-reject · review · split trusted}
+  - id: draft
+    lane: rules
+    col: 7
+    card: C1
+    zh: 6c 打回文字
+    en: 6c Reject wording
+    sub: {zh: 自动通知 / 审核员草稿, en: auto notice / reviewer draft}
+  - id: review
+    lane: reviewer
+    col: 7
+    zh: 审核员
+    en: Reviewer
+    sub: {zh: 读原文 · 决定 · 记归属, en: read source · decide · attribute}
+  - id: pushback
+    lane: carrier
+    col: 7
+    zh: 收到退回
+    en: Receives return
+    sub: {zh: 按合格标准补充重提, en: resubmit to acceptance criteria}
+  - id: skill
+    lane: assets
+    col: 2
+    card: B05
+    zh: SKILL.md
+    en: SKILL.md
+    sub: {zh: 操作规程 · 例子, en: procedure · examples}
+  - id: taxonomy
+    lane: assets
+    col: 3
+    card: C3
+    zh: Taxonomy
+    en: Taxonomy
+    sub: {zh: 费用代码表, en: charge codes}
+  - id: taxrules
+    lane: assets
+    col: 4
+    card: B06
+    zh: 税率表 · 示例库
+    en: Tax table · examples
+    sub: {zh: 工具背后的数据, en: data behind the tools}
+  - id: catalog
+    lane: assets
+    col: 6
+    card: C1
+    zh: 诊断目录
+    en: Diagnostics catalog
+    sub: {zh: 61 种 · 固定文字, en: 61 kinds · fixed wording}
+  - id: rulesyaml
+    lane: assets
+    col: 5
+    card: C2
+    zh: rules.yaml
+    en: rules.yaml
+    sub: {zh: 严重程度 · 作用 · 阈值, en: severity · role · thresholds}
+  - id: store
+    lane: assets
+    col: 7
+    card: B10
+    zh: 7 输出
+    en: 7 Outputs
+    sub: {zh: JSON · 事件日志 · Excel, en: JSON · event log · Excel}
+
+edges:   # kind: normal | branch | return (dashed, goes back)
+# via (optional): waypoints [col, lane, fraction of lane height]; use it when the automatic curve would cross a node.
+  - {from: submit, to: read, zh: OTM 导出, en: OTM export}
+  - {from: read, to: nums, zh: 脱敏文本, en: redacted text}
+  - {from: nums, to: precheck, zh: 数字表 + 诊断, en: numbers + diagnostics}
+  - {from: precheck, to: understand, zh: 未命中：白名单输入, en: "no hit: whitelisted input"}
+  - {from: precheck, to: draft, kind: branch, via: [[2, rules, 0.1], [7, rules, 0.1]], zh: 命中：不调用模型, en: "hit: no model call"}
+  - {from: skill, to: understand, zh: 操作规程, en: procedure}
+  - {from: taxonomy, to: understand, zh: 可选代码, en: allowed codes}
+  - {from: understand, to: tool, zh: 只引用编号, en: ids only}
+  - {from: tool, to: understand, kind: return, via: [[3, code, 0.5]], label_offset: [-40, -22], zh: 修复回执 ≤2 次；原样重提即结束, en: "repair receipt ≤2; unchanged resubmit ends"}
+  - {from: taxrules, to: tool, zh: 税率、例子, en: tax, examples}
+  - {from: tool, to: history, zh: 计入金额 + 费用代码, en: counted amounts + codes}
+  - {from: store, to: history, kind: return, via: [[6.44, assets, 0.5], [6.44, code, 0.5]], label_offset: [0, -66], zh: 更早记录（按 Event Date）, en: earlier records (Event Date order)}
+  - {from: history, to: flags, zh: 全部诊断, en: all diagnostics}
+  - {from: flags, to: decide, zh: flag, en: flags}
+  - {from: rulesyaml, to: decide, zh: 规则, en: rules}
+  - {from: catalog, to: draft, zh: 固定文字, en: fixed wording}
+  - {from: decide, to: draft, zh: 打回 / 转人工, en: reject / review}
+  - {from: decide, to: review, kind: branch, via: [[6.56, rules, 0.5], [6.56, reviewer, 0.5]], label_offset: [0, 64], zh: 转人工, en: human review}
+  - {from: decide, to: store, zh: 全部存档, en: archive all}
+  - {from: draft, to: pushback, zh: 自动通知, en: auto notice}
+  - {from: review, to: pushback, kind: branch, via: [[7.62, reviewer, 0.5], [7.62, carrier, 0.5]], zh: 人工决定退回, en: reviewer returns}
+  - {from: review, to: store, kind: return, zh: 决定 · 归属, en: decision · attribution}
+
+notes:
+  zh:
+    - "颜色 = 看板卡片状态（绿：完成且有交付物；黄：部分完成；红：未开始）。无色节点不对应卡片。"
+    - "第 3 步只调用一次模型（不再跑三次）；同一模型跑三次只作为实验 E8 测量（02 §9.4）。"
+    - "Dispute Status 不进模型、不进记录对象，只在第 7 步导出 Excel 时关联（02 D7）。"
+    - "同一票货按 Event Date 顺序处理，更早记录的答案供第 5.5 步使用（02 D11）。"
+  en:
+    - "Colour = status-board card (green: done with deliverable; yellow: partial; red: not started). Uncoloured nodes have no card."
+    - "Step 3 calls the model once (no longer three runs); three runs of one model are only measured in experiment E8 (02 §9.4)."
+    - "Dispute Status never reaches the model or the record object; it is joined only at Excel export in step 7 (02 D7)."
+    - "Records of one shipment are processed in Event Date order; earlier answers feed step 5.5 (02 D11)."

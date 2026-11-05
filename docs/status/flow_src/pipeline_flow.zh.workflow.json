@@ -1,0 +1,411 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "PPG 运费争议处理流程 v5（按 2026-11-04 决定）",
+    "locale": "zh-CN",
+    "output": "docs/status/pipeline_flow.zh.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "浅绿卡：样本内证据 + 交付物"
+        },
+        "cloud": {
+          "label": "黄卡：部分完成"
+        },
+        "security": {
+          "label": "红卡：未开始"
+        },
+        "external": {
+          "label": "不对应卡片（人、界面）"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "carrier",
+      "label": "承运商"
+    },
+    {
+      "id": "code",
+      "label": "处理（代码）"
+    },
+    {
+      "id": "llm",
+      "label": "理解（LLM）"
+    },
+    {
+      "id": "rules",
+      "label": "标识与推荐（代码）"
+    },
+    {
+      "id": "assets",
+      "label": "知识资产与数据"
+    },
+    {
+      "id": "reviewer",
+      "label": "审核员"
+    }
+  ],
+  "phases": [
+    {
+      "id": "prep",
+      "label": "准备",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "content",
+      "label": "事实层：盲解析与核对",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "action",
+      "label": "判断层与审核",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "submit",
+    "read",
+    "nums",
+    "llminput",
+    "understand",
+    "tool",
+    "history",
+    "flags",
+    "decide",
+    "review"
+  ],
+  "nodes": [
+    {
+      "id": "submit",
+      "lane": "carrier",
+      "col": 0,
+      "type": "external",
+      "label": "提交争议",
+      "sublabel": "发票 + 文字说明"
+    },
+    {
+      "id": "pushback",
+      "lane": "carrier",
+      "col": 5,
+      "type": "external",
+      "label": "收到退回",
+      "sublabel": "审核员在 OTM 执行"
+    },
+    {
+      "id": "read",
+      "lane": "code",
+      "col": 0,
+      "type": "backend",
+      "label": "0-1 读入",
+      "sublabel": "原样存行 · 脱敏 · 注入检查",
+      "tag": "B01 · 待改"
+    },
+    {
+      "id": "nums",
+      "lane": "code",
+      "col": 1,
+      "type": "backend",
+      "label": "2 数字识别",
+      "sublabel": "找全 · 编号 · 覆盖检查",
+      "tag": "B02"
+    },
+    {
+      "id": "llminput",
+      "lane": "code",
+      "col": 2,
+      "type": "security",
+      "label": "模型输入（白名单）",
+      "sublabel": "去掉 Delta · 只给数字表",
+      "tag": "B04"
+    },
+    {
+      "id": "tool",
+      "lane": "code",
+      "col": 3,
+      "type": "cloud",
+      "label": "4-5 提交检查",
+      "sublabel": "算式 · 防凑数 · 依据 · 对 Delta",
+      "tag": "B07 · 待改"
+    },
+    {
+      "id": "history",
+      "lane": "code",
+      "col": 4,
+      "type": "cloud",
+      "label": "5.5 多层面查重",
+      "sublabel": "行 · 发票内 · 票货内 · 跨批次",
+      "tag": "B08 · 待改"
+    },
+    {
+      "id": "understand",
+      "lane": "llm",
+      "col": 2,
+      "type": "security",
+      "label": "3 盲解析（agent 循环）",
+      "sublabel": "不给 Delta · 每次尝试都留",
+      "tag": "B04"
+    },
+    {
+      "id": "flags",
+      "lane": "rules",
+      "col": 4,
+      "type": "cloud",
+      "label": "6a 标识",
+      "sublabel": "按规则 · 证据 · 指向第一份",
+      "tag": "B09"
+    },
+    {
+      "id": "draft",
+      "lane": "rules",
+      "col": 5,
+      "type": "backend",
+      "label": "6c 退回草稿",
+      "sublabel": "只给审核员，不发送",
+      "tag": "C1 · 待改",
+      "yOffset": -48
+    },
+    {
+      "id": "decide",
+      "lane": "rules",
+      "col": 5,
+      "type": "cloud",
+      "label": "6b 推荐颜色",
+      "sublabel": "正常 · 有标识 · 建议退回",
+      "tag": "B09 · 待改",
+      "yOffset": 48
+    },
+    {
+      "id": "skill",
+      "lane": "assets",
+      "col": 0,
+      "type": "cloud",
+      "label": "SKILL.md",
+      "sublabel": "操作规程 · 例子",
+      "tag": "B05 · 待改"
+    },
+    {
+      "id": "taxonomy",
+      "lane": "assets",
+      "col": 1,
+      "type": "cloud",
+      "label": "代码表",
+      "sublabel": "代码 · 别名 · 原文名称",
+      "tag": "C3"
+    },
+    {
+      "id": "taxrules",
+      "lane": "assets",
+      "col": 3,
+      "type": "cloud",
+      "label": "工具 · 税率表",
+      "sublabel": "计算器 · 税率 · 示例",
+      "tag": "B06 · 待改"
+    },
+    {
+      "id": "store",
+      "lane": "assets",
+      "col": 4,
+      "type": "backend",
+      "label": "7 解析结果库",
+      "sublabel": "事实层 · 判断层分开",
+      "tag": "B10 · 待改"
+    },
+    {
+      "id": "rulesyaml",
+      "lane": "assets",
+      "col": 5,
+      "type": "cloud",
+      "label": "rules.yaml",
+      "sublabel": "查重 · 标识 · 大白话",
+      "tag": "C2",
+      "yOffset": -48
+    },
+    {
+      "id": "catalog",
+      "lane": "assets",
+      "col": 5,
+      "type": "backend",
+      "label": "诊断目录",
+      "sublabel": "固定文字",
+      "tag": "C1",
+      "yOffset": 48
+    },
+    {
+      "id": "review",
+      "lane": "reviewer",
+      "col": 5,
+      "type": "external",
+      "label": "审核界面（终点）",
+      "sublabel": "决定 · 理由"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-submit-read",
+      "from": "submit",
+      "to": "read",
+      "label": "OTM 导出 Excel"
+    },
+    {
+      "id": "e-read-nums",
+      "from": "read",
+      "to": "nums",
+      "label": "脱敏文字"
+    },
+    {
+      "id": "e-nums-llminput",
+      "from": "nums",
+      "to": "llminput",
+      "label": "数字表 + 诊断"
+    },
+    {
+      "id": "e-llminput-understand",
+      "from": "llminput",
+      "to": "understand",
+      "label": "不含 Delta"
+    },
+    {
+      "id": "e-skill-understand",
+      "from": "skill",
+      "to": "understand",
+      "label": "操作规程"
+    },
+    {
+      "id": "e-taxonomy-understand",
+      "from": "taxonomy",
+      "to": "understand",
+      "label": "代码 + 别名"
+    },
+    {
+      "id": "e-understand-tool",
+      "from": "understand",
+      "to": "tool",
+      "label": "解读 · 主张 · 算式"
+    },
+    {
+      "id": "e-tool-understand",
+      "from": "tool",
+      "to": "understand",
+      "label": "不一致：不透露 Delta，可坚持或修改",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "id": "e-taxrules-tool",
+      "from": "taxrules",
+      "to": "tool",
+      "label": "税率"
+    },
+    {
+      "id": "e-tool-history",
+      "from": "tool",
+      "to": "history",
+      "label": "每次尝试 + 状态"
+    },
+    {
+      "id": "e-store-history",
+      "from": "store",
+      "to": "history",
+      "label": "之前批次的解析结果",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "id": "e-history-flags",
+      "from": "history",
+      "to": "flags",
+      "label": "全部诊断"
+    },
+    {
+      "id": "e-flags-decide",
+      "from": "flags",
+      "to": "decide",
+      "label": "标识"
+    },
+    {
+      "id": "e-rulesyaml-decide",
+      "from": "rulesyaml",
+      "to": "decide",
+      "label": "规则"
+    },
+    {
+      "id": "e-catalog-draft",
+      "from": "catalog",
+      "to": "draft",
+      "label": "固定文字"
+    },
+    {
+      "id": "e-decide-draft",
+      "from": "decide",
+      "to": "draft",
+      "label": "建议退回时"
+    },
+    {
+      "id": "e-decide-review",
+      "from": "decide",
+      "to": "review",
+      "label": "三种推荐全部到这里",
+      "role": "branch",
+      "fromSide": "right"
+    },
+    {
+      "id": "e-decide-store",
+      "from": "decide",
+      "to": "store",
+      "label": "事实层 + 判断层",
+      "fromSide": "bottom"
+    },
+    {
+      "id": "e-review-pushback",
+      "from": "review",
+      "to": "pushback",
+      "label": "审核员决定退回",
+      "role": "branch"
+    },
+    {
+      "id": "e-review-store",
+      "from": "review",
+      "to": "store",
+      "label": "决定 · 理由",
+      "role": "return",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "颜色 = 看板卡片状态",
+      "items": [
+        "浅绿：样本内证据 + 交付物；黄：部分完成；红：未开始",
+        "角标是卡片编号；\"待改\" = 现有实现与 2026-11-04 决定不一致，颜色暂不动"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "与 v4 的主要不同（2026-11-04 决定）",
+      "items": [
+        "删除打回预判和自动通知；所有记录进模型、都到审核员（决定 2.1、2.2）",
+        "盲解析：模型看不到 Delta，不一致时回给模型，每次尝试都留（决定 3.1、3.2）",
+        "存自己的解析结果，做多层面、跨批次查重（决定 4.1、5.2）"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "输出分两层",
+      "items": [
+        "事实层：解析结果，下游只读通过检查的（决定 3.9）",
+        "判断层：诊断、标识、推荐颜色、退回草稿，给审核员（决定 2.3）",
+        "每个节点的说明：docs/plan/2026-11-05_status_and_plan.zh.md 第 2 节"
+      ]
+    }
+  ]
+}

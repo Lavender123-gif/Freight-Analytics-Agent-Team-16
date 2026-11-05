@@ -1,0 +1,40 @@
+# docs/status/cards.yaml — 项目状态看板的单一数据源 / single source of the status board
+#
+# 卡片内容只改这个文件，然后运行生成脚本重新生成两版看板，不要手改生成的 Markdown：
+# Edit card content here only, then regenerate both boards; never hand-edit the generated Markdown:
+#   sh scratch/status/run.sh            # 生成 project_status.zh.md / .en.md
+#   sh scratch/status/run.sh --check    # 只检查：链接、颜色规则、看板是否与本文件一致
+#
+# 中文为准；每个文字字段都有 zh / en 两份，在同一次修改里一起改。
+# Chinese is authoritative; every text field has zh and en, edited together.
+#
+# 顶层 / top level
+#   meta             更新时间 updated、任务 task、颜色 colors 与证据级别 evidence_levels 的定义、
+#                    规则 rules、进度计算 progress（yellow_credit = 黄卡的部分分，现为 0）
+#   columns          栏：id + 名称
+#   overview_edges   总览图连线，每条是一条链 [A, B, C] = A --> B --> C
+#   cards            卡片列表，顺序即看板顺序
+#
+# 每张卡 / per card
+#   id               稳定编号，不重排；锚点为 card-<id 小写>
+#   column           所属栏 id
+#   name             卡片名称 {zh, en}
+#   kind             build（实现）| analysis（分析类）| evaluation（评估）| delivery（交付）| owner（由我维护）
+#   weight           计算整体进度时的权重
+#   color            red | yellow | light_green | dark_green | grey
+#   evidence_level   none | in_sample（样本内）| independent（独立样本）| human_review（人工审核）
+#   status_line      一句话现状（总表里那一列）
+#   summary          一屏摘要（有检验结果的卡才有）：claim 声称做到了什么 / tested 测了什么 /
+#                    data 用什么数据 / result_vs_threshold 结果对比门槛 / limits 局限
+#   note             只有灰卡用：一句说明
+#   what_is .. completion_text
+#                    从任务 03 看板逐字迁移的 8 项原文（是什么、现状与依据、交付物说明、开始条件、
+#                    做法、前置依赖 / 被谁依赖、待决事项、完成标准）。每项是 {lead, bullets}：
+#                    lead = 首句，bullets = 下面的条目。出处标注和 `[建议，待确认]` 原样保留。
+#                    唯一的改写："变绿需要" → "变浅绿需要"（旧标准的绿 = 现在的浅绿）。
+#   criteria         升到下一档的检验：target 目标颜色 / method 检验方法 / data 数据 /
+#                    threshold 门槛 / threshold_preset 门槛是否在跑检验之前写定（true 才能用于深绿）
+#   needs_b04        升到下一档是否依赖接上模型（B04）：value = yes | no | partly | self | n/a，note 说明
+#   deliverable_dir  交付物文件夹（相对仓库根目录）；没有则省略
+#   test_report      测试报告 {zh, en}（相对仓库根目录）；没有则省略
+#

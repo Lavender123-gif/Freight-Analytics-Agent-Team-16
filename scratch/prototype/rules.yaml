@@ -1,0 +1,126 @@
+# 规则配置草稿 v0.1。第 6a、6b 步和各检查读取这里；代码里不写阈值。
+# role:
+#   alone  单独出现即转人工
+#   score  按 points 累计，记录总分 >= escalation.score_threshold 时转人工
+#   none   展示给审核员，不影响转人工
+# 只列 handling = record 的类型。handling = return 的类型不生成 flag：
+# 重试成功就消失（只留 CLAIM.RECON.PASSED_AFTER_RETURN），重试用完则汇总成 RUN.SUBMIT.FAILED。
+version: rules-v0.1
+
+escalation:
+  score_threshold: 3
+
+flags:
+  # 记录
+  REC.INPUT.EXPORT_DUPLICATE:        {severity: info,     role: none}
+  REC.TEXT.EMPTY:                    {severity: high,     role: alone}    # 不豁免时走自动打回，见 auto_reject
+  REC.TEXT.NUMBERS_ONLY:             {severity: high,     role: alone}
+  REC.TEXT.NO_NUMBER:                {severity: high,     role: alone}
+  REC.TEXT.INJECTION_SUSPECT:        {severity: critical, role: alone}
+  REC.TEXT.PII_REDACTED:             {severity: info,     role: none}
+  REC.TEXT.REDACTION_ALTERED_DIGITS: {severity: critical, role: alone}
+  REC.TEXT.DATE_AFTER_EVENT:         {severity: info,     role: none}
+  REC.FIELD.DELTA_ZERO:              {severity: high,     role: alone}
+  REC.FIELD.DELTA_NEGATIVE:          {severity: high,     role: alone}
+  REC.FIELD.CROSS_BORDER:            {severity: info,     role: none}
+  REC.FIELD.REASON_CODE_CONFLICT:    {severity: low,      role: none}
+  # 数字
+  NUM.PARSE.UNRECOGNIZED_REGION:     {severity: low,      role: score, points: 1}
+  NUM.PARSE.SPACE_MERGED:            {severity: info,     role: none}
+  NUM.PARSE.UNUSUAL_DECIMALS:        {severity: info,     role: none}
+  NUM.PARSE.LEADING_DOT:             {severity: info,     role: none}
+  NUM.PARSE.MINUS_ADJACENT:          {severity: info,     role: none}
+  NUM.JUDGMENT.DOLLAR_EXCLUDED:      {severity: high,     role: alone}    # 防止模型为凑 Delta 静默排除金额，见报告 7.3
+  NUM.JUDGMENT.SPACE_MERGED_IN_CLAIM: {severity: medium,  role: score, points: 2}
+  # line item
+  ITEM.CODE.OTHER:                   {severity: medium,   role: score, points: 2}
+  ITEM.CODE.PENDING_MEANING:         {severity: info,     role: none}     # 开发集约六成记录，见报告第 10 节
+  ITEM.CODE.COMBINED:                {severity: low,      role: score, points: 1}
+  ITEM.AMOUNT.MISSING:               {severity: high,     role: alone}
+  ITEM.AMOUNT.UNNAMED:               {severity: medium,   role: score, points: 2}
+  ITEM.TAX.NO_AMOUNT:                {severity: low,      role: score, points: 1}
+  ITEM.TAX.RATE_MISMATCH:            {severity: high,     role: alone}
+  ITEM.TAX.NO_RULE:                  {severity: medium,   role: score, points: 2}
+  ITEM.BASIS.PPG_CLAIMED:            {severity: info,     role: none}     # 核实属于付款判断，不影响拆分可信度
+  ITEM.BASIS.CONTRACT_CLAIMED:       {severity: info,     role: none}
+  ITEM.NATURE.RATE_CORRECTION:       {severity: low,      role: none}
+  ITEM.ARITH.QTY_RATE_MISMATCH:      {severity: medium,   role: score, points: 2}
+  # 主张汇总
+  CLAIM.RECON.DELTA_COUNTS_TOTAL_TWICE: {severity: high,  role: alone}
+  CLAIM.RECON.TOTAL_MISMATCH:        {severity: medium,   role: score, points: 2}
+  CLAIM.RECON.PASSED_AFTER_RETURN:   {severity: low,      role: score, points: 1}
+  # 与同一票货其他记录的关系
+  HIST.REPEAT.IDENTICAL_TEXT:        {severity: medium,   role: alone}
+  HIST.REPEAT.SAME_DELTA:            {severity: low,      role: score, points: 1}
+  HIST.REPEAT.SAME_AMOUNT_NEW_CODES: {severity: high,     role: alone}
+  HIST.REPEAT.REVISED_SAME_CHARGES:  {severity: low,      role: score, points: 1}
+  HIST.AMOUNT.EQUALS_EARLIER_DELTA:  {severity: high,     role: alone}
+  HIST.AMOUNT.NEAR_105_EARLIER:      {severity: medium,   role: score, points: 2}
+  HIST.ORDER.SAME_MINUTE_SIBLING:    {severity: info,     role: none}
+  HIST.CONTEXT.EARLIER_EXPLAINED:    {severity: info,     role: none}
+  # 处理过程
+  RUN.AGENT.UNCERTAINTY_REPORTED:    {severity: medium,   role: score, points: 2}
+  RUN.SUBMIT.FAILED:                 {severity: critical, role: alone}
+  RUN.SUBMIT.NONE:                   {severity: critical, role: alone}
+  RUN.TOOL.RECONCILE_OVERUSE:        {severity: low,      role: score, points: 1}
+
+# 自动打回：只有代码能确定、且离谱的情况。在第 3 步之前判定，命中则不调用模型。
+auto_reject:
+  triggers: [REC.TEXT.EMPTY, REC.TEXT.NUMBERS_ONLY]
+  exempt_if_any: [HIST.CONTEXT.EARLIER_EXPLAINED]     # 只看更早的记录
+  earlier_explained:
+    same_delta_abs_tol: 0.005
+    min_letters: 3                                    # 更早记录的文本至少要有一个 >= 3 个字母的词
+    earlier_must_not_be_auto_rejectable: true
+
+tolerances:
+  amount_abs: 0.005        # 金额比较（数据为两位小数，浮点误差以内）
+  tax_abs: 0.011           # 税额与 基数 × 税率 的差，允许 1 分钱的四舍五入差
+  near_105: [1.03, 1.07]
+  text_date_after_event_days: 1
+
+retry:
+  max_retries: 2                       # 首次提交 + 2 次重试 = 最多 3 次
+  stop_on_unchanged_resubmission: true # 模型原样重提 = 坚持原读法，直接结束
+agent:
+  max_turns: 12
+  reconcile_max_calls: 3
+
+number_features:
+  unit_words: [LBS, LB, KG, KGS, "%", DAYS, DAY, "DAY(S)", HRS, HOURS, HR, MILES, MI, PCS, PIECES, PALLETS, MIN, MINS]
+  rate_cues:        # '$' 数字被判为 RATE 且带这些线索时，不触发 NUM.JUDGMENT.DOLLAR_EXCLUDED
+    prev_symbols: ["@"]
+    prev_words: [AT, PER]
+    next_words: [EACH, PER, A]       # "A" 即 "$75 A DAY"
+  money_unit_conflicts: [LBS, LB, KG, KGS, "%", DAYS, DAY, "DAY(S)", HRS, HOURS, HR, MILES, MI, PCS, PIECES, PALLETS]
+
+injection:
+  max_length: 600
+  patterns:          # 只找"对模型说话"的写法；承运商对 PPG 的请求（PLEASE ADD / PROCESS）不算
+    - "IGNORE (ALL |THE )?(PREVIOUS|ABOVE|PRIOR)"
+    - "\\bSYSTEM PROMPT\\b"
+    - "\\bINSTRUCTIONS?\\b.*\\b(MODEL|AI|ASSISTANT)\\b"
+    - "\\b(YOU ARE|ACT AS) (AN? )?(AI|ASSISTANT|MODEL)\\b"
+    - "\\bAUTO[- ]?APPROVE\\b"
+    - "\\bSUBMIT_LINE_ITEMS\\b|\\bTOOL\\b.*\\bCALL\\b"
+    - "[<>{}`]"
+
+# Reason Code 到 taxonomy 类别的映射；只有映射到具体类别的才参与冲突检查
+reason_code_categories:
+  PPGTM.INCORRECT_MISSING_FSC: [FUEL, RATE_CORRECTION]
+  PPGTM.INCORRECT_BASE_CHARGE: [LINEHAUL, RATE_CORRECTION]
+  PPGTM.INCORRECT_MISSING_DETENTION: [DETENTION_STORAGE]
+  PPGTM.INCORRECT_MISSING_DEMURRAGE: [DETENTION_STORAGE]
+  PPGTM.INCORRECT_MISSING_LUMPER: [ACCESSORIAL]
+  PPGTM.INCORRECT_MISSING_HAZMAT: [ACCESSORIAL]
+  # INCORRECT_MISSING_OTHER_ACCESSORIALS、TW_RESOLUTION 不是具体类别，不参与
+reason_code_specific_codes:   # 比类别更细时用具体代码比较
+  PPGTM.INCORRECT_MISSING_LUMPER: [ACCESSORIAL.LUMPER, ACCESSORIAL.SORT_SEGREGATE]
+  PPGTM.INCORRECT_MISSING_HAZMAT: [ACCESSORIAL.HAZMAT]
+
+redaction:
+  engine: presidio            # presidio | email_only
+  presidio_entities: [PERSON]
+  title_case_before_ner: dict # 数据全大写；dict = 字典词小写、其余首字母大写，见报告 7.4
+  score_threshold: 0.5
+  context_rules: true         # 规则来自通读开发集，开发集上的漏检率是样本内数字，见报告 7.4

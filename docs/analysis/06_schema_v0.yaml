@@ -1,0 +1,390 @@
+# schema v0（任务 06）：机器可读版。人读说明见 06_research_schema_report.zh.md 第 C 部分。
+# 状态：基线草稿，供讨论；存储方式为建议，待确认。不含任何真实数据。
+#
+# 字段属性
+#   type      TEXT | INTEGER | DECIMAL(金额，存字符串，不用浮点) | BOOLEAN | TIMESTAMP | DATE | JSON | ENUM[...]
+#   readers   reviewer = 审核员 | downstream = 下游系统 | audit = 我们自己的审计和评估 | model = 模型输入
+#             （model 只出现在输入字段上；模型输入一律不含 Delta，决定 3.1）
+#   source    excel = Excel 原样 | code = 代码推算 | model = 模型判断 | reviewer = 审核员决定
+#   nullable  false | true | 条件说明
+#   pending   [待 Jake Jn] / [待讨论] / [建议，待确认] 标记，编号对应决定记录第 8 节
+#
+# 层次（决定 2、3.9、4.5）
+#   raw       Excel 原样，只追加不修改
+#   fact      事实层：我们对原文的解析结果。下游只能读 parse_run.status = PASSED_CHECKS 的那一次
+#   judgment  判断层：标识、推荐颜色、退回草稿
+#   human     审核员的决定
+#   process   过程与留痕：批次、运行、每次尝试、模型的陈述
+schema_id: freight-lineitems-schema-v0
+version: v0
+date: '2026-11-04'
+storage:
+  engine: SQLite
+  status: 建议，待确认
+  note: 单文件、本地、git-ignored（data/ 下）；不对外提供服务（决定 1.3 不设计 API）。JSON 从表结构导出。
+
+tables:
+
+  # ------------------------------------------------------------------ process
+  import_batch:
+    layer: process
+    purpose: 每读入一次 Excel 记一批。跨批次比较、"第一份"指向之前批次、复现都要靠它。
+    primary_key: [batch_id]
+    columns:
+      batch_id:           {type: TEXT, meaning: '批次编号', readers: [audit, reviewer], source: code, nullable: false}
+      source_file_name:   {type: TEXT, meaning: '读入的文件名', readers: [audit], source: excel, nullable: false}
+      source_file_sha256: {type: TEXT, meaning: '文件内容哈希；同一文件重复读入时据此识别', readers: [audit], source: code, nullable: false}
+      sheet_name:         {type: TEXT, meaning: '工作表名', readers: [audit], source: excel, nullable: false}
+      imported_at:        {type: TIMESTAMP, meaning: '读入时间', readers: [audit, reviewer], source: code, nullable: false}
+      row_count:          {type: INTEGER, meaning: '数据行数', readers: [audit], source: code, nullable: false}
+      loader_version:     {type: TEXT, meaning: '读入代码版本（git commit）', readers: [audit], source: code, nullable: false}
+
+  pipeline_run:
+    layer: process
+    purpose: 对一个批次跑一遍流程。记录所有会影响结果的版本，以及对照实验的分组。
+    primary_key: [run_id]
+    foreign_keys: {batch_id: import_batch.batch_id}
+    columns:
+      run_id:                     {type: TEXT, meaning: '运行编号', readers: [audit], source: code, nullable: false}
+      batch_id:                   {type: TEXT, meaning: '处理的批次', readers: [audit], source: code, nullable: false}
+      started_at:                 {type: TIMESTAMP, meaning: '开始时间', readers: [audit], source: code, nullable: false}
+      finished_at:                {type: TIMESTAMP, meaning: '结束时间', readers: [audit], source: code, nullable: '运行中为空'}
+      code_version:               {type: TEXT, meaning: '代码版本', readers: [audit], source: code, nullable: false}
+      taxonomy_version:           {type: TEXT, meaning: '费用代码表与别名表版本', readers: [audit, downstream], source: code, nullable: false}
+      rules_version:              {type: TEXT, meaning: 'rules.yaml 版本', readers: [audit], source: code, nullable: false}
+      diagnostics_catalog_version: {type: TEXT, meaning: '诊断目录版本', readers: [audit], source: code, nullable: false}
+      prompt_version:             {type: TEXT, meaning: 'SKILL.md 内容哈希', readers: [audit], source: code, nullable: false}
+      model_id:                   {type: TEXT, meaning: '模型 ID', readers: [audit], source: code, nullable: false}
+      max_retries:                {type: INTEGER, meaning: '不一致时允许回给模型的次数', readers: [audit], source: code, nullable: false, pending: '[待讨论] 决定 3.2 倾向 1 到 2 次'}
+      experiment_arm:             {type: 'ENUM[MAIN, WITH_DELTA, WITH_HISTORY, SECOND_PARSE, NO_GUARDRAILS]', meaning: '对照实验分组；正式流程为 MAIN', readers: [audit], source: code, nullable: false}
+
+  # ------------------------------------------------------------------ raw
+  source_row:
+    layer: raw
+    purpose: >-
+      Excel 每一行原样保留，带来源批次和行号。只追加不修改。所有列都存成读入时的字符串，
+      作为一切推算的证据（读者：审计）。这是"没有读者的字段不放"的唯一例外：原样保留本身就是需求。
+      Invoice Dups Removed 只在这里原样保存，任何推算都不用它（决定 4.6）。
+    primary_key: [source_row_id]
+    foreign_keys: {batch_id: import_batch.batch_id}
+    unique: [[batch_id, row_number]]
+    columns:
+      source_row_id:  {type: TEXT, meaning: '批次编号 + 行号', readers: [audit], source: code, nullable: false}
+      batch_id:       {type: TEXT, meaning: '所属批次', readers: [audit], source: code, nullable: false}
+      row_number:     {type: INTEGER, meaning: 'Excel 行号（含表头时的实际行号）', readers: [audit, reviewer], source: excel, nullable: false}
+      raw_columns:
+        type: JSON
+        meaning: 全部原始列，键为原始列名（含拼写 Descritipion），值为原样字符串；空单元格存 null
+        readers: [audit]
+        source: excel
+        nullable: false
+        expected_keys: [SHIPMENT_GID, Shipment Indicator, PK, Invoice/Bill ID, SAP BOL, Shipment Number, Carrier Invoice,
+                        US/CAN, Dispute Status, Reason Code, Descritipion, Invoice Amount, Invoice Dups Removed,
+                        Shipment Amount, Delta, Carrier, Source Address, Source City, Source State,
+                        Destination Address, Destination City, Destination State, Event Date]
+      row_fingerprint:
+        type: TEXT
+        meaning: >-
+          稳定业务列（含 PK）的哈希，用来识别"之前批次导出过的同一行又被导出一次"。
+          不含 Dispute Status（shipment 层面的最新状态，导出之间会变）和 Invoice Dups Removed（不可用）
+        readers: [audit]
+        source: code
+        nullable: false
+        pending: '[建议，待确认] 依赖 J1、J3：能否拿到行的稳定来源编号或版本号'
+
+  # ------------------------------------------------------------------ fact: 编号实体
+  shipment:
+    layer: fact
+    purpose: 票货。审核界面发票总览的基本信息、国家与距离、CO 金额占比的分母都挂在这里。
+    primary_key: [shipment_gid]
+    columns:
+      shipment_gid:          {type: TEXT, meaning: '票货编号', readers: [reviewer, downstream, audit], source: excel, nullable: false}
+      carrier_id:            {type: TEXT, meaning: '承运商代码；不进模型输入', readers: [reviewer, downstream, audit], source: excel, nullable: false}
+      sap_bol:               {type: TEXT, meaning: '提单号，审核员据此调单据（A1）', readers: [reviewer], source: excel, nullable: '原始为空时为空'}
+      origin_city:           {type: TEXT, meaning: '起点城市', readers: [reviewer], source: excel, nullable: true}
+      origin_state:          {type: TEXT, meaning: '起点省州', readers: [reviewer, model], source: excel, nullable: true}
+      destination_city:      {type: TEXT, meaning: '终点城市', readers: [reviewer], source: excel, nullable: true}
+      destination_state:     {type: TEXT, meaning: '终点省州', readers: [reviewer, model], source: excel, nullable: true}
+      origin_country:        {type: 'ENUM[CA, US, OTHER, UNKNOWN]', meaning: '从起点省州推出；不用 US/CAN 栏（决定 4.3）', readers: [reviewer, downstream], source: code, nullable: false}
+      destination_country:   {type: 'ENUM[CA, US, OTHER, UNKNOWN]', meaning: '从终点省州推出', readers: [reviewer, downstream], source: code, nullable: false}
+      shipment_amount:       {type: DECIMAL, meaning: '计划运费（Shipment Amount），CO 金额占比的分母', readers: [reviewer, downstream], source: excel, nullable: false, pending: '[待 Jake J2] 是否为运费全额、是否含燃油'}
+      planned_distance:      {type: DECIMAL, meaning: 'OTM 计划里程', readers: [reviewer], source: excel, nullable: '数据里没有该列时为空', pending: '[待 Jake J9]'}
+      straight_line_km:      {type: DECIMAL, meaning: '城市中心点直线距离，本地计算（决定 6.6）', readers: [reviewer], source: code, nullable: '距离功能实现前、或城市无法定位时为空'}
+      first_seen_batch_id:   {type: TEXT, meaning: '首次出现的批次', readers: [reviewer, audit], source: code, nullable: false}
+
+  carrier_invoice:
+    layer: fact
+    purpose: 承运商发票。审核界面的列表单位（决定 6.1），发票内查重的范围。
+    primary_key: [carrier_invoice_id]
+    foreign_keys: {shipment_gid: shipment.shipment_gid}
+    unique: [[carrier_id, carrier_invoice_no]]
+    columns:
+      carrier_invoice_id: {type: TEXT, meaning: '承运商代码 + 发票号（不同承运商可能重号）', readers: [audit], source: code, nullable: false}
+      carrier_id:         {type: TEXT, meaning: '承运商', readers: [reviewer, downstream], source: excel, nullable: false}
+      carrier_invoice_no: {type: TEXT, meaning: '承运商发票号（Carrier Invoice）', readers: [reviewer, downstream], source: excel, nullable: false, pending: '[待 Jake J1] 开发集上与票货一一对应，含义待确认'}
+      shipment_gid:       {type: TEXT, meaning: '所属票货', readers: [reviewer, downstream], source: excel, nullable: false}
+
+  bill_record:
+    layer: fact
+    purpose: 账单记录（PK）。同一笔争议可能挂在多个 PK 下（第 B2 部分），审核员要能拿 PK 回 OTM 查找。
+    primary_key: [pk]
+    foreign_keys: {carrier_invoice_id: carrier_invoice.carrier_invoice_id, shipment_gid: shipment.shipment_gid}
+    columns:
+      pk:                 {type: TEXT, meaning: 'PK 原值（开发集上恒等于前缀 + Invoice/Bill ID）', readers: [reviewer, audit], source: excel, nullable: false}
+      invoice_bill_id:    {type: TEXT, meaning: 'Invoice/Bill ID', readers: [reviewer], source: excel, nullable: false}
+      pk_date:            {type: DATE, meaning: '编号前 8 位推出的日期', readers: [reviewer, audit], source: code, nullable: '前 8 位不是日期时为空', pending: '[待 Jake J1] 这个日期代表什么'}
+      carrier_invoice_id: {type: TEXT, meaning: '所属承运商发票', readers: [audit], source: code, nullable: false}
+      shipment_gid:       {type: TEXT, meaning: '所属票货', readers: [audit], source: excel, nullable: false}
+
+  # ------------------------------------------------------------------ fact: 争议
+  dispute:
+    layer: fact
+    purpose: >-
+      我们理解的一笔争议，审核员逐笔处理的单位。同一批次里每一行原始行对应一笔争议；"除 PK 外全部相同"的行
+      各自是独立争议，用标识互相指向（决定 5.3），不合并。之后批次里重新导出的同一行（row_fingerprint 相同）
+      不新建争议，只在 dispute_source_row 里加一条关联。
+    primary_key: [dispute_id]
+    foreign_keys:
+      first_source_row_id: source_row.source_row_id
+      shipment_gid: shipment.shipment_gid
+      carrier_invoice_id: carrier_invoice.carrier_invoice_id
+      pk: bill_record.pk
+    columns:
+      dispute_id:            {type: TEXT, meaning: '争议编号', readers: [reviewer, downstream, audit], source: code, nullable: false}
+      first_source_row_id:   {type: TEXT, meaning: '第一次见到它的原始行', readers: [audit], source: code, nullable: false}
+      shipment_gid:          {type: TEXT, meaning: '票货', readers: [reviewer, downstream], source: excel, nullable: false}
+      carrier_invoice_id:    {type: TEXT, meaning: '承运商发票', readers: [reviewer, downstream], source: code, nullable: false}
+      pk:                    {type: TEXT, meaning: '账单记录', readers: [reviewer, audit], source: excel, nullable: '原始 PK 为空时为空（开发集 33.8%）'}
+      event_time:            {type: TIMESTAMP, meaning: 'Event Date；只作同一票货内的排序，不当作提交时间', readers: [reviewer, downstream, audit], source: excel, nullable: false, pending: '[待 Jake J3] 来源与时区'}
+      description_sha256:    {type: TEXT, meaning: '原文哈希，确认原文未被改动', readers: [audit], source: code, nullable: false}
+      description_redacted:  {type: TEXT, meaning: '脱敏后的文字；模型只看到它', readers: [model, audit], source: code, nullable: false}
+      n_redactions:          {type: INTEGER, meaning: '脱敏替换的个数', readers: [audit], source: code, nullable: false}
+      invoice_amount:        {type: DECIMAL, meaning: 'Invoice Amount（= 运费 + 本行 Delta，不是发票合计）', readers: [reviewer, audit], source: excel, nullable: false, pending: '[待 Jake J2]'}
+      delta:                 {type: DECIMAL, meaning: 'Delta；只给代码比对，不进模型输入', readers: [reviewer, downstream, audit], source: excel, nullable: false}
+      currency:              {type: TEXT, meaning: 'ISO 4217 币种，本笔争议所有金额共用', readers: [reviewer, downstream], source: code, nullable: false, pending: '[待 Jake J4]'}
+      currency_basis:        {type: 'ENUM[DERIVED_FROM_COUNTRY, SOURCE_FIELD]', meaning: '币种怎么来的；现在只能是推算', readers: [reviewer, downstream], source: code, nullable: false}
+      reason_code:           {type: TEXT, meaning: '原 Reason Code；只用于冲突提示和统计，不进模型输入', readers: [downstream, audit], source: excel, nullable: true}
+      content_key:           {type: TEXT, meaning: '(票货, 承运商发票, 规范化文字, Delta, event_time) 的哈希；行层面查重的键，不含 PK', readers: [audit], source: code, nullable: false}
+      copy_rank:             {type: INTEGER, meaning: '在同一 content_key 的副本里排第几（1 = 第一份）', readers: [reviewer, audit], source: code, nullable: '没有副本时为空', pending: '[待讨论] 批次内第一份按 PK 还是按 Excel 行号（决定 5.3）'}
+      created_in_batch_id:   {type: TEXT, meaning: '新建它的批次', readers: [reviewer, audit], source: code, nullable: false}
+
+  dispute_source_row:
+    layer: raw
+    purpose: 争议与原始行的关联。一笔争议可以在多个批次的导出里出现。
+    primary_key: [dispute_id, source_row_id]
+    foreign_keys: {dispute_id: dispute.dispute_id, source_row_id: source_row.source_row_id}
+    columns:
+      dispute_id:    {type: TEXT, meaning: '争议', readers: [audit], source: code, nullable: false}
+      source_row_id: {type: TEXT, meaning: '原始行', readers: [audit, reviewer], source: code, nullable: false}
+      link_type:     {type: 'ENUM[FIRST_SEEN, RE_EXPORTED]', meaning: '第一次出现，还是之后批次重新导出', readers: [reviewer, audit], source: code, nullable: false, pending: '[建议，待确认]'}
+
+  number_token:
+    layer: fact
+    purpose: 代码切出的数字表（确定性，每笔争议一份）。模型只引用编号，审核界面按 span 高亮。
+    primary_key: [dispute_id, token_id]
+    foreign_keys: {dispute_id: dispute.dispute_id}
+    columns:
+      dispute_id:   {type: TEXT, meaning: '争议', readers: [audit], source: code, nullable: false}
+      token_id:     {type: TEXT, meaning: "'#1' 数字、'D1' 日期、'?1' 认不出的数字区域", readers: [model, reviewer, audit], source: code, nullable: false}
+      token_type:   {type: 'ENUM[NUMBER, DATE, UNRECOGNIZED]', meaning: '类型', readers: [model, audit], source: code, nullable: false}
+      raw:          {type: TEXT, meaning: '原文写法（含 $ 和空格）', readers: [model, reviewer], source: code, nullable: false}
+      span_start:   {type: INTEGER, meaning: '在脱敏文字里的起点', readers: [reviewer, audit], source: code, nullable: false}
+      span_end:     {type: INTEGER, meaning: '终点', readers: [reviewer, audit], source: code, nullable: false}
+      value:        {type: DECIMAL, meaning: '标准化数值', readers: [model, audit], source: code, nullable: 'UNRECOGNIZED 和 DATE 为空'}
+      features:     {type: JSON, meaning: 'has_dollar、space_merged、leading_dot、decimals、minus_before、prev_symbol、unit_hint 等写法特征（沿用原型 NumberToken）', readers: [model, audit], source: code, nullable: false}
+
+  # ------------------------------------------------------------------ process: 解析过程与留痕
+  parse_run:
+    layer: process
+    purpose: 一笔争议在一次运行里的解析。用状态字段区分通过和没通过（决定 3.9）；下游只读 PASSED_CHECKS。
+    primary_key: [parse_run_id]
+    foreign_keys: {run_id: pipeline_run.run_id, dispute_id: dispute.dispute_id, reused_from_parse_run_id: parse_run.parse_run_id}
+    columns:
+      parse_run_id:             {type: TEXT, meaning: '编号', readers: [audit], source: code, nullable: false}
+      run_id:                   {type: TEXT, meaning: '所属运行', readers: [audit], source: code, nullable: false}
+      dispute_id:               {type: TEXT, meaning: '争议', readers: [audit], source: code, nullable: false}
+      status:                   {type: 'ENUM[PASSED_CHECKS, FAILED_CHECKS, NO_SUBMISSION, ERROR]', meaning: '最终提交是否通过全部强制检查', readers: [downstream, reviewer, audit], source: code, nullable: false}
+      delta_consistency:        {type: 'ENUM[MATCH_FIRST, MATCH_AFTER_REVISION, MISMATCH_MODEL_INSISTED, MISMATCH_RETRIES_EXHAUSTED, NO_ANCHOR]', meaning: '整笔主张与 Delta 是否一致、怎么到的这一步；不一致交审核员判断（决定 3.2）', readers: [reviewer, audit], source: code, nullable: false}
+      n_attempts:               {type: INTEGER, meaning: '尝试次数', readers: [reviewer, audit], source: code, nullable: false}
+      first_attempt_id:         {type: TEXT, meaning: '第一次尝试（界面上可见）', readers: [reviewer, audit], source: code, nullable: 'NO_SUBMISSION 时为空'}
+      final_attempt_id:         {type: TEXT, meaning: '最终采用的尝试', readers: [downstream, reviewer, audit], source: code, nullable: 'NO_SUBMISSION 时为空'}
+      reused_from_parse_run_id: {type: TEXT, meaning: '副本（content_key 相同）直接沿用第一份的解析，不重新调用模型', readers: [audit], source: code, nullable: '未沿用时为空', pending: '[建议，待确认]'}
+
+  parse_attempt:
+    layer: process
+    purpose: 模型的每一次尝试。全部保留（决定 3.2）。
+    primary_key: [attempt_id]
+    foreign_keys: {parse_run_id: parse_run.parse_run_id}
+    unique: [[parse_run_id, attempt_no]]
+    columns:
+      attempt_id:          {type: TEXT, meaning: '编号', readers: [audit], source: code, nullable: false}
+      parse_run_id:        {type: TEXT, meaning: '所属解析', readers: [audit], source: code, nullable: false}
+      attempt_no:          {type: INTEGER, meaning: '第几次', readers: [reviewer, audit], source: code, nullable: false}
+      llm_input:           {type: JSON, meaning: '本次给模型的输入原样（不含 Delta；第二次起含"不一致"反馈）', readers: [audit], source: code, nullable: false}
+      feedback_given:      {type: TEXT, meaning: '代码给模型的反馈原文（"不一致，不一定是你错了"），不含 Delta 的值', readers: [audit, reviewer], source: code, nullable: '第一次为空'}
+      raw_submission:      {type: JSON, meaning: '模型提交原样', readers: [audit], source: model, nullable: '没有提交时为空'}
+      response_type:       {type: 'ENUM[FIRST, REVISED, INSISTED]', meaning: '第一次 / 修改了 / 坚持原读法', readers: [reviewer, audit], source: model, nullable: false}
+      claimed_total:       {type: DECIMAL, meaning: '模型写出的整笔主张金额（以编号引用，代码取值）', readers: [reviewer, audit], source: model, nullable: '没有提交时为空'}
+      counted_sum:         {type: DECIMAL, meaning: '代码按"计入本次主张"的数字算出的和', readers: [reviewer, audit], source: code, nullable: '没有提交时为空'}
+      delta_check:         {type: 'ENUM[MATCH, MISMATCH, NO_ANCHOR]', meaning: '本次与 Delta 是否一致（Delta 为 0 时无锚点）', readers: [reviewer, audit], source: code, nullable: false}
+      failed_checks:       {type: JSON, meaning: '未通过的检查代码列表', readers: [reviewer, audit], source: code, nullable: false}
+      model_id:            {type: TEXT, meaning: '实际调用的模型', readers: [audit], source: code, nullable: false}
+      started_at:          {type: TIMESTAMP, meaning: '调用时间', readers: [audit], source: code, nullable: false}
+      usage:               {type: JSON, meaning: 'input / output / cache_write_5m / cache_write_1h / cache_read 五项分开存，不合计', readers: [audit], source: code, nullable: false}
+
+  model_statement:
+    layer: process
+    purpose: 模型主动写出的话：疑问、修改理由、坚持理由。疑问是推荐规则的输入之一（决定 2.3）。
+    primary_key: [statement_id]
+    foreign_keys: {attempt_id: parse_attempt.attempt_id}
+    columns:
+      statement_id: {type: TEXT, meaning: '编号', readers: [audit], source: code, nullable: false}
+      attempt_id:   {type: TEXT, meaning: '所属尝试', readers: [audit], source: code, nullable: false}
+      type:         {type: 'ENUM[UNCERTAINTY, REVISION_REASON, INSIST_REASON]', meaning: '类型；REVISION_REASON 在修改时必填（决定 3.2）', readers: [reviewer, audit], source: model, nullable: false}
+      target_ref:   {type: TEXT, meaning: '指向的数字编号或明细编号', readers: [reviewer], source: model, nullable: '针对整笔争议时为空'}
+      text:         {type: TEXT, meaning: '模型原话', readers: [reviewer, audit], source: model, nullable: false}
+
+  # ------------------------------------------------------------------ fact: 模型的解读（挂在每次尝试上）
+  number_reading:
+    layer: fact
+    purpose: 每个数字的解读。每次尝试一套，前后两次可逐个比较（决定 3.5）；"读得对不对"的人工核对也以它为单位。
+    primary_key: [attempt_id, token_id]
+    foreign_keys: {attempt_id: parse_attempt.attempt_id}
+    columns:
+      attempt_id:            {type: TEXT, meaning: '所属尝试', readers: [audit], source: code, nullable: false}
+      token_id:              {type: TEXT, meaning: '数字编号（每个 NUMBER 和 UNRECOGNIZED 恰好一条）', readers: [reviewer, audit], source: model, nullable: false}
+      digits_read:           {type: TEXT, meaning: '认不出的区域里模型逐位写出的数字；代码比对逐位一致（决定 3.8）', readers: [reviewer, audit], source: model, nullable: '只对 UNRECOGNIZED 必填'}
+      kind:                  {type: 'ENUM[CHARGE_AMOUNT, UNSPECIFIED_AMOUNT, TAX_AMOUNT, TOTAL, RATE, QUANTITY, REFERENCE]', meaning: '数字是什么（沿用原型 Kind）', readers: [reviewer, downstream, audit], source: model, nullable: false}
+      status:                {type: 'ENUM[CLAIMED, UNPAID, PAID, BILLED, DEDUCTED, NONE]', meaning: '金额的状态，沿用原型 Status；非金额为 NONE', readers: [reviewer, downstream, audit], source: model, nullable: false}
+      counted_in_claim:      {type: BOOLEAN, meaning: '是否计入本次主张；由 status 推出（CLAIMED、UNPAID 计入），模型不单独写', readers: [reviewer, downstream, audit], source: code, nullable: false}
+      evidence_span:         {type: JSON, meaning: '[start, end]；代码确认在原文里', readers: [reviewer, audit], source: model, nullable: false}
+      exclusion_reason_span: {type: JSON, meaning: '带 $ 却不计入时的原文依据（如 PAID）；代码确认存在（决定 3.5）', readers: [reviewer, audit], source: model, nullable: '只在 has_dollar 且不计入时必填'}
+
+  line_item:
+    layer: fact
+    purpose: 费用明细。下游读的核心数据：只读 final_attempt 且 parse_run.status = PASSED_CHECKS 的那一套。
+    primary_key: [line_item_id]
+    foreign_keys: {attempt_id: parse_attempt.attempt_id}
+    columns:
+      line_item_id:            {type: TEXT, meaning: '尝试编号 + 序号', readers: [downstream, reviewer, audit], source: code, nullable: false}
+      attempt_id:              {type: TEXT, meaning: '所属尝试', readers: [audit], source: code, nullable: false}
+      amount_token_id:         {type: TEXT, meaning: '金额的数字编号', readers: [reviewer, audit], source: model, nullable: '原文只有费用名没有金额时为空（如 "+ HST"、有名无金额的"其他"）'}
+      amount:                  {type: DECIMAL, meaning: '金额，代码从数字表取值，模型不写数字', readers: [downstream, reviewer], source: code, nullable: 'amount_token_id 为空时为空'}
+      combined_group:          {type: TEXT, meaning: '一个金额对应多个费用时，这几条共用的组号；不拆金额', readers: [downstream, reviewer], source: model, nullable: true}
+      charge_code:             {type: TEXT, meaning: '费用代码（taxonomy）', readers: [downstream, reviewer, audit], source: model, nullable: false}
+      raw_charge_label:        {type: TEXT, meaning: '原文费用名称（代码按 code_evidence_span 截取）；有没有金额都存，用来扩充代码表（决定 3.7）', readers: [downstream, reviewer, audit], source: code, nullable: '原文没有费用名时为空（同时触发"金额无名称"标识）'}
+      code_evidence_span:      {type: JSON, meaning: '支撑费用代码的原文片段 [start, end]', readers: [reviewer, audit], source: model, nullable: '同上'}
+      mapping_status:          {type: 'ENUM[ALIAS_MATCH, UNUSUAL_MAPPING, OTHER, PENDING_MEANING]', meaning: '依据片段在不在该代码的别名表里；不在 = 不常见的对应，是提示不是错（决定 3.6）', readers: [downstream, reviewer, audit], source: code, nullable: false}
+      carrier_stated_reason_span: {type: JSON, meaning: '承运商自己写的理由（未核实）', readers: [reviewer, downstream], source: model, nullable: '原文没有时为空'}
+      carrier_stated_basis_type: {type: 'ENUM[PPG_NOTIFIED, PPG_APPROVED, PPG_LIST, CONTRACT_OR_TARIFF, SHIPPING_DOCUMENT, OTHER, NONE]', meaning: '承运商声称的依据类别（沿用原型 EvidenceType）', readers: [reviewer, downstream], source: model, nullable: false}
+      carrier_stated_basis_span: {type: JSON, meaning: '依据原文', readers: [reviewer, downstream], source: model, nullable: 'basis_type = NONE 时为空'}
+
+  arithmetic_relation:
+    layer: fact
+    purpose: 模型写出的算式关系，代码每次都验算（决定 3.3）。
+    primary_key: [relation_id]
+    foreign_keys: {attempt_id: parse_attempt.attempt_id}
+    columns:
+      relation_id:   {type: TEXT, meaning: '编号', readers: [audit], source: code, nullable: false}
+      attempt_id:    {type: TEXT, meaning: '所属尝试', readers: [audit], source: code, nullable: false}
+      relation_type: {type: 'ENUM[PRODUCT, SUM, TAX]', meaning: '数量×单价=结果 / 各项相加=合计 / 税基×税率=税额', readers: [reviewer, audit], source: model, nullable: false}
+      operands:      {type: JSON, meaning: '[{token_id, role: QUANTITY|UNIT_RATE|ADDEND|TAX_BASE|TAX_RATE}]', readers: [reviewer, audit], source: model, nullable: false}
+      result_token_id: {type: TEXT, meaning: '结果的数字编号', readers: [reviewer, audit], source: model, nullable: '原文没写结果时为空'}
+      computed_value:  {type: DECIMAL, meaning: '代码算出的值', readers: [reviewer, audit], source: code, nullable: false}
+      holds:           {type: BOOLEAN, meaning: '在容差内成立', readers: [reviewer, audit], source: code, nullable: 'result_token_id 为空时为空'}
+
+  # ------------------------------------------------------------------ judgment
+  flag:
+    layer: judgment
+    purpose: 标识。由规则（rules.yaml）算出；模型的疑问经规则转成标识。查重的"指向第一份"也在这里。
+    primary_key: [flag_id]
+    foreign_keys: {run_id: pipeline_run.run_id, dispute_id: dispute.dispute_id, points_to_dispute_id: dispute.dispute_id}
+    columns:
+      flag_id:              {type: TEXT, meaning: '编号', readers: [reviewer, audit], source: code, nullable: false}
+      run_id:               {type: TEXT, meaning: '所属运行', readers: [audit], source: code, nullable: false}
+      code:                 {type: TEXT, meaning: '诊断代码（目录里有定义）', readers: [reviewer, downstream, audit], source: code, nullable: false}
+      level:                {type: 'ENUM[ROW, INVOICE, SHIPMENT, PARSE, TEXT, RECORD_FIELD]', meaning: '在哪一层查出来的', readers: [reviewer, audit], source: code, nullable: false}
+      target_type:          {type: 'ENUM[DISPUTE, NUMBER, LINE_ITEM, RELATION, ATTEMPT, CARRIER_INVOICE, SHIPMENT]', meaning: '挂在什么对象上', readers: [reviewer, audit], source: code, nullable: false}
+      target_id:            {type: TEXT, meaning: '对象编号', readers: [reviewer, audit], source: code, nullable: false}
+      dispute_id:           {type: TEXT, meaning: '所属争议（界面分组用）', readers: [reviewer], source: code, nullable: '发票或票货层面的标识为空'}
+      severity:             {type: 'ENUM[INFO, ATTENTION, RETURN_SUGGESTED]', meaning: '从 rules.yaml 读', readers: [reviewer, audit], source: code, nullable: false}
+      origin:               {type: 'ENUM[CODE_RULE, MODEL_REPORTED]', meaning: '规则查出，还是模型主动报告后由规则转成', readers: [reviewer, audit], source: code, nullable: false}
+      points_to_dispute_id: {type: TEXT, meaning: '查重标识指向的第一份', readers: [reviewer, audit], source: code, nullable: '非查重标识为空'}
+      points_to_line_item_id: {type: TEXT, meaning: '发票内、票货内查重时指向的那条明细', readers: [reviewer, audit], source: code, nullable: '行层面查重和非查重标识为空'}
+      n_later_copies:       {type: INTEGER, meaning: '第一份上的提示"后面还有 N 笔相同"', readers: [reviewer], source: code, nullable: '只在第一份的提示上有值'}
+      evidence:             {type: JSON, meaning: '各代码固定格式的证据（目录里定义）', readers: [reviewer, audit], source: code, nullable: false}
+      explanation:          {type: TEXT, meaning: '给审核员的一句解释（可选，如"Delta 恰好等于各项加合计"，决定 3.4）', readers: [reviewer], source: code, nullable: true}
+      rules_version:        {type: TEXT, meaning: '规则版本', readers: [audit], source: code, nullable: false}
+
+  dispute_assessment:
+    layer: judgment
+    purpose: 每笔争议在一次运行里的推荐颜色、历史状态和退回草稿。颜色由规则算，不用模型自评（决定 2.3）。
+    primary_key: [run_id, dispute_id]
+    foreign_keys: {run_id: pipeline_run.run_id, dispute_id: dispute.dispute_id}
+    columns:
+      run_id:         {type: TEXT, meaning: '运行', readers: [audit], source: code, nullable: false}
+      dispute_id:     {type: TEXT, meaning: '争议', readers: [reviewer, downstream], source: code, nullable: false}
+      recommendation: {type: 'ENUM[NORMAL, FLAGGED, RETURN_SUGGESTED]', meaning: '正常 / 有标识 / 建议退回；先看要人看的，再看可退回的（决定 2.3）', readers: [reviewer, downstream, audit], source: code, nullable: false}
+      decisive_flag_ids: {type: JSON, meaning: '决定颜色的标识', readers: [reviewer, audit], source: code, nullable: 'NORMAL 时为空数组'}
+      history_status: {type: 'ENUM[COMPARED, NO_EARLIER_RECORDS, HISTORY_NOT_AVAILABLE]', meaning: '跨批次比较做了没有；"没有更早记录"和"更早的数据我们没有"分开（决定 7 第 2 条保留"未提供"）', readers: [reviewer, downstream, audit], source: code, nullable: false}
+      return_draft:   {type: JSON, meaning: '退回草稿（理由、要改什么）；只给审核员用，系统不发送（决定 2.2）', readers: [reviewer], source: code, nullable: '推荐不是 RETURN_SUGGESTED 时为空'}
+
+  # ------------------------------------------------------------------ human
+  reviewer_decision:
+    layer: human
+    purpose: >-
+      审核员的决定，只追加。按钮不改 OTM（决定 6.5）。系统从不写这张表，也不给出这里任何一个值的建议；
+      action 是审核员本人的操作记录。以后作为标准答案候选时要先筛选。
+    primary_key: [decision_id]
+    foreign_keys: {dispute_id: dispute.dispute_id, flag_id: flag.flag_id}
+    columns:
+      decision_id:     {type: TEXT, meaning: '编号', readers: [audit], source: code, nullable: false}
+      dispute_id:      {type: TEXT, meaning: '争议', readers: [audit, downstream], source: reviewer, nullable: false}
+      flag_id:         {type: TEXT, meaning: '清除的是哪条标识', readers: [audit], source: reviewer, nullable: '只在 CLEAR_FLAG 时必填'}
+      action:          {type: 'ENUM[APPROVE, RETURN_TO_CARRIER, CLEAR_FLAG, HOLD]', meaning: '审核员按了哪个按钮（决定 6.4）', readers: [audit, downstream], source: reviewer, nullable: false, pending: '[待 Jake J10] OTM 里实际有哪几种操作'}
+      reason:          {type: TEXT, meaning: '理由；CLEAR_FLAG 必须选或填', readers: [audit], source: reviewer, nullable: 'CLEAR_FLAG 时不可为空'}
+      bulk_action_id:  {type: TEXT, meaning: '批量操作编号；一次点完，每笔各存一条', readers: [audit], source: code, nullable: '单笔操作时为空'}
+      edited_return_draft: {type: JSON, meaning: '审核员改过的退回草稿', readers: [audit], source: reviewer, nullable: true}
+      flag_feedback:   {type: 'ENUM[USEFUL, NOISE, WRONG]', meaning: '对这条标识的评价，用来调规则', readers: [audit], source: reviewer, nullable: true}
+      corrected_readings: {type: JSON, meaning: '审核员认为读错时给出的更正（数字编号 → 正确解读）', readers: [audit], source: reviewer, nullable: true}
+      reviewer_id:     {type: TEXT, meaning: '审核员（内部编号，不存姓名邮箱）', readers: [audit], source: code, nullable: false}
+      decided_at:      {type: TIMESTAMP, meaning: '时间', readers: [audit, downstream], source: code, nullable: false}
+
+views:
+  accepted_line_items:
+    meaning: 下游唯一应读的明细：每笔争议最新一次运行中 status = PASSED_CHECKS 的 final_attempt 下的 line_item，带争议的币种。
+    readers: [downstream]
+  first_attempt_view:
+    meaning: 每笔争议第一次尝试的读法，审核界面并排显示（决定 3.2）。
+    readers: [reviewer]
+  attempt_diff:
+    meaning: 同一 parse_run 相邻两次尝试之间 number_reading 的差异（kind、status、counted_in_claim 变了的数字）。由代码在查询时算，不另存；有差异时规则另出一条标识。
+    readers: [reviewer, audit]
+  post_review_aggregates:
+    meaning: 审核员清理之后的汇总（决定 5.4），给下游和承运商指标（A3）用；只算未被标为副本、或副本标识已清除并保留的争议。
+    readers: [downstream]
+
+duplicate_levels:   # 第 C3 部分
+  - level: RE_EXPORT
+    status: '[建议，待确认]'
+    reads: [source_row.row_fingerprint]
+    rule: 之前批次已有相同 row_fingerprint 的原始行 → 不新建争议，只加 dispute_source_row(link_type=RE_EXPORTED)
+    flag: 不是重复，不标；审核界面"之前批次的上下文"里显示
+  - level: ROW
+    reads: [dispute.content_key, dispute.pk, dispute.first_source_row_id]
+    rule: 同一 content_key 的多笔争议（只有 PK 或行号不同）；第一份 = 更早批次里的那份，否则批次内按 copy_rank
+    flag_on_first: 'DUP.ROW.HAS_LATER_COPIES（提示，n_later_copies = N）'
+    flag_on_later: 'DUP.ROW.COPY（标红，points_to_dispute_id = 第一份）'
+    pending: '[待讨论] 批次内第一份按 PK 还是行号；[待 Jake J1] 这些是导出复制还是真实的多次 change order'
+  - level: INVOICE
+    reads: [accepted_line_items.charge_code, accepted_line_items.amount, dispute.carrier_invoice_id, dispute.event_time]
+    scope: 同一承运商发票内、去掉 DUP.ROW.COPY 之后的争议
+    rule: 同一种费用出现两次（同一笔争议里两条，或同一发票不同争议里各一条）；含 01b 的同文重提、约 5% 替换、保留并叠加、同额换名
+    flag_on_later: 'DUP.INVOICE.SAME_CHARGE 等（points_to_line_item_id = 先出现的那条）'
+    pending: '[待 Jake J6] 后一次是替换还是追加；[待 Jake J7] 按天按次的费用是一次合计还是每次一提'
+  - level: SHIPMENT
+    reads: [accepted_line_items.charge_code, accepted_line_items.amount, dispute.shipment_gid, dispute.carrier_invoice_id]
+    scope: 同一票货、不同承运商发票、去掉 DUP.ROW.COPY 之后
+    rule: 不同发票里出现同样的费用代码和金额
+    flag_on_later: 'DUP.SHIPMENT.CROSS_INVOICE（points_to_line_item_id）'
+    note: 开发集上承运商发票与票货一一对应，这一层在开发集上不会触发，只能在 mock 上验证

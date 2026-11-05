@@ -1,0 +1,57 @@
+# Charge-code taxonomy, draft v0.1 (task 02).
+# Skeleton: industry accessorial lists (X12 210 L1 / SAC charge codes, project44 accessorial reference codes,
+# carriers' public rules tariffs). Dev data is used to check coverage, not to enumerate codes.
+# x12_ref is left null on purpose: the exact L1/SAC codes have to be looked up in the X12 code list, not recalled.
+# non_standard: true marks extensions seen in data that the standard lists do not name.
+# phrasings are examples for the model to read, never keyword rules in code.
+version: taxonomy-v0.1
+
+categories:
+  LINEHAUL: Transportation charge itself
+  FUEL: Fuel surcharge amounts
+  RATE_CORRECTION: The carrier says a rate, tier, weight or factor was applied wrongly; the amount is a difference
+  ACCESSORIAL: Extra service at pickup or delivery
+  DETENTION_STORAGE: Time-based charges; these look alike but are different services
+  DRAYAGE: Port / rail container moves
+  TAX: Sales taxes on freight
+  PENDING: Codes whose meaning is not confirmed
+  OTHER: Anything else, always with the source phrase
+
+codes:
+  LINEHAUL.BASE: {category: LINEHAUL, definition: Base freight or line-haul charge, phrasings: [LINEHAUL, LINE HAUL, LH, BASE COST], x12_ref: null}
+  LINEHAUL.MINIMUM: {category: LINEHAUL, definition: Minimum charge applied instead of the rated charge, phrasings: [MIN FEE, MINIMUM CHARGE], x12_ref: null}
+  FUEL.SURCHARGE: {category: FUEL, definition: Fuel surcharge amount, phrasings: [FSC, FUEL SURCHARGE, FEUL], x12_ref: null}
+  RATE_CORRECTION.FUEL_TIER: {category: RATE_CORRECTION, definition: Fuel surcharge should be computed on a different table or tier (e.g. truckload vs LTL), phrasings: [TL FSC SHOULD APPLY], x12_ref: null}
+  RATE_CORRECTION.BASE_RATE: {category: RATE_CORRECTION, definition: Base rate was wrong, phrasings: [INCORRECT BASE COST, RATED AS], x12_ref: null}
+  RATE_CORRECTION.WEIGHT: {category: RATE_CORRECTION, definition: Billed weight disputed, phrasings: [AS PER BOL WEIGHT, RA 20 000 LBS], x12_ref: null}
+  RATE_CORRECTION.ZONE_FACTOR: {category: RATE_CORRECTION, definition: Geographic or zone factor applied to the rate, phrasings: [FACTOR PER CONTRACT], x12_ref: null}
+  RATE_CORRECTION.CONTRACT_GENERAL: {category: RATE_CORRECTION, definition: Carrier cites contract rates without naming what was wrong, phrasings: [BALANCE DUE PER CONTRACT RATES], x12_ref: null}
+  ACCESSORIAL.LIFTGATE: {category: ACCESSORIAL, definition: Liftgate / tailgate service at delivery or pickup, phrasings: [TAILGATE, TAILGATE DELIVERY, TAILAGTE], x12_ref: null}
+  ACCESSORIAL.INSIDE_DELIVERY: {category: ACCESSORIAL, definition: Delivery beyond the dock or door, phrasings: [INSIDE DELIVERY], x12_ref: null}
+  ACCESSORIAL.REDELIVERY: {category: ACCESSORIAL, definition: Second delivery attempt, phrasings: [REDELIVERY, RE DELIVERY, REDILVERY], x12_ref: null}
+  ACCESSORIAL.SPECIAL_DELIVERY: {category: ACCESSORIAL, definition: Special delivery handling required by the consignee, phrasings: [SPECIAL DELV. CHG], x12_ref: null}
+  ACCESSORIAL.APPOINTMENT: {category: ACCESSORIAL, definition: Appointment or scheduled delivery, phrasings: [APPOINTMENT], x12_ref: null}
+  ACCESSORIAL.RESIDENTIAL: {category: ACCESSORIAL, definition: Residential delivery, phrasings: [RESIDENTIAL], x12_ref: null}
+  ACCESSORIAL.LIMITED_ACCESS: {category: ACCESSORIAL, definition: Limited-access location, phrasings: [LIMITED ACCESS], x12_ref: null}
+  ACCESSORIAL.SORT_SEGREGATE: {category: ACCESSORIAL, definition: Sorting or segregating freight, phrasings: [SORTATION FEE], x12_ref: null}
+  ACCESSORIAL.LUMPER: {category: ACCESSORIAL, definition: Third-party unloading labour, phrasings: [LUMPER], x12_ref: null}
+  ACCESSORIAL.HAZMAT: {category: ACCESSORIAL, definition: Hazardous materials handling, phrasings: [HAZMAT, HAMAT], x12_ref: null}
+  ACCESSORIAL.PROTECT_FROM_FREEZE: {category: ACCESSORIAL, definition: Heated service / protect from freezing, phrasings: [HEAT CHARGE, FREEZABLE ACCESSORIAL], x12_ref: null}
+  ACCESSORIAL.REWEIGH: {category: ACCESSORIAL, definition: Reweigh or inspection fee, phrasings: [REWEIGHED], x12_ref: null}
+  ACCESSORIAL.TRUCK_ORDERED_NOT_USED: {category: ACCESSORIAL, definition: Truck ordered not used, phrasings: [TONU], x12_ref: null}
+  ACCESSORIAL.IN_BOND: {category: ACCESSORIAL, definition: In-bond / customs bond handling, phrasings: [BOND CHARGES], x12_ref: null}
+  ACCESSORIAL.ROAD_CLOSURE: {category: ACCESSORIAL, definition: Surcharge for detours caused by road closures, phrasings: [BC ROAD CLOSURE], x12_ref: null, non_standard: true}
+  DETENTION_STORAGE.DRIVER_DETENTION: {category: DETENTION_STORAGE, definition: Driver and tractor waiting beyond free time, phrasings: [DRIVER DETENTION, DETENTION TIME, DETENTION AT SHIPPER], x12_ref: null}
+  DETENTION_STORAGE.EQUIPMENT_DETENTION: {category: DETENTION_STORAGE, definition: Trailer or equipment held beyond free time, phrasings: [EQUIPMENT DETENTION], x12_ref: null}
+  DETENTION_STORAGE.TERMINAL_STORAGE: {category: DETENTION_STORAGE, definition: Freight or container stored at a terminal or rail ramp, phrasings: [RAMP STORAGE, RAIL RAMP STORAGE, STORAGE], x12_ref: null}
+  DETENTION_STORAGE.CONTAINER_PER_DIEM: {category: DETENTION_STORAGE, definition: Daily charge for keeping a container or chassis, phrasings: [ORGIN PERDIEM, DESTINATION PERDIEM], x12_ref: null}
+  DETENTION_STORAGE.DWELL: {category: DETENTION_STORAGE, definition: Container dwell days between deramp and delivery, phrasings: [DWELL DTN, DWELL DAY(S)], x12_ref: null, non_standard: true}
+  DRAYAGE.CHASSIS: {category: DRAYAGE, definition: Chassis usage, phrasings: [CHASSIS], x12_ref: null}
+  DRAYAGE.PORT_FEE: {category: DRAYAGE, definition: Port termination or congestion fee, phrasings: [PORT TERMINATION, PORT CONGESTION, CONGESTION], x12_ref: null}
+  DRAYAGE.PRE_PULL: {category: DRAYAGE, definition: Moving a container to a yard before delivery, phrasings: [PRE-PULL, YARD PULL], x12_ref: null}
+  TAX.GST: {category: TAX, definition: Canadian Goods and Services Tax, phrasings: [GST], x12_ref: null}
+  TAX.HST: {category: TAX, definition: Canadian Harmonized Sales Tax, phrasings: [HST], x12_ref: null}
+  TAX.PST: {category: TAX, definition: Provincial sales tax (incl. QST), phrasings: [PST, QST], x12_ref: null}
+  TAX.UNSPECIFIED: {category: TAX, definition: Tax mentioned without saying which, phrasings: [TAX], x12_ref: null}
+  PENDING.PURCHASED_TRANSPORTATION: {category: PENDING, definition: "Meaning not confirmed (P12). Use for 'purchase(d) transportation surcharge / fee' in any spelling. Do not explain it.", phrasings: [PURCHASED TRANSPORTATION SURCHARGE, PURCHASE FEE, PURCHASED TRANSP SURCHARG, PURCAHSE FEE], x12_ref: null}
+  OTHER: {category: OTHER, definition: "Not covered above; other_phrase is required (e.g. 'CV19 FEE', 'RESERVATION FEE')", phrasings: [], x12_ref: null}

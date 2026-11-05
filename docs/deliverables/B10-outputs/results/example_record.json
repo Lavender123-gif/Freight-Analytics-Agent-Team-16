@@ -1,0 +1,158 @@
+{
+  "source": {
+    "record_id": "<withheld>",
+    "shipment_id": "<withheld>",
+    "invoice_pks": "<withheld>",
+    "source_rows": "<withheld>",
+    "event_date": "<withheld>",
+    "invoice_amount": "<withheld>",
+    "shipment_amount": "<withheld>",
+    "delta": "56.56",
+    "origin_state": "<withheld>",
+    "destination_state": "<withheld>",
+    "origin_country": "US",
+    "destination_country": "US",
+    "reason_code": "<withheld>",
+    "carrier": "<withheld>"
+  },
+  "text": {
+    "original_sha1": "<withheld>",
+    "redacted": "56.56",
+    "n_person_placeholders": 0,
+    "n_email_placeholders": 0,
+    "injection_hits": []
+  },
+  "parse": {
+    "numbers": [
+      {
+        "id": "#1",
+        "raw": "56.56",
+        "span": [
+          0,
+          5
+        ],
+        "value": "56.56",
+        "digits": "5656",
+        "has_dollar": false,
+        "dollar_space": false,
+        "space_merged": false,
+        "leading_dot": false,
+        "trailing_dot": false,
+        "decimals": 2,
+        "minus_before": "none",
+        "prev_symbol": null,
+        "prev_word": null,
+        "next_word": null,
+        "unit_hint": null
+      }
+    ],
+    "dates": [],
+    "unrecognized": [],
+    "marked_text": "[#1 56.56]",
+    "coverage_ok": true
+  },
+  "llm_input": null,
+  "run": {
+    "status": "not_run_auto_reject",
+    "submissions": 0,
+    "reconcile_calls": 0,
+    "tool_calls": [],
+    "model": null,
+    "prompt_version": null
+  },
+  "content": null,
+  "claim": null,
+  "diagnostics": [
+    {
+      "code": "REC.INPUT.EXPORT_DUPLICATE",
+      "location": {
+        "object_type": "REC",
+        "path": "source"
+      },
+      "evidence": {
+        "n_rows": "<withheld>",
+        "source_rows": "<withheld>",
+        "n_pks": 2
+      },
+      "step": "1",
+      "handling": "record",
+      "created_at": "<ts>"
+    },
+    {
+      "code": "REC.TEXT.NUMBERS_ONLY",
+      "location": {
+        "object_type": "REC",
+        "path": "text"
+      },
+      "evidence": {
+        "numbers": [
+          "56.56"
+        ]
+      },
+      "step": "2",
+      "handling": "record",
+      "created_at": "<ts>"
+    }
+  ],
+  "flags": [
+    {
+      "code": "REC.TEXT.NUMBERS_ONLY",
+      "object_type": "REC",
+      "severity": "high",
+      "locations": [
+        "<path>"
+      ],
+      "evidence": [
+        "<see diagnostics>"
+      ],
+      "n_diagnostics": 1,
+      "escalation_role": "alone",
+      "points": 0
+    },
+    {
+      "code": "REC.INPUT.EXPORT_DUPLICATE",
+      "object_type": "REC",
+      "severity": "info",
+      "locations": [
+        "<path>"
+      ],
+      "evidence": [
+        "<see diagnostics>"
+      ],
+      "n_diagnostics": 1,
+      "escalation_role": "none",
+      "points": 0
+    }
+  ],
+  "disposition": {
+    "outcome": "AUTO_REJECT",
+    "reasons": [
+      "auto_reject:REC.TEXT.NUMBERS_ONLY"
+    ],
+    "score": 0,
+    "rules_version": "rules-v0.1"
+  },
+  "reject_draft": {
+    "automatic": true,
+    "template_codes": [
+      "REC.TEXT.NUMBERS_ONLY"
+    ],
+    "reasons": [
+      "文本去掉数字、日期、标点后没有任何字母"
+    ],
+    "required_changes": [
+      "写明这笔金额对应的费用名称和收费原因"
+    ],
+    "acceptance_criteria": [
+      "每个金额旁边都有费用名称；金额之和等于本次差额"
+    ]
+  },
+  "versions": {
+    "rules": "rules-v0.1",
+    "catalog": "catalog-v0.1",
+    "taxonomy": "taxonomy-v0.1",
+    "tax": "tax-v0.1",
+    "prompt": "",
+    "model": ""
+  }
+}
