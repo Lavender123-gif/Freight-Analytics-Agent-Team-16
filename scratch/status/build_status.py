@@ -1,7 +1,9 @@
-"""Generate docs/status/project_status.{zh,en}.md from docs/status/cards.yaml.
+"""Generate the status board from docs/status/cards.yaml: Chinese to docs/status/project_status.zh.md,
+English to STATUS.md in the repository root (the only English copy; task 11).
 
 cards.yaml is the single source of the status board; the two Markdown boards are generated
-and must not be edited by hand.
+and must not be edited by hand. Links in cards.yaml are written relative to docs/status/; for the
+root English board they are rebased to the repository root.
 
 Usage (from the repo root; `run.sh` wraps the uv command):
   sh scratch/status/run.sh            regenerate both boards, then run the checks
@@ -14,11 +16,14 @@ Checks
     evidence; dark green needs independent / human-review evidence and threshold_preset: true;
     a yellow card with evidence needs a test report; every non-dark-green card states needs_b04
   - every linked file or folder exists; every test report states the card's evidence level
+  - plan mapping (task 10): every card has a tier; Must cards name Must tasks of docs/status/progress.yaml;
+    every Must task has at least one card; cards outside Must have weight 0
   - the boards on disk equal a fresh render (catches hand edits)
 """
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -27,7 +32,11 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "docs/status/cards.yaml"
-OUT_DIR = ROOT / "docs/status"
+PLAN = ROOT / "docs/status/progress.yaml"   # the 23 Must tasks: hours, owner, status (task 10)
+STATUS_EN = {"未做": "not done", "已做待验收": "done, awaiting acceptance", "已验收": "accepted"}
+OWNER_EN = {"CC": "CC", "人工": "manual"}
+OUT_DIR = ROOT / "docs/status"          # links in cards.yaml and rel() are relative to this folder
+OUT = {"zh": OUT_DIR / "project_status.zh.md", "en": ROOT / "STATUS.md"}
 TEMPLATES = Path(__file__).with_name("templates")
 LANGS = ("zh", "en")
 ITEMS = ["what_is", "status_detail", "deliverable_note", "start_conditions",
@@ -40,9 +49,9 @@ LABELS = {
         "generated": "由 [`cards.yaml`](cards.yaml) 生成，不要手改。",
         "generated_how": "改卡片内容只改 `cards.yaml`，然后在仓库根目录运行 `sh scratch/status/run.sh` 重新生成中英两版。",
         "updated": "最后更新", "task": "更新它的任务",
-        "authoritative": "**中文版为准**；英文版 [`project_status.en.md`](project_status.en.md) 结构相同，由同一份数据生成。",
+        "authoritative": "**中文版为准**；英文版在仓库根目录 [`STATUS.md`](../../STATUS.md)，结构相同，由同一份数据生成。",
         "progress": "整体进度", "shaped": "成型度", "verified": "验证度",
-        "progress_count": "张数", "progress_formula": "计算方法",
+        "progress_count": "张", "all_cards": "上面一行的颜色计数是全部 {n} 张卡，含不进分母的。", "progress_formula": "计算方法",
         "standard": "颜色和证据级别标准", "color": "颜色", "meaning": "含义",
         "evidence": "证据级别", "evidence_intro": "每份测试报告开头标明证据级别：",
         "rules": "规则", "overview": "总览图", "table": "卡片总表",
@@ -66,6 +75,10 @@ LABELS = {
         "b04": {"yes": "依赖", "no": "不依赖", "partly": "部分依赖", "self": "本卡即 B04", "n/a": "不适用"},
         "kind_analysis": "分析类卡片：\"检验\"是脚本可复现与数字核对。",
         "back": "回到总表",
+        "must": "Must 清单（11 月 5 日计划）", "col_plan": "计划任务", "col_task": "任务", "col_hours": "人时",
+        "col_owner": "负责方", "col_task_status": "任务状态", "col_cards": "对应卡片", "tier": "层",
+        "denominator": "Must 分母", "outside": "不进分母",
+        "must_legend": "任务状态（未做 / 已做待验收 / 已验收）按计划里的完成标准记，由 `progress.yaml` 维护；卡片颜色按证据定。两者不是一回事：任务做完了，卡片仍可能是黄的（证据或交付物还不够）。",
         "edges_from_yaml": "分栏和连线来自 `cards.yaml` 的 `columns`、`overview_edges`；节点颜色即卡片颜色。",
     },
     "en": {
@@ -75,7 +88,7 @@ LABELS = {
         "updated": "Last updated", "task": "Updated by task",
         "authoritative": "**The Chinese version [`project_status.zh.md`](project_status.zh.md) is authoritative**; this English version has the same structure and is generated from the same data.",
         "progress": "Overall progress", "shaped": "Shaped", "verified": "Verified",
-        "progress_count": "cards", "progress_formula": "How it is computed",
+        "progress_count": "cards", "all_cards": "The colour counts on the line above cover all {n} cards, including those outside the denominator.", "progress_formula": "How it is computed",
         "standard": "Colour and evidence standard", "color": "Colour", "meaning": "Meaning",
         "evidence": "Evidence level", "evidence_intro": "Every test report states its evidence level at the top:",
         "rules": "Rules", "overview": "Overview", "table": "Card table",
@@ -99,6 +112,10 @@ LABELS = {
         "b04": {"yes": "yes", "no": "no", "partly": "partly", "self": "this card is B04", "n/a": "not applicable"},
         "kind_analysis": "Analysis card: the \"check\" is script reproducibility and number cross-checking.",
         "back": "back to the card table",
+        "must": "Must list (2026-11-05 plan)", "col_plan": "Plan task", "col_task": "Task", "col_hours": "Hours",
+        "col_owner": "Owner", "col_task_status": "Task status", "col_cards": "Cards", "tier": "Tier",
+        "denominator": "Must denominator", "outside": "outside the denominator",
+        "must_legend": "Task status (not done / done, awaiting acceptance / accepted) follows the plan's done-when text and is kept in `progress.yaml`; card colour follows evidence. They are different things: a task can be done while its card is still yellow (evidence or deliverable still short).",
         "edges_from_yaml": "Columns and edges come from `columns` and `overview_edges` in `cards.yaml`; node colour = card colour.",
     },
 }
@@ -116,8 +133,40 @@ def rel(path: str | None) -> str | None:
     return r + "/" if path.endswith("/") else r
 
 
+_LINK = re.compile(r"\]\(([^)\s#]+)(#[^)\s]*)?\)")
+
+
+def rebase_links(md: str, out: Path) -> str:
+    """Rewrite relative Markdown links (written relative to docs/status/) for a board saved at `out`."""
+    if out.parent == OUT_DIR:
+        return md
+
+    def fix(m: re.Match) -> str:
+        target, frag = m.group(1), m.group(2) or ""
+        if re.match(r"[a-z]+:", target):
+            return m.group(0)
+        r = os.path.relpath(os.path.normpath(OUT_DIR / target), out.parent)
+        return f"]({r}{'/' if target.endswith('/') else ''}{frag})"
+    return _LINK.sub(fix, md)
+
+
+def load_plan() -> list[dict]:
+    return yaml.safe_load(PLAN.read_text(encoding="utf-8"))["tasks"]
+
+
+def must_rows(data: dict, plan: list[dict], lang: str) -> list[dict]:
+    """One row per Must task, in plan order, with the cards mapped to it."""
+    rows = []
+    for t in plan:
+        cards = [c for c in data["cards"] if t["id"] in c.get("plan_tasks", [])]
+        rows.append({"id": t["id"], "name": t["name"][lang], "hours": f"{t['hours'][0]}–{t['hours'][1]}",
+                     "owner": t["owner"] if lang == "zh" else OWNER_EN[t["owner"]],
+                     "status": t["status"] if lang == "zh" else STATUS_EN[t["status"]], "cards": cards})
+    return rows
+
+
 def progress(data: dict) -> dict:
-    cards = [c for c in data["cards"] if c["color"] != "grey"]
+    cards = [c for c in data["cards"] if c["color"] != "grey" and c.get("tier") == "must"]
     total = sum(c["weight"] for c in cards)
     credit = data["meta"]["progress"]["yellow_credit"]
     shaped = sum(c["weight"] for c in cards if c["color"] in GREENS) \
@@ -129,24 +178,45 @@ def progress(data: dict) -> dict:
         return f"{x:g}"
     return {"total": fmt(total), "shaped": fmt(shaped), "verified": fmt(verified),
             "shaped_pct": round(100 * shaped / total), "verified_pct": round(100 * verified / total),
-            "counts": counts}
+            "counts": counts, "n_must": len(cards),
+            "outside": {t: sum(1 for c in data["cards"] if c.get("tier") == t) for t in data["meta"]["tiers"] if t != "must"},
+            "grey_must": sum(1 for c in data["cards"] if c["color"] == "grey" and c.get("tier") == "must")}
 
 
-def render(data: dict, lang: str) -> str:
+def render(data: dict, lang: str, plan: list[dict]) -> str:
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES), trim_blocks=True,
                              lstrip_blocks=True, keep_trailing_newline=True,
                              undefined=jinja2.StrictUndefined)
     env.filters["rel"] = rel
     tpl = env.get_template("project_status.md.j2")
     by_col = {c["id"]: [k for k in data["cards"] if k["column"] == c["id"]] for c in data["columns"]}
-    return tpl.render(d=data, m=data["meta"], L=LABELS[lang], lang=lang, by_col=by_col,
-                      p=progress(data), items=ITEMS)
+    md = tpl.render(d=data, m=data["meta"], L=LABELS[lang], lang=lang, by_col=by_col,
+                    p=progress(data), items=ITEMS, must=must_rows(data, plan, lang))
+    return rebase_links(md, OUT[lang])
 
 
-def check(data: dict, rendered: dict[str, str]) -> list[str]:
+def check(data: dict, rendered: dict[str, str], plan: list[dict]) -> list[str]:
     errs: list[str] = []
     meta = data["meta"]
     ids = [c["id"] for c in data["cards"]]
+    must_ids = [t["id"] for t in plan]
+    for t in plan:
+        if t["status"] not in STATUS_EN or t["owner"] not in OWNER_EN:
+            errs.append(f"progress.yaml {t['id']}: unknown status or owner")
+        if not any(t["id"] in c.get("plan_tasks", []) for c in data["cards"]):
+            errs.append(f"Must task {t['id']} has no card")
+    for c in data["cards"]:
+        tier = c.get("tier")
+        if tier not in meta["tiers"]:
+            errs.append(f"{c['id']}: unknown or missing tier {tier}")
+        if not isinstance(c.get("plan_tasks"), list):
+            errs.append(f"{c['id']}: missing plan_tasks")
+        elif tier == "must" and (not c["plan_tasks"] or any(t not in must_ids for t in c["plan_tasks"])):
+            errs.append(f"{c['id']}: a Must card must name Must tasks, got {c['plan_tasks']}")
+        elif tier != "must" and any(t in must_ids for t in c["plan_tasks"]):
+            errs.append(f"{c['id']}: a card outside Must names a Must task")
+        if tier != "must" and c.get("weight") != 0:
+            errs.append(f"{c['id']}: cards outside Must must have weight 0")
     if len(ids) != len(set(ids)):
         errs.append("duplicate card ids")
     cols = {c["id"] for c in data["columns"]}
@@ -217,7 +287,7 @@ def check(data: dict, rendered: dict[str, str]) -> list[str]:
                 if want not in head:
                     errs.append(f"{cid}: {p} does not state evidence level '{want}' near the top")
     for lg in LANGS:
-        out = OUT_DIR / f"project_status.{lg}.md"
+        out = OUT[lg]
         if not out.exists() or out.read_text(encoding="utf-8") != rendered[lg]:
             errs.append(f"{out.relative_to(ROOT)} differs from a fresh render of cards.yaml "
                         "(hand-edited or not regenerated)")
@@ -226,14 +296,15 @@ def check(data: dict, rendered: dict[str, str]) -> list[str]:
 
 def main(argv: list[str]) -> int:
     data = load()
-    rendered = {lg: render(data, lg) for lg in LANGS}
+    plan = load_plan()
+    rendered = {lg: render(data, lg, plan) for lg in LANGS}
     if "--check" not in argv:
         for lg in LANGS:
-            (OUT_DIR / f"project_status.{lg}.md").write_text(rendered[lg], encoding="utf-8")
-            print(f"wrote docs/status/project_status.{lg}.md")
-    errs = check(data, rendered)
+            OUT[lg].write_text(rendered[lg], encoding="utf-8")
+            print(f"wrote {OUT[lg].relative_to(ROOT)}")
+    errs = check(data, rendered, plan)
     p = progress(data)
-    print(f"shaped {p['shaped']}/{p['total']} ({p['shaped_pct']}%), "
+    print(f"Must denominator {p['n_must']} cards; shaped {p['shaped']}/{p['total']} ({p['shaped_pct']}%), "
           f"verified {p['verified']}/{p['total']} ({p['verified_pct']}%), colours {p['counts']}")
     for e in errs:
         print("CHECK FAIL:", e)

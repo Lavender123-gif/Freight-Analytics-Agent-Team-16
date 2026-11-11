@@ -12,3 +12,13 @@ wheels/
 data/
 .env
 *.xlsx
+
+# Local project-status page (kept locally, not shared)
+/agent/
+/00-索引.md
+/01-项目状态.html
+
+.DS_Store
+
+# Archify delivery receipts record absolute local paths; regenerated with the HTML
+docs/status/*.delivery.json

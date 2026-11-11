@@ -107,7 +107,7 @@
       "type": "backend",
       "label": "0-1 Read",
       "sublabel": "keep · redact · inject",
-      "tag": "B01 · to revise"
+      "tag": "B01"
     },
     {
       "id": "nums",
@@ -122,7 +122,7 @@
       "id": "llminput",
       "lane": "code",
       "col": 2,
-      "type": "security",
+      "type": "backend",
       "label": "Model input",
       "sublabel": "no Delta",
       "tag": "B04"
@@ -134,7 +134,7 @@
       "type": "cloud",
       "label": "4-5 Checks",
       "sublabel": "math · padding · basis",
-      "tag": "B07 · to revise"
+      "tag": "B07"
     },
     {
       "id": "history",
@@ -143,13 +143,13 @@
       "type": "cloud",
       "label": "5.5 Duplicates",
       "sublabel": "row · invoice · shipment",
-      "tag": "B08 · to revise"
+      "tag": "B09 · B08"
     },
     {
       "id": "understand",
       "lane": "llm",
       "col": 2,
-      "type": "security",
+      "type": "backend",
       "label": "3 Blind parse",
       "sublabel": "agent loop · no Delta",
       "tag": "B04"
@@ -179,8 +179,8 @@
       "col": 5,
       "type": "cloud",
       "label": "6b Recommendation",
-      "sublabel": "normal · flagged · return suggested",
-      "tag": "B09 · to revise",
+      "sublabel": "passed · human · return suggested",
+      "tag": "B09",
       "yOffset": 48
     },
     {
@@ -190,7 +190,7 @@
       "type": "cloud",
       "label": "SKILL.md",
       "sublabel": "procedure · examples",
-      "tag": "B05 · to revise"
+      "tag": "B05"
     },
     {
       "id": "taxonomy",
@@ -208,7 +208,7 @@
       "type": "cloud",
       "label": "Tools · tax",
       "sublabel": "calc · tax · cases",
-      "tag": "B06 · to revise"
+      "tag": "B06"
     },
     {
       "id": "store",
@@ -217,7 +217,7 @@
       "type": "backend",
       "label": "7 Parse store",
       "sublabel": "facts ≠ judgments",
-      "tag": "B10 · to revise"
+      "tag": "B10"
     },
     {
       "id": "rulesyaml",
@@ -243,9 +243,10 @@
       "id": "review",
       "lane": "reviewer",
       "col": 5,
-      "type": "external",
+      "type": "backend",
       "label": "Review UI (end)",
-      "sublabel": "decide · reason"
+      "sublabel": "decide · reason",
+      "tag": "U2"
     }
   ],
   "edges": [
@@ -386,7 +387,8 @@
       "title": "Colour = status-board card",
       "items": [
         "Light green: in-sample evidence + deliverable; yellow: partly done; red: not started",
-        "Tag = card ID; \"to revise\" = current code conflicts with the 2026-11-04 decisions, colour unchanged for now"
+        "Tag = card ID; \"to revise\" = current code conflicts with the 2026-11-04 decisions, colour unchanged for now",
+        "2026-11-10: B04 light green (full dev run); the review UI has card U2; B08's two levels are Optional"
       ]
     },
     {

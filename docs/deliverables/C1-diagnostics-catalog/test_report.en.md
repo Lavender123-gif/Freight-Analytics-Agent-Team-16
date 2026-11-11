@@ -1,7 +1,7 @@
 # C1 Diagnostics catalog: test report
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟩 Light green (board: [C1](../../status/project_status.en.md#card-c1))
+- **Card colour**: 🟩 Light green (board: [C1](../../../STATUS.md#card-c1))
 - **Compiled on**: 2026-11-03 (task 04). Content taken from task 03's deliverable; no check was rerun this time.
 - Deliverable description: [README.en.md](README.en.md); result file: [results/summary.md](results/summary.md); rendered catalog: [results/catalog_rendered.md](results/catalog_rendered.md); examples: [results/examples.md](results/examples.md); Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)
 

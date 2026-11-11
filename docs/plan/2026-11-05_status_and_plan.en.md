@@ -20,7 +20,7 @@ Sources: `docs/decisions/2026-11-04_framework_decisions.zh.md` (hereafter the "d
 
 **Overall plan.** Split into 33 tasks (section 3), with total effort estimated at **300 to 466 person-hours**; across five people that is about 60 to 93 hours each, over about 4 weeks to early December. Critical path: schema finalized → data ingest → blind-parse rework → connect the model → controlled experiments → final test-set run → final presentation (section 4).
 
-**Pipeline diagram**: `docs/status/pipeline_flow.en.html` (v5; download it and open it in a browser). The notes for each node in the diagram are in section 2 of this document.
+**Pipeline diagram**: `docs/status/pipeline_flow.zh.html` (v5; download it and open it in a browser; the English diagram is [WORKFLOW.md](../../WORKFLOW.md) in the repository root). The notes for each node in the diagram are in section 2 of this document.
 
 ---
 

@@ -1,0 +1,282 @@
+# docs/status/progress.yaml — 进度文件的数据源（任务 10 第 2 节）
+#
+# 一行一个 Must 任务（11 月 5 日计划 docs/plan/2026-11-05_workload_v2.zh.md 第 3 节的 23 项）。
+# 只改这个文件，然后运行：
+#   uv run python scratch/plan/progress.py --write            # 重新生成 docs/status/progress.zh.md，并打印停点汇报的开头几行
+#   uv run python scratch/plan/progress.py --write --cc-session <会话 .jsonl>   # 同时统计 Claude Code 自己的消耗
+#   sh scratch/status/run.sh                                  # 状态板的“Must 清单”表也读这个文件，改完要重新生成
+#
+# 字段
+#   id         计划里的任务编号
+#   name       任务名 {zh, en}
+#   hours      计划的人时区间 [低, 高]；工时中值 = 两者的中点
+#   plan_mode  计划 5.1 的口径：cc = 写代码为主，human = 按人工估（与 scratch/plan/workload_v2.py 的 mode 相同）
+#   owner      负责方：CC 或 人工。规则见 meta.owner_rule
+#   status     未做 | 已做待验收 | 已验收。“已验收”只有项目负责人说了才能写
+#   leg        在哪一段做的（1 = 任务 09，2 = 任务 10）；没做的不写
+#   why        为什么是这个状态（对照计划里的完成标准）
+#
+meta:
+  updated: '2026-11-10'
+  plan: docs/plan/2026-11-05_workload_v2.zh.md
+  owner_rule: '默认取计划 5.1 的口径（写代码为主的归 CC，按人工估的归人工，依据是计划 1.2 节）。例外只有一类：计划按人工估、但完成标准要求的产出实际已由 CC 在自主运行里做出来的任务（S1、H1、U1、K1），负责方记 CC，并在 plan_mode 里保留计划原来的口径。仍归人工的是必须由人来做的事：人工标注（H2a）、测试集终测（V4，读测试集要项目负责人亲自打开开关）、和 Jake 沟通（J01）、汇报和彩排（D1、D2）。'
+  status_rule: '计划里写的完成标准满足了才算“已做”；只做了一部分的记“未做”，并在 why 里写明已经有什么。第一段和第二段做完的任务都是“已做待验收”，项目负责人说验收了才改成“已验收”。'
+  credit:
+    已验收: 1.0
+    已做待验收: 0.7
+    未做: 0.0
+tasks:
+- id: S1
+  name:
+    zh: 'schema v0 组内评审，定稿为 v1'
+    en: 'Team review of schema v0; finalise as v1'
+  hours: [3, 5]
+  plan_mode: human
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '完成标准的两条都有了：和 schema 相关的待讨论项已定（批次内第一份按行号，决定日志 D-26；重试次数，待决 P-01），`config/schema_v1.yaml` 已是 v1。组内评审没有开过，J1、J3 也还没有答复，验收时请留意。'
+- id: S2
+  name:
+    zh: '由 YAML 建 SQLite 表并读入；脱敏、注入检查、国家和币种推算进 src'
+    en: 'Build SQLite tables from the YAML and load the data; redaction, injection check, country and currency in src'
+  hours: [6, 10]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '开发集 953 行读入，每行一条记录不合并，pytest 通过。本段的开发集全量运行库里是 953 条争议、813 张发票。'
+- id: P2
+  name:
+    zh: '去掉旧路径（模型前打回、自动通知、草稿自动发送、旧推荐枚举）'
+    en: 'Remove old paths (pre-model auto-reject, auto notice, auto-sent draft, old outcome names)'
+  hours: [2, 4]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '开发集全量 953 条全部经过模型（本段运行核对过）；`src/` 里没有这些路径（第一段独立审计核对过）；pytest 通过。'
+- id: P3
+  name:
+    zh: '盲解析（模型输入不含 Delta，每次尝试都存）'
+    en: 'Blind parsing (no Delta in the model input; every attempt stored)'
+  hours: [4, 8]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '第一段审计核对了 2478 条留存请求，Delta 没有以任何形式进入模型输入；首次读法都在库里可查；合成用例通过。'
+- id: P4a
+  name:
+    zh: '提交检查（算式验算、防凑数、带 $ 不计入要有依据）'
+    en: 'Submission checks (arithmetic re-check, anti-padding, basis for excluded $ amounts)'
+  hours: [5, 8]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '决定 3.3、3.5、3.8 的检查都在 `src/`，每条有单元测试。本段另加了“不计入依据不在词表里”的标识（P-15）。'
+- id: P5
+  name:
+    zh: '输出分事实层和判断层'
+    en: 'Outputs split into a fact layer and a judgment layer'
+  hours: [3, 5]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '两种导出都有：下游事实层只收通过检查且与 Delta 一致的记录，审核视图收全部。J8 未答复。'
+- id: R1a
+  name:
+    zh: '标识规则和推荐颜色（rules.yaml）'
+    en: 'Flag rules and recommendation colour (rules.yaml)'
+  hours: [4, 6]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '阈值全在 `config/rules.yaml`；税一律送人工；模型自报疑问是标识。本段规则升到 v1.1（退回只留空文本和只有数字两种），见 `docs/autorun/rule_changes_leg2.zh.md`。'
+- id: R1b
+  name:
+    zh: '行层面、发票内两层查重'
+    en: 'Duplicate checks at row level and within an invoice'
+  hours: [4, 7]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '两层查重已在 `src/`，公开 mock 现有的副本类事件都标出来了。完成标准里“mock 上正例全标出、反例不误标”目前只在现有 mock 上成立；M1 要补的正例和反例还没有，补了之后要再验一次。'
+- id: M1
+  name:
+    zh: '按新决定改 mock 的预期，补查重两层的正例和反例'
+    en: 'Update the mock expectations to the new decisions; add positive and negative duplicate cases'
+  hours: [5, 8]
+  plan_mode: cc
+  owner: CC
+  status: 未做
+  why: '按任务 10 的指示本段不做。现在有的：`docs/autorun/mock_deterministic_review.zh.md` 列出了哪些预期已经过时；mock 本身由另一个代理维护。'
+- id: L1
+  name:
+    zh: '官方 SDK 的 agent 循环和批量运行器'
+    en: 'Agent loop on the official SDK and the batch runner'
+  hours: [8, 12]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '开发集抽样和全量都跑通，每次尝试存库，用量分四类记账。完成标准的最后一条“卡片 B04 浅绿”本段满足（开发集全量 953 条，见 T10 测试报告）。全量是在 v1.1 加旧脱敏方式下跑的，最终版本没有重跑（P-23）。'
+- id: L2
+  name:
+    zh: '工具 docstring 和 SKILL.md 例子'
+    en: 'Tool docstrings and SKILL.md examples'
+  hours: [4, 6]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 1
+  why: '六个工具，说明写给模型读；5 条已脱敏的开发集例子在 git 忽略的文件里，仓库里另有 5 条合成例子。SKILL.md 本段调到 v1.2。'
+- id: H1
+  name:
+    zh: '标注指南和抽样方法（标注包）'
+    en: 'Annotation guide and sampling method (annotation packs)'
+  hours: [3, 5]
+  plan_mode: human
+  owner: CC
+  status: 已做待验收
+  leg: 2
+  why: '中英两版指南写明了每个数字是什么、算不算主张、费用大类；三个标注包各 45 条（公共 15 条，共 105 条不同记录），只从开发集抽，已用最终的脱敏方式重新生成（数字个数 88 / 88 / 89，每包 5 条首次不一致的记录）。指南还没有人试标过。'
+- id: H2a
+  name:
+    zh: '人工标注 100 条，其中 20 条双人标'
+    en: 'Hand-annotate 100 records, 20 of them by two people'
+  hours: [10, 14]
+  plan_mode: human
+  owner: 人工
+  status: 未做
+  why: '标注本身还没有开始。已经有的：三个标注包、指南、导入脚本和一致率脚本（H1）。'
+- id: H3
+  name:
+    zh: '模型“读得对不对”的评估'
+    en: 'Evaluate whether the model reads the text correctly'
+  hours: [3, 5]
+  plan_mode: cc
+  owner: CC
+  status: 未做
+  why: '要等 H2a 的标注结果。已经有的：指标脚本能直接读标注的导入格式，只用假标注自检过；门槛还没有写进卡片。'
+- id: V1
+  name:
+    zh: '评估框架和指标脚本；预留批次只用一次的规则'
+    en: 'Evaluation framework and metric script; the use-once rule for the held-out batch'
+  hours: [4, 6]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 2
+  why: '指标定义、脚本、报告模板都有，在公开 mock 上跑通（调优第 2 轮的运行，主张金额正确 329/360，与调优记录一致）；预留批次只用一次写在 `docs/eval/metrics.zh.md`。M1 没做，mock 的“建议”预期有一部分过时。'
+- id: V3a
+  name:
+    zh: '护栏开和关的对比（关闭组即 baseline）'
+    en: 'Guardrails on vs off (the off arm is the baseline)'
+  hours: [4, 6]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 2
+  why: '两组结果和结论都有，门槛在跑之前写定。按事先的规则，结论是“不是每条门槛都达到”：T4（注入）没达到（标出 22 个，门槛 27 个）；T1、T2、T3、T5 达到。'
+- id: V4
+  name:
+    zh: '测试集终测，只跑一次'
+    en: 'Final test-set run, once only'
+  hours: [2, 3]
+  plan_mode: human
+  owner: 人工
+  status: 未做
+  why: '按任务 10 的指示本段不做。读测试集要项目负责人亲自打开开关。'
+- id: U1
+  name:
+    zh: '评估开源审核工具'
+    en: 'Evaluate open-source review tools'
+  hours: [3, 5]
+  plan_mode: human
+  owner: CC
+  status: 已做待验收
+  leg: 2
+  why: '对照决定第 6 节逐条打了勾，结论是自建最小可用版。评估只依据官方文档，没有安装试用；J10 未答复。'
+- id: U2
+  name:
+    zh: '审核界面最小可用版'
+    en: 'Review interface, minimum usable version'
+  hours: [10, 16]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 2
+  why: '完成标准四项都做到：按发票列出颜色和按严重程度计数的标识、可按有没有提醒筛选、点开看到争议和模型说明、四个按钮记录决定和理由，直接读写我们的库。还没有人扮审核员走过一遍（U3）。'
+- id: K1
+  name:
+    zh: 'skill 文件夹、架构说明、README'
+    en: 'Skill folder, architecture note, README'
+  hours: [3, 5]
+  plan_mode: human
+  owner: CC
+  status: 已做待验收
+  leg: 2
+  why: 'skill 文件夹、5 条合成例子、`docs/architecture.md`、根目录 README 都有。运行说明还没有由作者以外的人照着做过；课程对文件夹结构的要求请你对照一次。'
+- id: J01
+  name:
+    zh: '给 Jake 的问题：发送、跟进、回填'
+    en: 'Questions for Jake: send, follow up, write the answers back'
+  hours: [4, 6]
+  plan_mode: human
+  owner: 人工
+  status: 未做
+  why: '完成标准要的是有回答并回填的跟踪表。现在只有清单：10 个问题写好了（`docs/client/jake_questions.md`），一个都还没有发。'
+- id: D1
+  name:
+    zh: '中期进度汇报'
+    en: 'Midterm progress report'
+  hours: [5, 8]
+  plan_mode: human
+  owner: 人工
+  status: 未做
+  why: '仓库里没有中期汇报的幻灯片和彩排记录。这一项由你维护，你说做完了再改。'
+- id: D2
+  name:
+    zh: '期末展示、演示和书面报告'
+    en: 'Final presentation, demo and written report'
+  hours: [14, 22]
+  plan_mode: human
+  owner: 人工
+  status: 未做
+  why: '还没有开始；终测数字要等 V4。'
+owner_actions:
+- 把问题清单发给 Jake（J01）：10 个问题已写好，英文部分可以整段发。
+- 安排两到三位组员做标注（H2a）：三个标注包已用最终的脱敏方式重新生成，每包 45 条、约 2 小时。
+- 验收第一段和第二段已做的 16 项任务：你说验收了，状态才从“已做待验收”改成“已验收”。
+- 定默认脱敏方式（P-20）：现在按事先的规则用白名单，有两个副作用（没见过的费用词会被遮住；模型报告注入的次数变少）；备选是退回公开人名表。定了之后才用最终版本重跑开发集全量（P-23，约 10 美元）。
+- 看护栏开和关的结论（P-21、P-22）：注入这一条没达到事先写的门槛（标出 22 个，门槛 27 个）；护栏的作用是让错误被看见，不是提高读对率。要不要加强注入检查、展示里怎么讲，由你定。
+- 确认看板上三处标着“建议，待确认”的分母口径：A1 到 A3 不进分母、F2 不进分母、V2 卡复用为护栏对比。
+- 定审核界面的“批准”按钮要不要改名（P-24），以及标注包“同一种模板最多 2 条”的上限要不要放宽（P-25）。
+- 定 mock 预期由谁改（M1，mock 归另一个代理维护）；中期汇报（D1）和期末展示（D2）由你和组员准备。
+next_leg:
+  name: 第三段
+  assume_done: [M1, H2a, H3, J01]
+  note: 假设下一段 CC 做 M1 和 H3，人工一侧把标注（H2a）做完、Jake 的问题发出并回填（J01）。这是假设，不是承诺；H3 要等 H2a 的标注结果，J01 要等 Jake 回答。
+ledger:
+  path: docs/autorun/budget_ledger.jsonl
+  leg1_last_run_contains: frep3
+  margin: 0.4
+  # 每条花费的依据：从账本里取这些运行，花费除以条数
+  rates:
+    dev_full: {runs: [devFull], note: 开发集全量 953 条}
+    dev_sample: {runs: [rdAallowlist-, rdBallowlist-], note: 开发集样本 A、B2 各 100 条，最终版本}
+    mock: {runs: [finalMock], note: 公开 mock 375 行，最终版本}
+  forecast:
+  - {when: next, name: 标注集跑一遍（三个包里的不同记录）, records: 105, rate: dev_sample}
+  - {when: next, name: M1 改完后公开 mock 再跑一遍, records: 375, rate: mock}
+  - {when: next, name: 默认脱敏方式定下之后（P-20），最终版本重跑开发集全量（P-23）, records: 953, rate: dev_full}
+  - {when: next, optional: true, name: 如果默认脱敏方式退回人名表（P-20），A、B2、mock 各重跑一遍, records: 575, rate: mock}
+  - {when: next, optional: true, name: V3b 给模型 Delta 的一组（如果选做）：A 加公开 mock, records: 475, rate: mock}
+  - {when: later, name: V4 测试集终测，只跑一次, records: 400, rate: dev_sample}
+  - {when: later, name: 预留 mock 批次评分一次（行数未知，按公开 mock 的 375 行估）, records: 375, rate: mock}
+  - {when: later, name: 演示和彩排用的小样本运行, records: 100, rate: dev_sample}

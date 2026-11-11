@@ -1,7 +1,7 @@
 # B09 6 Aggregate and disposition: test report (partial results)
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟨 Yellow (board: [B09](../../status/project_status.en.md#card-b09))
+- **Card colour**: 🟨 Yellow (board: [B09](../../../STATUS.md#card-b09))
 - **Compiled on**: 2026-11-03 (task 04). This card has no deliverable yet; this folder holds only the test report. Content taken from the result files of the B03 and A3 deliverables and 02 §5 and §7; no check was rerun this time.
 - Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)
 

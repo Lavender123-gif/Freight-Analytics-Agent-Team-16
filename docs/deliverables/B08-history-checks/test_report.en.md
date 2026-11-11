@@ -1,7 +1,7 @@
 # B08 5.5 History checks: test report (partial results)
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟨 Yellow (board: [B08](../../status/project_status.en.md#card-b08))
+- **Card colour**: 🟨 Yellow (board: [B08](../../../STATUS.md#card-b08))
 - **Compiled on**: 2026-11-03 (task 04). This card has no deliverable yet; this folder holds only the test report. Content taken from the result files of the B03 deliverable, the consistency check of the A3 deliverable, and 02 §7 and §8; no check was rerun this time.
 - Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)
 

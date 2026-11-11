@@ -1,7 +1,7 @@
 # B07 4-5 Submission checks: test report (partial results)
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟨 Yellow (board: [B07](../../status/project_status.en.md#card-b07))
+- **Card colour**: 🟨 Yellow (board: [B07](../../../STATUS.md#card-b07))
 - **Compiled on**: 2026-11-03 (task 04). This card has no deliverable yet; this folder holds only the test report. Content taken from `scratch/prototype/prototype_checks.py`, task 03's board and the 03 report, and 02 §7 and §8; no check was rerun this time.
 - Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)
 

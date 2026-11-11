@@ -1,7 +1,7 @@
 # A3 Design proposal v3 (02): test report
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟩 Light green (board: [A3](../../status/project_status.en.md#card-a3))
+- **Card colour**: 🟩 Light green (board: [A3](../../../STATUS.md#card-a3))
 - **Card type**: analysis card. The "check" is a consistency cross-check between the document, the configuration and the rerun results, not a check of whether the design is good.
 - **Compiled on**: 2026-11-03 (task 04). Content is taken from task 03's deliverable; no check was rerun this time.
 - Deliverable description: [README.en.md](README.en.md); results file: [results/summary.md](results/summary.md); Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)

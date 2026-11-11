@@ -1,0 +1,356 @@
+[
+ {
+  "example_id": "SYN-1",
+  "record_id": "synthetic#SYN-1",
+  "shipment_key": "SYNTHETIC.SYN-1",
+  "marked_text": "INSIDE DELIVERY CHARGE OF [#1 $85.00] WAS NOT INCLUDED ON THE ORIGINAL INVOICE",
+  "reading": {
+   "response_type": "FIRST",
+   "reason": null,
+   "numbers": [
+    {
+     "id": "#1",
+     "kind": "CHARGE_AMOUNT",
+     "status": "CLAIMED",
+     "is_credit": false,
+     "charge_codes": [
+      "ACCESSORIAL.INSIDE_DELIVERY"
+     ],
+     "other_phrase": null,
+     "evidence_phrase": "INSIDE DELIVERY CHARGE OF $85.00",
+     "exclusion_phrase": null
+    }
+   ],
+   "line_items": [
+    {
+     "amount_ref": "#1",
+     "charge_codes": [],
+     "raw_charge_label": "INSIDE DELIVERY CHARGE",
+     "carrier_stated_reason": "WAS NOT INCLUDED ON THE ORIGINAL INVOICE",
+     "carrier_stated_basis_type": "NONE",
+     "carrier_stated_basis": null
+    }
+   ],
+   "relations": [],
+   "unrecognized_reads": []
+  },
+  "note": "One named charge with one amount: one CLAIMED number, one line item; the reason is quoted, not judged."
+ },
+ {
+  "example_id": "SYN-2",
+  "record_id": "synthetic#SYN-2",
+  "shipment_key": "SYNTHETIC.SYN-2",
+  "marked_text": "LUMPER [#1 $120.00] + APPOINTMENT [#2 $35.00] + RESIDENTIAL [#3 $60.00] = TOTAL [#4 $215.00]",
+  "reading": {
+   "response_type": "FIRST",
+   "reason": null,
+   "numbers": [
+    {
+     "id": "#1",
+     "kind": "CHARGE_AMOUNT",
+     "status": "CLAIMED",
+     "is_credit": false,
+     "charge_codes": [
+      "ACCESSORIAL.LUMPER"
+     ],
+     "other_phrase": null,
+     "evidence_phrase": "LUMPER $120.00",
+     "exclusion_phrase": null
+    },
+    {
+     "id": "#2",
+     "kind": "CHARGE_AMOUNT",
+     "status": "CLAIMED",
+     "is_credit": false,
+     "charge_codes": [
+      "ACCESSORIAL.APPOINTMENT"
+     ],
+     "other_phrase": null,
+     "evidence_phrase": "APPOINTMENT $35.00",
+     "exclusion_phrase": null
+    },
+    {
+     "id": "#3",
+     "kind": "CHARGE_AMOUNT",
+     "status": "CLAIMED",
+     "is_credit": false,
+     "charge_codes": [
+      "ACCESSORIAL.RESIDENTIAL"
+     ],
+     "other_phrase": null,
+     "evidence_phrase": "RESIDENTIAL $60.00",
+     "exclusion_phrase": null
+    },
+    {
+     "id": "#4",
+     "kind": "TOTAL",
+     "status": "NONE",
+     "is_credit": false,
+     "charge_codes": [],
+     "other_phrase": null,
+     "evidence_phrase": "= TOTAL $215.00",
+     "exclusion_phrase": null
+    }
+   ],
+   "line_items": [
+    {
+     "amount_ref": "#1",
+     "charge_codes": [],
+     "raw_charge_label": "LUMPER",
+     "carrier_stated_reason": null,
+     "carrier_stated_basis_type": "NONE",
+     "carrier_stated_basis": null
+    },
+    {
+     "amount_ref": "#2",
+     "charge_codes": [],
+     "raw_charge_label": "APPOINTMENT",
+     "carrier_stated_reason": null,
+     "carrier_stated_basis_type": "NONE",
+     "carrier_stated_basis": null
+    },
+    {
+     "amount_ref": "#3",
+     "charge_codes": [],
+     "raw_charge_label": "RESIDENTIAL",
+     "carrier_stated_reason": null,
+     "carrier_stated_basis_type": "NONE",
+     "carrier_stated_basis": null
+    }
+   ],
+   "relations": [
+    {
+     "relation_type": "SUM",
+     "operand_ids": [
+      "#1",
+      "#2",
+      "#3"
+     ],
+     "result_id": "#4"
+    }
+   ],
+   "unrecognized_reads": []
+  },
+  "note": "Several items and their stated total: each item is CLAIMED with its own line item; the total is a TOTAL, never a line item, and a SUM relation lets code recompute it."
+ },
+ {
+  "example_id": "SYN-3",
+  "record_id": "synthetic#SYN-3",
+  "shipment_key": "SYNTHETIC.SYN-3",
+  "marked_text": "ORIGINAL INVOICE BILLED [#1 $940.00]. PAYMENT RECEIVED [#2 $865.00] WAS PAID ON THE FIRST REMITTANCE. [#3 $75.00] IS STILL OWED FOR DRIVER DETENTION",
+  "reading": {
+   "response_type": "FIRST",
+   "reason": null,
+   "numbers": [
+    {
+     "id": "#1",
+     "kind": "UNSPECIFIED_AMOUNT",
+     "status": "BILLED",
+     "is_credit": false,
+     "charge_codes": [],
+     "other_phrase": null,
+     "evidence_phrase": "ORIGINAL INVOICE BILLED $940.00",
+     "exclusion_phrase": "BILLED"
+    },
+    {
+     "id": "#2",
+     "kind": "UNSPECIFIED_AMOUNT",
+     "status": "PAID",
+     "is_credit": false,
+     "charge_codes": [],
+     "other_phrase": null,
+     "evidence_phrase": "PAYMENT RECEIVED $865.00 WAS PAID",
+     "exclusion_phrase": "WAS PAID"
+    },
+    {
+     "id": "#3",
+     "kind": "CHARGE_AMOUNT",
+     "status": "UNPAID",
+     "is_credit": false,
+     "charge_codes": [
+      "DETENTION_STORAGE.DRIVER_DETENTION"
+     ],
+     "other_phrase": null,
+     "evidence_phrase": "$75.00 IS STILL OWED FOR DRIVER DETENTION",
+     "exclusion_phrase": null
+    }
+   ],
+   "line_items": [
+    {
+     "amount_ref": "#3",
+     "charge_codes": [],
+     "raw_charge_label": "DRIVER DETENTION",
+     "carrier_stated_reason": "IS STILL OWED",
+     "carrier_stated_basis_type": "NONE",
+     "carrier_stated_basis": null
+    }
+   ],
+   "relations": [],
+   "unrecognized_reads": []
+  },
+  "note": "Payment history: the billed and paid amounts are history, each with an exclusion phrase because it carries '$'; only the amount still owed is counted (UNPAID). The text states no arithmetic, so no relation is written."
+ },
+ {
+  "example_id": "SYN-4",
+  "record_id": "synthetic#SYN-4",
+  "shipment_key": "SYNTHETIC.SYN-4",
+  "marked_text": "EQUIPMENT DETENTION [#1 3] DAYS AT [#2 $40.00] PER DAY = [#3 $120.00]. TRAILER WAS HELD WITH [#4 18,500] LBS ON [#5 22] PALLETS, PICKUP NUMBER [#6 4471902]",
+  "reading": {
+   "response_type": "FIRST",
+   "reason": null,
+   "numbers": [
+    {
+     "id": "#1",
+     "kind": "QUANTITY",
+     "status": "NONE",
+     "is_credit": false,
+     "charge_codes": [],
+     "other_phrase": null,
+     "evidence_phrase": "3 DAYS",
+     "exclusion_phrase": null
+    },
+    {
+     "id": "#2",
+     "kind": "RATE",
+     "status": "NONE",
+     "is_credit": false,
+     "charge_codes": [],
+     "other_phrase": null,
+     "evidence_phrase": "AT $40.00 PER DAY",
+     "exclusion_phrase": "PER DAY"
+    },
+    {
+     "id": "#3",
+     "kind": "CHARGE_AMOUNT",
+     "status": "CLAIMED",
+     "is_credit": false,
+     "charge_codes": [
+      "DETENTION_STORAGE.EQUIPMENT_DETENTION"
+     ],
+     "other_phrase": null,
+     "evidence_phrase": "EQUIPMENT DETENTION 3 DAYS AT $40.00 PER DAY = $120.00",
+     "exclusion_phrase": null
+    },
+    {
+     "id": "#4",
+     "kind": "QUANTITY",
+     "status": "NONE",
+     "is_credit": false,
+     "charge_codes": [],
+     "other_phrase": null,
+     "evidence_phrase": "18,500 LBS",
+     "exclusion_phrase": null
+    },
+    {
+     "id": "#5",
+     "kind": "QUANTITY",
+     "status": "NONE",
+     "is_credit": false,
+     "charge_codes": [],
+     "other_phrase": null,
+     "evidence_phrase": "22 PALLETS",
+     "exclusion_phrase": null
+    },
+    {
+     "id": "#6",
+     "kind": "REFERENCE",
+     "status": "NONE",
+     "is_credit": false,
+     "charge_codes": [],
+     "other_phrase": null,
+     "evidence_phrase": "PICKUP NUMBER 4471902",
+     "exclusion_phrase": null
+    }
+   ],
+   "line_items": [
+    {
+     "amount_ref": "#3",
+     "charge_codes": [],
+     "raw_charge_label": "EQUIPMENT DETENTION",
+     "carrier_stated_reason": "TRAILER WAS HELD",
+     "carrier_stated_basis_type": "NONE",
+     "carrier_stated_basis": null
+    }
+   ],
+   "relations": [
+    {
+     "relation_type": "PRODUCT",
+     "operand_ids": [
+      "#1",
+      "#2"
+     ],
+     "result_id": "#3"
+    }
+   ],
+   "unrecognized_reads": []
+  },
+  "note": "Quantity x rate with the result stated: the result is the charge; the unit price is a RATE excluded with 'PER DAY', the day count a QUANTITY. Weight, pallet count and a document number are not money."
+ },
+ {
+  "example_id": "SYN-5",
+  "record_id": "synthetic#SYN-5",
+  "shipment_key": "SYNTHETIC.SYN-5",
+  "marked_text": "REDELIVERY CHARGE [#1 $95.00] PLUS GST. LESS CREDIT OF [#2 $20.00] FOR FUEL SURCHARGE BILLED TWICE",
+  "reading": {
+   "response_type": "FIRST",
+   "reason": null,
+   "numbers": [
+    {
+     "id": "#1",
+     "kind": "CHARGE_AMOUNT",
+     "status": "CLAIMED",
+     "is_credit": false,
+     "charge_codes": [
+      "ACCESSORIAL.REDELIVERY"
+     ],
+     "other_phrase": null,
+     "evidence_phrase": "REDELIVERY CHARGE $95.00",
+     "exclusion_phrase": null
+    },
+    {
+     "id": "#2",
+     "kind": "CHARGE_AMOUNT",
+     "status": "CLAIMED",
+     "is_credit": true,
+     "charge_codes": [
+      "FUEL.SURCHARGE"
+     ],
+     "other_phrase": null,
+     "evidence_phrase": "LESS CREDIT OF $20.00 FOR FUEL SURCHARGE",
+     "exclusion_phrase": null
+    }
+   ],
+   "line_items": [
+    {
+     "amount_ref": "#1",
+     "charge_codes": [],
+     "raw_charge_label": "REDELIVERY CHARGE",
+     "carrier_stated_reason": null,
+     "carrier_stated_basis_type": "NONE",
+     "carrier_stated_basis": null
+    },
+    {
+     "amount_ref": "#2",
+     "charge_codes": [],
+     "raw_charge_label": "FUEL SURCHARGE",
+     "carrier_stated_reason": "BILLED TWICE",
+     "carrier_stated_basis_type": "NONE",
+     "carrier_stated_basis": null
+    },
+    {
+     "amount_ref": null,
+     "charge_codes": [
+      "TAX.GST"
+     ],
+     "raw_charge_label": "GST",
+     "carrier_stated_reason": null,
+     "carrier_stated_basis_type": "NONE",
+     "carrier_stated_basis": null
+    }
+   ],
+   "relations": [],
+   "unrecognized_reads": []
+  },
+  "note": "A credit is still part of the claim: CLAIMED with is_credit true, and code subtracts it. A tax named without an amount ('PLUS GST') is a line item with no amount_ref; code works out the implied tax."
+ }
+]

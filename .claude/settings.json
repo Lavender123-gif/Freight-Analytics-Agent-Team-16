@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./data/processed/test.csv)",
+      "Edit(./data/processed/test.csv)",
+      "Write(./data/processed/test.csv)",
+      "Read(./data/raw/**)",
+      "Edit(./data/raw/**)",
+      "Write(./data/raw/**)",
+      "Read(~/Desktop/CC Response/ppg-mock-gen/**)",
+      "Edit(~/Desktop/CC Response/ppg-mock-gen/**)",
+      "Write(~/Desktop/CC Response/ppg-mock-gen/**)",
+      "Bash(*test.csv*)",
+      "Bash(*data/raw*)",
+      "Bash(*ppg-mock-gen*)",
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(*&& git push*)",
+      "Bash(*; git push*)",
+      "Bash(git * push*)",
+      "Bash(*git push*)",
+      "Bash(*git * push*)",
+      "Bash(*git\" push*)",
+      "Bash(*git' push*)",
+      "Bash(sudo *)",
+      "Bash(*sudo *)"
+    ]
+  }
+}

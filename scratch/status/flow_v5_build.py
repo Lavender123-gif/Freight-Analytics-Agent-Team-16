@@ -3,6 +3,10 @@
 Run from repo root: uv run --no-project python scratch/status/flow_v5_build.py
 Writes docs/status/flow_src/pipeline_flow.{zh,en}.workflow.json. Regenerate HTML afterwards (flow_src/README.md).
 Node `type` encodes the card colour: backend = light green, cloud = yellow, security = red, external = no card.
+
+Task 10 (2026-11-10) update, structure unchanged (same nodes, edges, lanes, columns): B04 nodes light green
+(full dev run); the review interface now has card U2 (light green); the duplicate node is tagged B09 (row and
+in-invoice levels, done) with B08 (shipment and cross-batch levels, Optional); 6b uses the current three names.
 """
 import json
 from pathlib import Path
@@ -30,22 +34,22 @@ PE = "to revise"
 nodes = [
     ("submit", "carrier", 0, "external", "提交争议", "发票 + 文字说明", "Submit dispute", "invoice + free text", None, None, None),
     ("pushback", "carrier", 5, "external", "收到退回", "审核员在 OTM 执行", "Receives return", "via OTM", None, None, None),
-    ("read", "code", 0, "backend", "0-1 读入", "原样存行 · 脱敏 · 注入检查", "0-1 Read", "keep · redact · inject", f"B01 · {P}", f"B01 · {PE}", None),
+    ("read", "code", 0, "backend", "0-1 读入", "原样存行 · 脱敏 · 注入检查", "0-1 Read", "keep · redact · inject", "B01", "B01", None),
     ("nums", "code", 1, "backend", "2 数字识别", "找全 · 编号 · 覆盖检查", "2 Number parse", "find · number · cover", "B02", "B02", None),
-    ("llminput", "code", 2, "security", "模型输入（白名单）", "去掉 Delta · 只给数字表", "Model input", "no Delta", "B04", "B04", None),
-    ("tool", "code", 3, "cloud", "4-5 提交检查", "算式 · 防凑数 · 依据 · 对 Delta", "4-5 Checks", "math · padding · basis", f"B07 · {P}", f"B07 · {PE}", None),
-    ("history", "code", 4, "cloud", "5.5 多层面查重", "行 · 发票内 · 票货内 · 跨批次", "5.5 Duplicates", "row · invoice · shipment", f"B08 · {P}", f"B08 · {PE}", None),
-    ("understand", "llm", 2, "security", "3 盲解析（agent 循环）", "不给 Delta · 每次尝试都留", "3 Blind parse", "agent loop · no Delta", "B04", "B04", None),
+    ("llminput", "code", 2, "backend", "模型输入（白名单）", "去掉 Delta · 只给数字表", "Model input", "no Delta", "B04", "B04", None),
+    ("tool", "code", 3, "cloud", "4-5 提交检查", "算式 · 防凑数 · 依据 · 对 Delta", "4-5 Checks", "math · padding · basis", "B07", "B07", None),
+    ("history", "code", 4, "cloud", "5.5 多层面查重", "行 · 发票内 · 票货内 · 跨批次", "5.5 Duplicates", "row · invoice · shipment", "B09 · B08", "B09 · B08", None),
+    ("understand", "llm", 2, "backend", "3 盲解析（agent 循环）", "不给 Delta · 每次尝试都留", "3 Blind parse", "agent loop · no Delta", "B04", "B04", None),
     ("flags", "rules", 4, "cloud", "6a 标识", "按规则 · 证据 · 指向第一份", "6a Flags", "rules · evidence · → first", "B09", "B09", None),
     ("draft", "rules", 5, "backend", "6c 退回草稿", "只给审核员，不发送", "6c Return draft", "reviewer only, never sent", f"C1 · {P}", f"C1 · {PE}", -48),
-    ("decide", "rules", 5, "cloud", "6b 推荐颜色", "正常 · 有标识 · 建议退回", "6b Recommendation", "normal · flagged · return suggested", f"B09 · {P}", f"B09 · {PE}", 48),
-    ("skill", "assets", 0, "cloud", "SKILL.md", "操作规程 · 例子", "SKILL.md", "procedure · examples", f"B05 · {P}", f"B05 · {PE}", None),
+    ("decide", "rules", 5, "cloud", "6b 推荐颜色", "通过 · 人工 · 建议退回", "6b Recommendation", "passed · human · return suggested", "B09", "B09", 48),
+    ("skill", "assets", 0, "cloud", "SKILL.md", "操作规程 · 例子", "SKILL.md", "procedure · examples", "B05", "B05", None),
     ("taxonomy", "assets", 1, "cloud", "代码表", "代码 · 别名 · 原文名称", "Code table", "codes · aliases · labels", "C3", "C3", None),
-    ("taxrules", "assets", 3, "cloud", "工具 · 税率表", "计算器 · 税率 · 示例", "Tools · tax", "calc · tax · cases", f"B06 · {P}", f"B06 · {PE}", None),
-    ("store", "assets", 4, "backend", "7 解析结果库", "事实层 · 判断层分开", "7 Parse store", "facts ≠ judgments", f"B10 · {P}", f"B10 · {PE}", None),
+    ("taxrules", "assets", 3, "cloud", "工具 · 税率表", "计算器 · 税率 · 示例", "Tools · tax", "calc · tax · cases", "B06", "B06", None),
+    ("store", "assets", 4, "backend", "7 解析结果库", "事实层 · 判断层分开", "7 Parse store", "facts ≠ judgments", "B10", "B10", None),
     ("rulesyaml", "assets", 5, "cloud", "rules.yaml", "查重 · 标识 · 大白话", "rules.yaml", "dups · flags · plain text", "C2", "C2", -48),
     ("catalog", "assets", 5, "backend", "诊断目录", "固定文字", "Diagnostics", "fixed wording", "C1", "C1", 48),
-    ("review", "reviewer", 5, "external", "审核界面（终点）", "决定 · 理由", "Review UI (end)", "decide · reason", None, None, None),
+    ("review", "reviewer", 5, "backend", "审核界面（终点）", "决定 · 理由", "Review UI (end)", "decide · reason", "U2", "U2", None),
 ]
 # id, from, to, zh, en, role, variant, fromSide, toSide
 edges = [
@@ -73,7 +77,8 @@ edges = [
 cards = {
     "zh": [
         ("emerald", "颜色 = 看板卡片状态", ["浅绿：样本内证据 + 交付物；黄：部分完成；红：未开始",
-                                       "角标是卡片编号；\"待改\" = 现有实现与 2026-11-04 决定不一致，颜色暂不动"]),
+                                       "角标是卡片编号；\"待改\" = 现有实现与 2026-11-04 决定不一致，颜色暂不动",
+                                       "2026-11-10：B04 升浅绿（开发集全量）；审核界面有了卡片 U2；B08 的两层是 Optional"]),
         ("cyan", "与 v4 的主要不同（2026-11-04 决定）", ["删除打回预判和自动通知；所有记录进模型、都到审核员（决定 2.1、2.2）",
                                                     "盲解析：模型看不到 Delta，不一致时回给模型，每次尝试都留（决定 3.1、3.2）",
                                                     "存自己的解析结果，做多层面、跨批次查重（决定 4.1、5.2）"]),
@@ -83,7 +88,8 @@ cards = {
     ],
     "en": [
         ("emerald", "Colour = status-board card", ["Light green: in-sample evidence + deliverable; yellow: partly done; red: not started",
-                                                  "Tag = card ID; \"to revise\" = current code conflicts with the 2026-11-04 decisions, colour unchanged for now"]),
+                                                  "Tag = card ID; \"to revise\" = current code conflicts with the 2026-11-04 decisions, colour unchanged for now",
+                                                  "2026-11-10: B04 light green (full dev run); the review UI has card U2; B08's two levels are Optional"]),
         ("cyan", "Main changes from v4 (2026-11-04 decisions)", ["Auto-reject pre-check and auto notice removed; every record goes to the model and to a reviewer (2.1, 2.2)",
                                                                "Blind parse: the model never sees Delta; on a mismatch it is told so, and every attempt is kept (3.1, 3.2)",
                                                                "We store our own parses for multi-level, cross-batch duplicate checks (4.1, 5.2)"]),

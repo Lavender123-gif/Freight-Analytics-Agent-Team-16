@@ -1,7 +1,7 @@
 # B02 Step 2 Number parse: test report
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟩 Light green (board: [B02](../../status/project_status.en.md#card-b02))
+- **Card colour**: 🟩 Light green (board: [B02](../../../STATUS.md#card-b02))
 - **Compiled on**: 2026-11-03 (task 04). Content is taken from task 03's deliverable; no check was rerun this time.
 - Deliverable description: [README.en.md](README.en.md); results file: [results/summary.md](results/summary.md); examples: [results/examples.md](results/examples.md); Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)
 

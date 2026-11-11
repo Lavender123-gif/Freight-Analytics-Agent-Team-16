@@ -1,0 +1,14 @@
+# Model-call settings (task 09). Every model call reads this file; nothing here is hard-coded elsewhere.
+# Decision log: docs/autorun/decision_log.zh.md (D-03 model, D-04 thinking, D-05 fallbacks, D-06 caching).
+model: claude-sonnet-5-5
+max_tokens: 8000
+# thinking: off | adaptive.  "off" is sent as {"type": "between_tools"} (Sonnet 5.5 rejects "disabled").
+thinking: "off"
+# effort: low | medium | high. With thinking off it must be high or below.
+effort: medium
+# prompt caching: breakpoint on the system prompt (tools + SKILL.md are the stable prefix). TTL 5m.
+cache_ttl: 5m
+# server-side refusal fallback: off. A refusal is recorded as an explicit failure (no silent model switch).
+fallbacks: "off"
+sdk_max_retries: 4
+timeout_s: 120

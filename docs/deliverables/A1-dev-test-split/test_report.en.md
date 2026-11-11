@@ -1,7 +1,7 @@
 # A1 Dev / test split: test report
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟩 Light green (board: [A1](../../status/project_status.en.md#card-a1))
+- **Card colour**: 🟩 Light green (board: [A1](../../../STATUS.md#card-a1))
 - **Compiled on**: 2026-11-03 (task 04). Content is taken from task 03's deliverable; no check was rerun this time.
 - Deliverable description: [README.en.md](README.en.md); results file: [results/summary.md](results/summary.md); Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)
 

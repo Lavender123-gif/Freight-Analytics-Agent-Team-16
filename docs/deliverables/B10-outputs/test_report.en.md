@@ -1,7 +1,7 @@
 # B10 7 Outputs: test report
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟩 Light green (board: [B10](../../status/project_status.en.md#card-b10))
+- **Card colour**: 🟩 Light green (board: [B10](../../../STATUS.md#card-b10))
 - **Compiled on**: 2026-11-03 (task 04). Content taken from task 03's deliverable; no check was rerun this time.
 - Deliverable description: [README.en.md](README.en.md); result file: [results/summary.md](results/summary.md); structure example: [results/example_record.json](results/example_record.json); Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)
 

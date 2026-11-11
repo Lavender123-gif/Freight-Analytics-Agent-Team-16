@@ -1,0 +1,1575 @@
+{
+ "setup": {
+  "seed": 20261110,
+  "dev_records": 953,
+  "dev_distinct_texts": 528,
+  "frames": {
+   "redactor_hits_not_reviewed": 1,
+   "cue_candidates_not_reviewed": 1,
+   "positions": 28,
+   "found_by_redactor": 28,
+   "found_by_generic_cue": 2,
+   "found_by_neither": 0,
+   "distinct_shapes": 5
+  },
+  "host_texts": 494,
+  "names": {
+   "common_first": {
+    "listed": 30,
+    "dropped_because_in_dev": 0,
+    "kept": 30,
+    "kept_in_bundled_name_list": 30,
+    "kept_flagged_ambiguous_in_list": 0
+   },
+   "common_last": {
+    "listed": 31,
+    "dropped_because_in_dev": 0,
+    "kept": 31,
+    "kept_in_bundled_name_list": 31,
+    "kept_flagged_ambiguous_in_list": 4
+   },
+   "rare_first": {
+    "listed": 34,
+    "dropped_because_in_dev": 0,
+    "kept": 34,
+    "kept_in_bundled_name_list": 12,
+    "kept_flagged_ambiguous_in_list": 1
+   },
+   "rare_last": {
+    "listed": 31,
+    "dropped_because_in_dev": 0,
+    "kept": 31,
+    "kept_in_bundled_name_list": 17,
+    "kept_flagged_ambiguous_in_list": 0
+   },
+   "ambig_first": {
+    "listed": 44,
+    "dropped_because_in_dev": 0,
+    "kept": 44,
+    "kept_in_bundled_name_list": 42,
+    "kept_flagged_ambiguous_in_list": 39
+   },
+   "ambig_last": {
+    "listed": 30,
+    "dropped_because_in_dev": 1,
+    "kept": 29,
+    "kept_in_bundled_name_list": 29,
+    "kept_flagged_ambiguous_in_list": 28
+   }
+  },
+  "cases": {
+   "real": 300,
+   "cue": 300,
+   "heldout": 250,
+   "bare": 150
+  },
+  "cases_by_class": {
+   "common_single": 167,
+   "common_full": 167,
+   "rare_single": 167,
+   "rare_full": 167,
+   "ambiguous_single": 166,
+   "ambiguous_full": 166
+  },
+  "charge_vocabulary_words": 181,
+  "allowlist_near_spelling_default": "charge_vocab",
+  "heldout_census_surnames": {
+   "surnames": 131106,
+   "people": 32799094,
+   "pass_rate_by_people": {
+    "off": {
+     "total": 0.0251,
+     "is_common_word": 0.0239,
+     "is_protected_word": 0.0006,
+     "two_letters": 0.0006
+    },
+    "charge_vocab": {
+     "total": 0.0301,
+     "is_common_word": 0.0239,
+     "is_protected_word": 0.0006,
+     "near_spelling": 0.0051,
+     "two_letters": 0.0006
+    },
+    "all": {
+     "total": 0.1992,
+     "is_common_word": 0.0239,
+     "is_protected_word": 0.0006,
+     "near_spelling": 0.1742,
+     "two_letters": 0.0006
+    }
+   }
+  }
+ },
+ "engines": [
+  {
+   "engine": "presidio",
+   "cases": {
+    "n": 1000,
+    "missed": 290,
+    "miss_rate": 0.29,
+    "partially_masked": 30,
+    "miss_by": {
+     "class:ambiguous_full": {
+      "n": 166,
+      "missed": 70,
+      "rate": 0.4217
+     },
+     "class:ambiguous_single": {
+      "n": 166,
+      "missed": 107,
+      "rate": 0.6446
+     },
+     "class:common_full": {
+      "n": 167,
+      "missed": 5,
+      "rate": 0.0299
+     },
+     "class:common_single": {
+      "n": 167,
+      "missed": 23,
+      "rate": 0.1377
+     },
+     "class:rare_full": {
+      "n": 167,
+      "missed": 25,
+      "rate": 0.1497
+     },
+     "class:rare_single": {
+      "n": 167,
+      "missed": 60,
+      "rate": 0.3593
+     },
+     "group:bare": {
+      "n": 150,
+      "missed": 76,
+      "rate": 0.5067
+     },
+     "group:bare|ambiguous_full": {
+      "n": 25,
+      "missed": 18,
+      "rate": 0.72
+     },
+     "group:bare|ambiguous_single": {
+      "n": 25,
+      "missed": 25,
+      "rate": 1.0
+     },
+     "group:bare|common_full": {
+      "n": 25,
+      "missed": 1,
+      "rate": 0.04
+     },
+     "group:bare|common_single": {
+      "n": 25,
+      "missed": 7,
+      "rate": 0.28
+     },
+     "group:bare|rare_full": {
+      "n": 25,
+      "missed": 4,
+      "rate": 0.16
+     },
+     "group:bare|rare_single": {
+      "n": 25,
+      "missed": 21,
+      "rate": 0.84
+     },
+     "group:cue": {
+      "n": 300,
+      "missed": 80,
+      "rate": 0.2667
+     },
+     "group:cue|ambiguous_full": {
+      "n": 50,
+      "missed": 16,
+      "rate": 0.32
+     },
+     "group:cue|ambiguous_single": {
+      "n": 50,
+      "missed": 33,
+      "rate": 0.66
+     },
+     "group:cue|common_full": {
+      "n": 50,
+      "missed": 3,
+      "rate": 0.06
+     },
+     "group:cue|common_single": {
+      "n": 50,
+      "missed": 7,
+      "rate": 0.14
+     },
+     "group:cue|rare_full": {
+      "n": 50,
+      "missed": 8,
+      "rate": 0.16
+     },
+     "group:cue|rare_single": {
+      "n": 50,
+      "missed": 13,
+      "rate": 0.26
+     },
+     "group:heldout": {
+      "n": 250,
+      "missed": 102,
+      "rate": 0.408
+     },
+     "group:heldout|ambiguous_full": {
+      "n": 41,
+      "missed": 28,
+      "rate": 0.6829
+     },
+     "group:heldout|ambiguous_single": {
+      "n": 41,
+      "missed": 39,
+      "rate": 0.9512
+     },
+     "group:heldout|common_full": {
+      "n": 42,
+      "missed": 1,
+      "rate": 0.0238
+     },
+     "group:heldout|common_single": {
+      "n": 42,
+      "missed": 5,
+      "rate": 0.119
+     },
+     "group:heldout|rare_full": {
+      "n": 42,
+      "missed": 11,
+      "rate": 0.2619
+     },
+     "group:heldout|rare_single": {
+      "n": 42,
+      "missed": 18,
+      "rate": 0.4286
+     },
+     "group:real": {
+      "n": 300,
+      "missed": 32,
+      "rate": 0.1067
+     },
+     "group:real|ambiguous_full": {
+      "n": 50,
+      "missed": 8,
+      "rate": 0.16
+     },
+     "group:real|ambiguous_single": {
+      "n": 50,
+      "missed": 10,
+      "rate": 0.2
+     },
+     "group:real|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|common_single": {
+      "n": 50,
+      "missed": 4,
+      "rate": 0.08
+     },
+     "group:real|rare_full": {
+      "n": 50,
+      "missed": 2,
+      "rate": 0.04
+     },
+     "group:real|rare_single": {
+      "n": 50,
+      "missed": 8,
+      "rate": 0.16
+     }
+    },
+    "cases_with_charge_word_or_digit_masked": 68,
+    "other_host_words_masked": 58,
+    "host_words": 6408,
+    "other_host_words_masked_rate": 0.0091,
+    "digits_altered": 1,
+    "digits_altered_independent": 1
+   },
+   "dev": {
+    "records": 953,
+    "records_with_a_mask": 55,
+    "records_with_charge_word_or_digit_masked": 0,
+    "charge_words_masked_tokens": 0,
+    "digits_altered": 0,
+    "digits_altered_independent": 0,
+    "reviewed_name_tokens": 107,
+    "reviewed_name_tokens_missed": 0,
+    "words": 4498,
+    "words_masked": 108,
+    "words_masked_rate": 0.024,
+    "non_name_words_masked": 1,
+    "non_name_words_masked_distinct": 1,
+    "records_with_non_name_word_masked": 1,
+    "seconds_per_1000_records": 1.24
+   },
+   "mock_secondary": {
+    "person_items": 20,
+    "left_in_text": 10,
+    "digits_altered": 2,
+    "records_with_charge_word_or_digit_masked": 4
+   }
+  },
+  {
+   "engine": "names_list",
+   "cases": {
+    "n": 1000,
+    "missed": 168,
+    "miss_rate": 0.168,
+    "partially_masked": 3,
+    "miss_by": {
+     "class:ambiguous_full": {
+      "n": 166,
+      "missed": 36,
+      "rate": 0.2169
+     },
+     "class:ambiguous_single": {
+      "n": 166,
+      "missed": 71,
+      "rate": 0.4277
+     },
+     "class:common_full": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:common_single": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:rare_full": {
+      "n": 167,
+      "missed": 18,
+      "rate": 0.1078
+     },
+     "class:rare_single": {
+      "n": 167,
+      "missed": 43,
+      "rate": 0.2575
+     },
+     "group:bare": {
+      "n": 150,
+      "missed": 60,
+      "rate": 0.4
+     },
+     "group:bare|ambiguous_full": {
+      "n": 25,
+      "missed": 12,
+      "rate": 0.48
+     },
+     "group:bare|ambiguous_single": {
+      "n": 25,
+      "missed": 25,
+      "rate": 1.0
+     },
+     "group:bare|common_full": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|common_single": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|rare_full": {
+      "n": 25,
+      "missed": 5,
+      "rate": 0.2
+     },
+     "group:bare|rare_single": {
+      "n": 25,
+      "missed": 18,
+      "rate": 0.72
+     },
+     "group:cue": {
+      "n": 300,
+      "missed": 9,
+      "rate": 0.03
+     },
+     "group:cue|ambiguous_full": {
+      "n": 50,
+      "missed": 3,
+      "rate": 0.06
+     },
+     "group:cue|ambiguous_single": {
+      "n": 50,
+      "missed": 6,
+      "rate": 0.12
+     },
+     "group:cue|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout": {
+      "n": 250,
+      "missed": 74,
+      "rate": 0.296
+     },
+     "group:heldout|ambiguous_full": {
+      "n": 41,
+      "missed": 14,
+      "rate": 0.3415
+     },
+     "group:heldout|ambiguous_single": {
+      "n": 41,
+      "missed": 31,
+      "rate": 0.7561
+     },
+     "group:heldout|common_full": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|common_single": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|rare_full": {
+      "n": 42,
+      "missed": 10,
+      "rate": 0.2381
+     },
+     "group:heldout|rare_single": {
+      "n": 42,
+      "missed": 19,
+      "rate": 0.4524
+     },
+     "group:real": {
+      "n": 300,
+      "missed": 25,
+      "rate": 0.0833
+     },
+     "group:real|ambiguous_full": {
+      "n": 50,
+      "missed": 7,
+      "rate": 0.14
+     },
+     "group:real|ambiguous_single": {
+      "n": 50,
+      "missed": 9,
+      "rate": 0.18
+     },
+     "group:real|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|rare_full": {
+      "n": 50,
+      "missed": 3,
+      "rate": 0.06
+     },
+     "group:real|rare_single": {
+      "n": 50,
+      "missed": 6,
+      "rate": 0.12
+     }
+    },
+    "cases_with_charge_word_or_digit_masked": 0,
+    "other_host_words_masked": 53,
+    "host_words": 6408,
+    "other_host_words_masked_rate": 0.0083,
+    "digits_altered": 0,
+    "digits_altered_independent": 0
+   },
+   "dev": {
+    "records": 953,
+    "records_with_a_mask": 54,
+    "records_with_charge_word_or_digit_masked": 0,
+    "charge_words_masked_tokens": 0,
+    "digits_altered": 0,
+    "digits_altered_independent": 0,
+    "reviewed_name_tokens": 107,
+    "reviewed_name_tokens_missed": 0,
+    "words": 4498,
+    "words_masked": 107,
+    "words_masked_rate": 0.0238,
+    "non_name_words_masked": 0,
+    "non_name_words_masked_distinct": 0,
+    "records_with_non_name_word_masked": 0,
+    "seconds_per_1000_records": 0.02
+   },
+   "mock_secondary": {
+    "person_items": 20,
+    "left_in_text": 7,
+    "digits_altered": 0,
+    "records_with_charge_word_or_digit_masked": 0
+   }
+  },
+  {
+   "engine": "allowlist",
+   "cases": {
+    "n": 1000,
+    "missed": 109,
+    "miss_rate": 0.109,
+    "partially_masked": 8,
+    "miss_by": {
+     "class:ambiguous_full": {
+      "n": 166,
+      "missed": 36,
+      "rate": 0.2169
+     },
+     "class:ambiguous_single": {
+      "n": 166,
+      "missed": 71,
+      "rate": 0.4277
+     },
+     "class:common_full": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:common_single": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:rare_full": {
+      "n": 167,
+      "missed": 1,
+      "rate": 0.006
+     },
+     "class:rare_single": {
+      "n": 167,
+      "missed": 1,
+      "rate": 0.006
+     },
+     "group:bare": {
+      "n": 150,
+      "missed": 39,
+      "rate": 0.26
+     },
+     "group:bare|ambiguous_full": {
+      "n": 25,
+      "missed": 12,
+      "rate": 0.48
+     },
+     "group:bare|ambiguous_single": {
+      "n": 25,
+      "missed": 25,
+      "rate": 1.0
+     },
+     "group:bare|common_full": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|common_single": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|rare_full": {
+      "n": 25,
+      "missed": 1,
+      "rate": 0.04
+     },
+     "group:bare|rare_single": {
+      "n": 25,
+      "missed": 1,
+      "rate": 0.04
+     },
+     "group:cue": {
+      "n": 300,
+      "missed": 9,
+      "rate": 0.03
+     },
+     "group:cue|ambiguous_full": {
+      "n": 50,
+      "missed": 3,
+      "rate": 0.06
+     },
+     "group:cue|ambiguous_single": {
+      "n": 50,
+      "missed": 6,
+      "rate": 0.12
+     },
+     "group:cue|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout": {
+      "n": 250,
+      "missed": 45,
+      "rate": 0.18
+     },
+     "group:heldout|ambiguous_full": {
+      "n": 41,
+      "missed": 14,
+      "rate": 0.3415
+     },
+     "group:heldout|ambiguous_single": {
+      "n": 41,
+      "missed": 31,
+      "rate": 0.7561
+     },
+     "group:heldout|common_full": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|common_single": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|rare_full": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|rare_single": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real": {
+      "n": 300,
+      "missed": 16,
+      "rate": 0.0533
+     },
+     "group:real|ambiguous_full": {
+      "n": 50,
+      "missed": 7,
+      "rate": 0.14
+     },
+     "group:real|ambiguous_single": {
+      "n": 50,
+      "missed": 9,
+      "rate": 0.18
+     },
+     "group:real|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|rare_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|rare_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     }
+    },
+    "cases_with_charge_word_or_digit_masked": 0,
+    "other_host_words_masked": 113,
+    "host_words": 6408,
+    "other_host_words_masked_rate": 0.0176,
+    "digits_altered": 0,
+    "digits_altered_independent": 0
+   },
+   "dev": {
+    "records": 953,
+    "records_with_a_mask": 56,
+    "records_with_charge_word_or_digit_masked": 0,
+    "charge_words_masked_tokens": 0,
+    "digits_altered": 0,
+    "digits_altered_independent": 0,
+    "reviewed_name_tokens": 107,
+    "reviewed_name_tokens_missed": 0,
+    "words": 4498,
+    "words_masked": 110,
+    "words_masked_rate": 0.0245,
+    "non_name_words_masked": 3,
+    "non_name_words_masked_distinct": 3,
+    "records_with_non_name_word_masked": 2,
+    "seconds_per_1000_records": 0.03
+   },
+   "mock_secondary": {
+    "person_items": 20,
+    "left_in_text": 0,
+    "digits_altered": 0,
+    "records_with_charge_word_or_digit_masked": 0
+   }
+  },
+  {
+   "engine": "allowlist/all",
+   "cases": {
+    "n": 1000,
+    "missed": 109,
+    "miss_rate": 0.109,
+    "partially_masked": 8,
+    "miss_by": {
+     "class:ambiguous_full": {
+      "n": 166,
+      "missed": 36,
+      "rate": 0.2169
+     },
+     "class:ambiguous_single": {
+      "n": 166,
+      "missed": 71,
+      "rate": 0.4277
+     },
+     "class:common_full": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:common_single": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:rare_full": {
+      "n": 167,
+      "missed": 1,
+      "rate": 0.006
+     },
+     "class:rare_single": {
+      "n": 167,
+      "missed": 1,
+      "rate": 0.006
+     },
+     "group:bare": {
+      "n": 150,
+      "missed": 39,
+      "rate": 0.26
+     },
+     "group:bare|ambiguous_full": {
+      "n": 25,
+      "missed": 12,
+      "rate": 0.48
+     },
+     "group:bare|ambiguous_single": {
+      "n": 25,
+      "missed": 25,
+      "rate": 1.0
+     },
+     "group:bare|common_full": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|common_single": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|rare_full": {
+      "n": 25,
+      "missed": 1,
+      "rate": 0.04
+     },
+     "group:bare|rare_single": {
+      "n": 25,
+      "missed": 1,
+      "rate": 0.04
+     },
+     "group:cue": {
+      "n": 300,
+      "missed": 9,
+      "rate": 0.03
+     },
+     "group:cue|ambiguous_full": {
+      "n": 50,
+      "missed": 3,
+      "rate": 0.06
+     },
+     "group:cue|ambiguous_single": {
+      "n": 50,
+      "missed": 6,
+      "rate": 0.12
+     },
+     "group:cue|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout": {
+      "n": 250,
+      "missed": 45,
+      "rate": 0.18
+     },
+     "group:heldout|ambiguous_full": {
+      "n": 41,
+      "missed": 14,
+      "rate": 0.3415
+     },
+     "group:heldout|ambiguous_single": {
+      "n": 41,
+      "missed": 31,
+      "rate": 0.7561
+     },
+     "group:heldout|common_full": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|common_single": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|rare_full": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|rare_single": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real": {
+      "n": 300,
+      "missed": 16,
+      "rate": 0.0533
+     },
+     "group:real|ambiguous_full": {
+      "n": 50,
+      "missed": 7,
+      "rate": 0.14
+     },
+     "group:real|ambiguous_single": {
+      "n": 50,
+      "missed": 9,
+      "rate": 0.18
+     },
+     "group:real|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|rare_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|rare_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     }
+    },
+    "cases_with_charge_word_or_digit_masked": 0,
+    "other_host_words_masked": 105,
+    "host_words": 6408,
+    "other_host_words_masked_rate": 0.0164,
+    "digits_altered": 0,
+    "digits_altered_independent": 0
+   },
+   "dev": {
+    "records": 953,
+    "records_with_a_mask": 55,
+    "records_with_charge_word_or_digit_masked": 0,
+    "charge_words_masked_tokens": 0,
+    "digits_altered": 0,
+    "digits_altered_independent": 0,
+    "reviewed_name_tokens": 107,
+    "reviewed_name_tokens_missed": 0,
+    "words": 4498,
+    "words_masked": 108,
+    "words_masked_rate": 0.024,
+    "non_name_words_masked": 1,
+    "non_name_words_masked_distinct": 1,
+    "records_with_non_name_word_masked": 1,
+    "seconds_per_1000_records": 0.03
+   },
+   "mock_secondary": {
+    "person_items": 20,
+    "left_in_text": 3,
+    "digits_altered": 0,
+    "records_with_charge_word_or_digit_masked": 0
+   }
+  },
+  {
+   "engine": "local_ner",
+   "cases": {
+    "n": 1000,
+    "missed": 110,
+    "miss_rate": 0.11,
+    "partially_masked": 8,
+    "miss_by": {
+     "class:ambiguous_full": {
+      "n": 166,
+      "missed": 15,
+      "rate": 0.0904
+     },
+     "class:ambiguous_single": {
+      "n": 166,
+      "missed": 52,
+      "rate": 0.3133
+     },
+     "class:common_full": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:common_single": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:rare_full": {
+      "n": 167,
+      "missed": 22,
+      "rate": 0.1317
+     },
+     "class:rare_single": {
+      "n": 167,
+      "missed": 21,
+      "rate": 0.1257
+     },
+     "group:bare": {
+      "n": 150,
+      "missed": 32,
+      "rate": 0.2133
+     },
+     "group:bare|ambiguous_full": {
+      "n": 25,
+      "missed": 7,
+      "rate": 0.28
+     },
+     "group:bare|ambiguous_single": {
+      "n": 25,
+      "missed": 14,
+      "rate": 0.56
+     },
+     "group:bare|common_full": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|common_single": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|rare_full": {
+      "n": 25,
+      "missed": 5,
+      "rate": 0.2
+     },
+     "group:bare|rare_single": {
+      "n": 25,
+      "missed": 6,
+      "rate": 0.24
+     },
+     "group:cue": {
+      "n": 300,
+      "missed": 37,
+      "rate": 0.1233
+     },
+     "group:cue|ambiguous_full": {
+      "n": 50,
+      "missed": 1,
+      "rate": 0.02
+     },
+     "group:cue|ambiguous_single": {
+      "n": 50,
+      "missed": 20,
+      "rate": 0.4
+     },
+     "group:cue|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_full": {
+      "n": 50,
+      "missed": 8,
+      "rate": 0.16
+     },
+     "group:cue|rare_single": {
+      "n": 50,
+      "missed": 8,
+      "rate": 0.16
+     },
+     "group:heldout": {
+      "n": 250,
+      "missed": 36,
+      "rate": 0.144
+     },
+     "group:heldout|ambiguous_full": {
+      "n": 41,
+      "missed": 6,
+      "rate": 0.1463
+     },
+     "group:heldout|ambiguous_single": {
+      "n": 41,
+      "missed": 15,
+      "rate": 0.3659
+     },
+     "group:heldout|common_full": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|common_single": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|rare_full": {
+      "n": 42,
+      "missed": 8,
+      "rate": 0.1905
+     },
+     "group:heldout|rare_single": {
+      "n": 42,
+      "missed": 7,
+      "rate": 0.1667
+     },
+     "group:real": {
+      "n": 300,
+      "missed": 5,
+      "rate": 0.0167
+     },
+     "group:real|ambiguous_full": {
+      "n": 50,
+      "missed": 1,
+      "rate": 0.02
+     },
+     "group:real|ambiguous_single": {
+      "n": 50,
+      "missed": 3,
+      "rate": 0.06
+     },
+     "group:real|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|rare_full": {
+      "n": 50,
+      "missed": 1,
+      "rate": 0.02
+     },
+     "group:real|rare_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     }
+    },
+    "cases_with_charge_word_or_digit_masked": 0,
+    "other_host_words_masked": 69,
+    "host_words": 6408,
+    "other_host_words_masked_rate": 0.0108,
+    "digits_altered": 0,
+    "digits_altered_independent": 0
+   },
+   "dev": {
+    "records": 953,
+    "records_with_a_mask": 54,
+    "records_with_charge_word_or_digit_masked": 0,
+    "charge_words_masked_tokens": 0,
+    "digits_altered": 0,
+    "digits_altered_independent": 0,
+    "reviewed_name_tokens": 107,
+    "reviewed_name_tokens_missed": 0,
+    "words": 4498,
+    "words_masked": 107,
+    "words_masked_rate": 0.0238,
+    "non_name_words_masked": 0,
+    "non_name_words_masked_distinct": 0,
+    "records_with_non_name_word_masked": 0,
+    "seconds_per_1000_records": 5.92
+   },
+   "mock_secondary": {
+    "person_items": 20,
+    "left_in_text": 7,
+    "digits_altered": 0,
+    "records_with_charge_word_or_digit_masked": 0
+   }
+  },
+  {
+   "engine": "local_ner@0.3",
+   "cases": {
+    "n": 1000,
+    "missed": 69,
+    "miss_rate": 0.069,
+    "partially_masked": 5,
+    "miss_by": {
+     "class:ambiguous_full": {
+      "n": 166,
+      "missed": 9,
+      "rate": 0.0542
+     },
+     "class:ambiguous_single": {
+      "n": 166,
+      "missed": 38,
+      "rate": 0.2289
+     },
+     "class:common_full": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:common_single": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:rare_full": {
+      "n": 167,
+      "missed": 8,
+      "rate": 0.0479
+     },
+     "class:rare_single": {
+      "n": 167,
+      "missed": 14,
+      "rate": 0.0838
+     },
+     "group:bare": {
+      "n": 150,
+      "missed": 23,
+      "rate": 0.1533
+     },
+     "group:bare|ambiguous_full": {
+      "n": 25,
+      "missed": 4,
+      "rate": 0.16
+     },
+     "group:bare|ambiguous_single": {
+      "n": 25,
+      "missed": 13,
+      "rate": 0.52
+     },
+     "group:bare|common_full": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|common_single": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|rare_full": {
+      "n": 25,
+      "missed": 1,
+      "rate": 0.04
+     },
+     "group:bare|rare_single": {
+      "n": 25,
+      "missed": 5,
+      "rate": 0.2
+     },
+     "group:cue": {
+      "n": 300,
+      "missed": 25,
+      "rate": 0.0833
+     },
+     "group:cue|ambiguous_full": {
+      "n": 50,
+      "missed": 1,
+      "rate": 0.02
+     },
+     "group:cue|ambiguous_single": {
+      "n": 50,
+      "missed": 14,
+      "rate": 0.28
+     },
+     "group:cue|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_full": {
+      "n": 50,
+      "missed": 4,
+      "rate": 0.08
+     },
+     "group:cue|rare_single": {
+      "n": 50,
+      "missed": 6,
+      "rate": 0.12
+     },
+     "group:heldout": {
+      "n": 250,
+      "missed": 16,
+      "rate": 0.064
+     },
+     "group:heldout|ambiguous_full": {
+      "n": 41,
+      "missed": 3,
+      "rate": 0.0732
+     },
+     "group:heldout|ambiguous_single": {
+      "n": 41,
+      "missed": 8,
+      "rate": 0.1951
+     },
+     "group:heldout|common_full": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|common_single": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|rare_full": {
+      "n": 42,
+      "missed": 2,
+      "rate": 0.0476
+     },
+     "group:heldout|rare_single": {
+      "n": 42,
+      "missed": 3,
+      "rate": 0.0714
+     },
+     "group:real": {
+      "n": 300,
+      "missed": 5,
+      "rate": 0.0167
+     },
+     "group:real|ambiguous_full": {
+      "n": 50,
+      "missed": 1,
+      "rate": 0.02
+     },
+     "group:real|ambiguous_single": {
+      "n": 50,
+      "missed": 3,
+      "rate": 0.06
+     },
+     "group:real|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|rare_full": {
+      "n": 50,
+      "missed": 1,
+      "rate": 0.02
+     },
+     "group:real|rare_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     }
+    },
+    "cases_with_charge_word_or_digit_masked": 0,
+    "other_host_words_masked": 102,
+    "host_words": 6408,
+    "other_host_words_masked_rate": 0.0159,
+    "digits_altered": 0,
+    "digits_altered_independent": 0
+   },
+   "dev": {
+    "records": 953,
+    "records_with_a_mask": 55,
+    "records_with_charge_word_or_digit_masked": 0,
+    "charge_words_masked_tokens": 0,
+    "digits_altered": 0,
+    "digits_altered_independent": 0,
+    "reviewed_name_tokens": 107,
+    "reviewed_name_tokens_missed": 0,
+    "words": 4498,
+    "words_masked": 108,
+    "words_masked_rate": 0.024,
+    "non_name_words_masked": 1,
+    "non_name_words_masked_distinct": 1,
+    "records_with_non_name_word_masked": 1,
+    "seconds_per_1000_records": 6.05
+   },
+   "mock_secondary": {
+    "person_items": 20,
+    "left_in_text": 7,
+    "digits_altered": 0,
+    "records_with_charge_word_or_digit_masked": 0
+   }
+  },
+  {
+   "engine": "allowlist+local_ner",
+   "cases": {
+    "n": 1000,
+    "missed": 48,
+    "miss_rate": 0.048,
+    "partially_masked": 3,
+    "miss_by": {
+     "class:ambiguous_full": {
+      "n": 166,
+      "missed": 13,
+      "rate": 0.0783
+     },
+     "class:ambiguous_single": {
+      "n": 166,
+      "missed": 35,
+      "rate": 0.2108
+     },
+     "class:common_full": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:common_single": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:rare_full": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "class:rare_single": {
+      "n": 167,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare": {
+      "n": 150,
+      "missed": 20,
+      "rate": 0.1333
+     },
+     "group:bare|ambiguous_full": {
+      "n": 25,
+      "missed": 6,
+      "rate": 0.24
+     },
+     "group:bare|ambiguous_single": {
+      "n": 25,
+      "missed": 14,
+      "rate": 0.56
+     },
+     "group:bare|common_full": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|common_single": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|rare_full": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:bare|rare_single": {
+      "n": 25,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue": {
+      "n": 300,
+      "missed": 6,
+      "rate": 0.02
+     },
+     "group:cue|ambiguous_full": {
+      "n": 50,
+      "missed": 1,
+      "rate": 0.02
+     },
+     "group:cue|ambiguous_single": {
+      "n": 50,
+      "missed": 5,
+      "rate": 0.1
+     },
+     "group:cue|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:cue|rare_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout": {
+      "n": 250,
+      "missed": 18,
+      "rate": 0.072
+     },
+     "group:heldout|ambiguous_full": {
+      "n": 41,
+      "missed": 5,
+      "rate": 0.122
+     },
+     "group:heldout|ambiguous_single": {
+      "n": 41,
+      "missed": 13,
+      "rate": 0.3171
+     },
+     "group:heldout|common_full": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|common_single": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|rare_full": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:heldout|rare_single": {
+      "n": 42,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real": {
+      "n": 300,
+      "missed": 4,
+      "rate": 0.0133
+     },
+     "group:real|ambiguous_full": {
+      "n": 50,
+      "missed": 1,
+      "rate": 0.02
+     },
+     "group:real|ambiguous_single": {
+      "n": 50,
+      "missed": 3,
+      "rate": 0.06
+     },
+     "group:real|common_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|common_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|rare_full": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     },
+     "group:real|rare_single": {
+      "n": 50,
+      "missed": 0,
+      "rate": 0.0
+     }
+    },
+    "cases_with_charge_word_or_digit_masked": 0,
+    "other_host_words_masked": 128,
+    "host_words": 6408,
+    "other_host_words_masked_rate": 0.02,
+    "digits_altered": 0,
+    "digits_altered_independent": 0
+   },
+   "dev": {
+    "records": 953,
+    "records_with_a_mask": 56,
+    "records_with_charge_word_or_digit_masked": 0,
+    "charge_words_masked_tokens": 0,
+    "digits_altered": 0,
+    "digits_altered_independent": 0,
+    "reviewed_name_tokens": 107,
+    "reviewed_name_tokens_missed": 0,
+    "words": 4498,
+    "words_masked": 110,
+    "words_masked_rate": 0.0245,
+    "non_name_words_masked": 3,
+    "non_name_words_masked_distinct": 3,
+    "records_with_non_name_word_masked": 2,
+    "seconds_per_1000_records": 6.1
+   },
+   "mock_secondary": {
+    "person_items": 20,
+    "left_in_text": 0,
+    "digits_altered": 0,
+    "records_with_charge_word_or_digit_masked": 0
+   }
+  }
+ ]
+}

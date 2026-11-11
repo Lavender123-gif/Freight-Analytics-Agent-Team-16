@@ -1,7 +1,7 @@
 # B03 Auto-reject pre-check: test report
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟩 Light green (board: [B03](../../status/project_status.en.md#card-b03))
+- **Card colour**: 🟩 Light green (board: [B03](../../../STATUS.md#card-b03))
 - **Compiled on**: 2026-11-03 (task 04). Content is taken from task 03's deliverable; no check was rerun this time.
 - Deliverable description: [README.en.md](README.en.md); results file: [results/summary.md](results/summary.md); examples: [results/examples.md](results/examples.md); Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)
 

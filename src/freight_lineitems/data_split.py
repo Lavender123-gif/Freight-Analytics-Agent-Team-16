@@ -76,7 +76,8 @@ def summarize(dev: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    df = pd.read_excel(RAW_PATH, dtype={GROUP_COL: str})
+    from freight_lineitems.config import assert_readable
+    df = pd.read_excel(assert_readable(RAW_PATH), dtype={GROUP_COL: str})   # needs FL_ALLOW_RAW=1 (P-18)
     dev, test = split_shipments(df)
 
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)

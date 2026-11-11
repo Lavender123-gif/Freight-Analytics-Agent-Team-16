@@ -1,0 +1,206 @@
+# rules.yaml v1-draft (task 09). Every threshold and every flag's severity lives here; code holds no thresholds.
+# Recommendation (decision 2.3; computed from flags, never from the model's self-assessed confidence):
+#   1. any flag with severity `attention`  -> HUMAN_REVIEW      (建议人工审核)
+#   2. else any flag with severity `return` -> RETURN_SUGGESTED (建议退回承运商)
+#   3. else                                  -> PASSED_CHECKS    (解析通过检查)
+# Task 10 §1.1: `return` is given only where code alone can decide (empty text, numbers-only text). Anything that
+# rests on the model's reading goes to a person, never to a return: a correct claim kept out of the process is the
+# worst failure.
+# severity `info` is shown to the reviewer and never changes the recommendation.
+# Every record reaches a reviewer whatever its recommendation (decision 2.2). The system takes no action.
+# `carrier_fix` is the line used in a return draft (only for `return` flags); the reviewer may edit it.
+version: rules-v1.1-2026-11-10
+
+flags:
+  # ---- record text and fields (steps 1-2)
+  REC.TEXT.EMPTY:                    {severity: return, carrier_fix: "Add an explanation naming each charge and its amount."}
+  REC.TEXT.NUMBERS_ONLY:             {severity: return, carrier_fix: "Name the charge each amount is for, and why it applies."}
+  REC.TEXT.NO_NUMBER:                {severity: attention}   # task 10 §1.1: was return; a claim may still be valid, a person looks
+  REC.TEXT.INJECTION_SUSPECT:        {severity: attention}
+  REC.TEXT.PII_REDACTED:             {severity: info}
+  REC.TEXT.REDACTION_ALTERED_DIGITS: {severity: attention}
+  REC.TEXT.DATE_AFTER_EVENT:         {severity: info}
+  REC.FIELD.DELTA_ZERO:              {severity: attention}
+  REC.FIELD.DELTA_MISSING:           {severity: attention}   # audit M2
+  REC.FIELD.DELTA_NEGATIVE:          {severity: attention}
+  REC.FIELD.CROSS_BORDER:            {severity: info}
+  REC.FIELD.REASON_CODE_CONFLICT:    {severity: info}     # ported from the prototype unchanged (role none there)
+  REC.FIELD.CURRENCY_UNDETERMINED:   {severity: info}     # currency cannot be derived from country (cross-border / unknown); field set to UNKNOWN (decision 4.3) [待 Jake J4]
+  # ---- numbers
+  NUM.PARSE.UNRECOGNIZED_REGION:     {severity: info}
+  NUM.PARSE.SPACE_MERGED:            {severity: info}
+  NUM.PARSE.UNUSUAL_DECIMALS:        {severity: info}
+  NUM.PARSE.LEADING_DOT:             {severity: info}
+  NUM.PARSE.MINUS_ADJACENT:          {severity: info}
+  NUM.READ.REGION_VALUE_DERIVED:     {severity: info}     # value code took for an unrecognized region; shown so a wrong decimal guess is visible (audit H1)
+  NUM.JUDGMENT.DOLLAR_EXCLUDED:      {severity: info}     # '$' amount not counted; the exclusion phrase is shown (decision 3.5)
+  NUM.JUDGMENT.EXCLUSION_BASIS_UNLISTED: {severity: attention}   # P-15 (task 10 §1.3): adopted by the pre-stated rule (+0.0 pp on dev-weighted A and B2, limit 3 pp); docs/autorun/rule_changes_leg2.zh.md
+  NUM.JUDGMENT.SPACE_MERGED_IN_CLAIM: {severity: attention}
+  NUM.ARITH.CUE_WITHOUT_RELATION:    {severity: info}
+  ITEM.ARITH.QTY_RATE_NO_RESULT:     {severity: attention}   # text gives quantity x rate but states no result: per-unit or whole charge is unclear (user req. b, 11-10)     # '@', 'X', 'PER', 'DAYS' near a number but no relation written (decision 3.3)
+  # ---- line items
+  ITEM.CODE.OTHER:                   {severity: attention}   # decision 3.7: not in the taxonomy -> flag
+  ITEM.CODE.PENDING_MEANING:         {severity: info}
+  ITEM.CODE.COMBINED:                {severity: info}        # one amount for several charges; not split by us (BC039: no decision requires a person)
+  ITEM.AMOUNT.MISSING:               {severity: attention}   # task 10 §1.1: was return; raised from the model's reading, so never a return
+  ITEM.AMOUNT.UNNAMED:               {severity: attention}   # task 10 §1.1: was return (P-05/P-19); see `subsumption` for numbers-only text
+  ITEM.TAX.PRESENT:                  {severity: attention}   # decision 4.4: every tax question goes to a human
+  ITEM.TAX.NO_AMOUNT:                {severity: info}
+  ITEM.TAX.RATE_MISMATCH:            {severity: info}        # shown as a fact; never judged as a carrier error (decision 4.4)
+  ITEM.TAX.NO_RULE:                  {severity: info}
+  ITEM.BASIS.PPG_CLAIMED:            {severity: info}
+  ITEM.BASIS.CONTRACT_CLAIMED:       {severity: info}
+  ITEM.NATURE.RATE_CORRECTION:       {severity: info}
+  ITEM.ARITH.RELATION_FAILS:         {severity: attention}   # a stated relation does not hold when code recomputes it (decision 3.3)
+  # ---- claim vs Delta (decision 3.2: the reviewer judges an inconsistency; the system does not)
+  CLAIM.DELTA.FIRST_MISMATCH:        {severity: info}        # first attempt inconsistent; always kept visible
+  CLAIM.DELTA.MATCH_AFTER_REVISION:  {severity: attention}   # the model changed its reading after being told 'inconsistent'
+  CLAIM.DELTA.MISMATCH_INSISTED:     {severity: attention}
+  CLAIM.DELTA.MISMATCH_UNRESOLVED:   {severity: attention}
+  CLAIM.DELTA.TOTAL_COUNTED_TWICE_PATTERN: {severity: info}  # explanation only (decision 3.4)
+  CLAIM.DELTA.DIFFERENCE_MATCHES_AMOUNTS: {severity: info}  # the gap equals one or a few amounts in the text; reviewer view only, never sent to the model (user req. c)
+  CLAIM.ATTEMPT.STATUS_CHANGED:      {severity: attention}   # numbers whose kind/status changed between attempts (decision 3.5)
+  CLAIM.RECON.TOTAL_MISMATCH:        {severity: attention}
+  # ---- duplicates (decision 5.3; stage 2, R1b)
+  DUP.ROW.HAS_LATER_COPIES:          {severity: info}
+  DUP.ROW.COPY:                      {severity: attention}
+  DUP.INVOICE.SAME_CHARGE:           {severity: attention}
+  DUP.INVOICE.NOT_CHECKED:           {severity: info}        # reading failed checks, so it was not compared (audit M5)
+  # ---- processing
+  RUN.AGENT.UNCERTAINTY_REPORTED:    {severity: attention}   # decision 2.3; P-13 kept by the pre-stated rule (mock misread rate 26.3% with a doubt vs 3.6% without = 7.4x, limit 2x)
+  RUN.SUBMIT.FAILED_CHECKS:          {severity: attention}   # last submission still fails mandatory checks
+  RUN.SUBMIT.NONE:                   {severity: attention}   # the model never produced a submission
+  RUN.MODEL.REFUSAL:                 {severity: attention}
+  RUN.MODEL.ERROR:                   {severity: attention}
+  RUN.MODEL.TRUNCATED:               {severity: attention}   # max_tokens / pause_turn (audit L2)
+  RUN.AGENT.UNCERTAINTY_OVER_LIMIT:  {severity: attention}   # doubts refused by the report limit are still shown (audit L2)
+  REC.TEXT.NON_ASCII:                {severity: info}        # non-ASCII characters, kept apart from injection (audit L7)
+
+subsumption:                  # task 10 §1.1. A flag listed here is shown as `info` when one of its subsumers is present on
+  # the record: the subsumer is decided by code alone and already implies the flag, so the flag adds nothing a person
+  # must judge. Only code-decided facts may be subsumers.
+  ITEM.AMOUNT.UNNAMED:            [REC.TEXT.NUMBERS_ONLY]   # text without letters cannot name a charge
+  CLAIM.DELTA.FIRST_MISMATCH:     [REC.TEXT.EMPTY]          # empty text holds no amount, so it cannot equal a non-zero Delta
+  CLAIM.DELTA.MISMATCH_INSISTED:  [REC.TEXT.EMPTY]
+  CLAIM.DELTA.MISMATCH_UNRESOLVED: [REC.TEXT.EMPTY]
+
+exclusion_basis:              # P-15: accepted reasons for leaving a '$' amount out of the claim, and the words that name them.
+  # Generic English only. The model's exclusion_phrase must contain at least one word from one category;
+  # otherwise NUM.JUDGMENT.EXCLUSION_BASIS_UNLISTED is raised (its severity is in `flags` above).
+  categories:
+    paid:      [PAID, PD, PAYMENT, PAYMENTS, PAYING, REMITTED, REMITTANCE, RECEIVED, SHORT PAID, SHORTPAID]
+    billed:    [BILLED, INVOICED, INVOICE, CHARGED, REBILLED, RE-BILLED]
+    total:     [TOTAL, SUBTOTAL, SUB-TOTAL, SUB TOTAL, BALANCE, AMOUNT DUE, SUM]
+    unit_rate: [EACH, PER, RATE, "@", "/DAY", "/HR", "/HOUR", A DAY, AN HOUR, PER DIEM, AT]
+    credit:    [CREDIT, CREDITED, CREDITS, REFUND, REFUNDED, OVERPAYMENT, OVERPAID, DEDUCT, DEDUCTED, DEDUCTION]
+    history:   [PREVIOUSLY, PREVIOUS, PRIOR, EARLIER, ALREADY, ORIGINAL, ORIGINALLY]
+    reference: [APPROVED, APPROVAL, AUTHORIZED, AUTHORISED, QUOTED, QUOTE, AGREED, CONTRACT, CONTRACTED, TARIFF, ALLOWED, SHOULD BE]
+
+duplicates:                   # R1b (decision 5.3). A duplicate flag is cleared only by evidence listed here.
+  clear_rules: []             # empty: in this version only a reviewer clears a duplicate flag
+
+agent:
+  max_turns: 14                 # model calls per record, hard stop
+  max_repair_rounds: 2          # resubmissions allowed after mandatory-check failures (not Delta related)
+  max_delta_feedback_rounds: 1  # times the model is told 'inconsistent' [待讨论] decision 3.2 leans 1-2; see pending P-02
+  max_uncertainty_reports: 6
+
+tolerances:
+  amount_abs: 0.005        # money comparisons (two-decimal data)
+  tax_abs: 0.011           # tax vs base x rate, one cent of rounding
+  relation_abs: 0.005      # stated arithmetic relations; same as amount_abs (prototype tolerance; boundary case BC051)
+  text_date_after_event_days: 1
+
+number_features:
+  unit_words: [LBS, LB, KG, KGS, "%", DAYS, DAY, "DAY(S)", HRS, HOURS, HR, MILES, MI, PCS, PIECES, PALLETS, MIN, MINS]
+  money_unit_conflicts: [LBS, LB, KG, KGS, "%", DAYS, DAY, "DAY(S)", HRS, HOURS, HR, MILES, MI, PCS, PIECES, PALLETS]
+  quantity_rate:            # user req. b: code finds 'N <unit> @ X' / 'N <unit> AT X EACH' itself, independent of the model
+    quantity_units: [DAY, DAYS, "DAY(S)", HR, HRS, HOUR, HOURS, UNIT, UNITS, PALLET, PALLETS, PCS, PIECES, LOAD, LOADS, TRIP, TRIPS]
+    unit_window_chars: 18     # unit word must start within this many characters after the quantity
+    rate_window_chars: 40     # the rate must start within this many characters after the quantity
+    rate_next_words: [EACH, PER, A]
+    rate_prev_words: [AT, "@"]
+    max_quantity: 1000
+  difference_explanation:
+    max_terms: 3              # look for the gap as a sum of up to this many amounts from the text
+  arithmetic_cues:          # decision 3.3: if any number carries one of these and no relation is written -> hint
+    prev_symbols: ["@", "X", "x", "*"]
+    words: [AT, PER, EACH, X, DAYS, DAY, "DAY(S)", HRS, HOURS, HR, MILES, MI]
+
+injection:                   # prototype patterns + three generic forms found missing by the public mock (expectation_changes 1)
+  max_length: 600
+  normalize_before_match: true   # also match a normalised copy: NFKC, look-alike letters, 'i G n O r E', 'RU1ES'
+  patterns:
+    - "\\b(IGNORE|DISREGARD|OVERRIDE|BYPASS|DO NOT FOLLOW)\\b.{0,30}\\b(RULES?|INSTRUCTIONS?|POLICY|POLICIES|CHECKS?|PROMPT)\\b"
+    - "\\b(SYSTEM|ADMIN|DEVELOPER) (MESSAGE|NOTICE|OVERRIDE|SAYS)\\b"
+    - "\\bREVEAL (YOUR )?(SYSTEM )?PROMPT\\b"
+    - "\\bSYSTEM\\s*:"
+    - "\\bMARK (THIS|IT|THE RECORD) (AS )?(VALID|APPROVED)\\b"
+    - "IGNORE (ALL |THE )?(PREVIOUS|ABOVE|PRIOR)"
+    - "\\bSYSTEM PROMPT\\b"
+    - "\\bINSTRUCTIONS?\\b.*\\b(MODEL|AI|ASSISTANT)\\b"
+    - "\\b(YOU ARE|ACT AS) (AN? )?(AI|ASSISTANT|MODEL)\\b"
+    - "\\bAUTO[- ]?APPROVE\\b"
+    - "\\bSUBMIT_LINE_ITEMS\\b|\\bTOOL\\b.*\\bCALL\\b"
+    - "[<>{}`]"
+
+# Reason Code 到 taxonomy 类别的映射；只有映射到具体类别的才参与冲突检查
+reason_code_categories:
+  PPGTM.INCORRECT_MISSING_FSC: [FUEL, RATE_CORRECTION]
+  PPGTM.INCORRECT_BASE_CHARGE: [LINEHAUL, RATE_CORRECTION]
+  PPGTM.INCORRECT_MISSING_DETENTION: [DETENTION_STORAGE]
+  PPGTM.INCORRECT_MISSING_DEMURRAGE: [DETENTION_STORAGE]
+  PPGTM.INCORRECT_MISSING_LUMPER: [ACCESSORIAL]
+  PPGTM.INCORRECT_MISSING_HAZMAT: [ACCESSORIAL]
+  # INCORRECT_MISSING_OTHER_ACCESSORIALS、TW_RESOLUTION 不是具体类别，不参与
+reason_code_specific_codes:   # 比类别更细时用具体代码比较
+  PPGTM.INCORRECT_MISSING_LUMPER: [ACCESSORIAL.LUMPER, ACCESSORIAL.SORT_SEGREGATE]
+  PPGTM.INCORRECT_MISSING_HAZMAT: [ACCESSORIAL.HAZMAT]
+
+redaction:
+  engine: allowlist           # default chosen by the pre-stated rule (task 10 section 4, T10 report); was presidio. presidio | email_only | names_list | allowlist | local_ner, or a union of the last
+                              # three joined with '+', e.g. allowlist+local_ner (task 10 section 4; the
+                              # environment variable FL_REDACTION_ENGINE overrides this for one run)
+  presidio_entities: [PERSON]
+  title_case_before_ner: dict
+  score_threshold: 0.5
+  context_rules: true
+  # the keys below are read only by the engines names_list / allowlist / local_ner (redaction_variants.py)
+  names_file: config/person_names.txt        # US Census first names and surnames (public domain)
+  common_words_file: config/common_words.txt # SCOWL size <= 35 (permissive licence, notice in the file)
+  # Extra words never masked as a name: general freight-billing terms and abbreviations that are in neither the
+  # charge vocabulary nor the common-word list. Written from general industry usage, not collected from the data
+  # (four of them, DETN, PYMT, REPOSITIONING and OVERPAYMENT, were first seen masked on the dev split).
+  allow_words: [ACCESSORIAL, ACCESSORIALS, LINEHAUL, DRAYAGE, DEMURRAGE, DEMUR, PERDIEM, LUMPER, LUMPERS, LIFTGATE,
+                TAILGATE, REDELIVERY, RECONSIGNMENT, RECONSIGN, REWEIGH, RECLASS, RECLASSIFICATION, LAYOVER, DEADHEAD,
+                BOBTAIL, STOPOFF, CROSSDOCK, TRANSLOAD, INTERMODAL, REEFER, FLATBED, DUNNAGE, OVERDIMENSION, OVERLENGTH,
+                OVERWEIGHT, OVERPAYMENT, UNDERPAYMENT, SHORTPAY, CONSIGNEE, CONSIGNOR, SHIPPER, TARIFF, NMFC, HAZMAT,
+                PREPULL, REPOSITION, REPOSITIONING, DETN, DET, DEMURR, ACCESS, ACC, APPT, RESI, REDEL, RECON, PYMT, PMT,
+                INV, AMT, QTY, WGT, CWT, MISC, ADDL, ORIG, DEST, SHPR, CNEE, CONS, DLVY, DELV, DEL, XTRA, CHG, CHGS,
+                CHRG, SVC, SURCH, SURCHG, ADJ, BAL, REF, PRO, BOL, POD, LTL, FTL, FSC, TMS, EDI, ETA, APPROX, PCT, EST,
+                USD, CAD, GST, HST, PST, QST, PPG,
+                # added after the engine became the default (task 10): general terms found masked in synthetic text
+                DIEM, TARP, TARPS, TARPING, TONU, DWELL, CHASSIS, PREPULL, DRAY, DROPTRAILER, SPOTTING, PALLETIZE,
+                PALLETIZING, RESTACK, RESTACKING, SHRINKWRAP, STRAPS, STRAPPING, PERMIT, PERMITS, ESCORT, ESCORTS, TOLLS,
+                SCALE, REWORK, UNLOAD, UNLOADING, DRIVER, DRIVERS, ASSIST, TEAM, EXPEDITE, EXPEDITED, HOTSHOT, BONDED,
+                CUSTOMS, BROKERAGE, BORDER, CROSSING, DOCK, RAMP, YARD, PULL, SPLIT, FLIP, STORAGE, DETENTION, WAITING,
+                MILEAGE, MILES, STOP, STOPS, PICKUP, DELIVERY, INSIDE, RESIDENTIAL, LIMITED, NOTIFY, NOTIFICATION,
+                APPOINTMENT, SORT, SEGREGATE, SEGREGATION, HANDLING, OVERSIZE, OVERSIZED, PROTECT, FREEZE, HEATED,
+                TEMP, TEMPERATURE, WEEKEND, HOLIDAY, SATURDAY, SUNDAY, AFTERHOURS, REDIRECT, DIVERSION, DIVERT, ABORT,
+                ABORTED, CANCEL, CANCELLED, CANCELED, TRUCK, TRAILER, CONTAINER, RAIL, OCEAN, PORT, TERMINAL, PIER,
+                CONGESTION, PEAK, SEASON, EMERGENCY, FUEL, SURCHARGE, RATE, RERATE, REBILL, REBILLED, SHORTPAID,
+                DEDUCTION, DISCOUNT, MINIMUM, MAXIMUM, FLAT, HOURLY, DAILY, WEEKLY, PER]
+  # Which words a misspelling may be one edit from: charge_vocab (charge vocabulary and the protected words above),
+  # all (also every common word), off. `all` lets 17% of Census surnames outside the bundled list pass as a
+  # "misspelled common word" (0.4% with charge_vocab), measured by scratch/redaction/measure.py.
+  allowlist_near_spelling: charge_vocab
+  allowlist_near_min_len: 5
+  local_ner_model: onnx-community/gliner_small-v2.1   # ONNX export of urchade/gliner_small-v2.1 (Apache-2.0), CPU
+  local_ner_file: onnx/model.onnx
+  local_ner_label: person
+  local_ner_threshold: 0.5                             # the gliner library default, not tuned
+
+currency:                     # decision 4.3: currency at record level, derived from country, marked as derived [待 Jake J4]
+  by_country: {CA: CAD, US: USD}
+  cross_border: UNKNOWN
+  unknown: UNKNOWN

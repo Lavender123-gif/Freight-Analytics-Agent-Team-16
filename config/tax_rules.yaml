@@ -1,0 +1,22 @@
+# Canadian sales tax rates for the data window (2021-05 to 2022-08), from public federal/provincial rates.
+# Which province applies to a freight service (origin, destination, place of supply) and whether provincial
+# sales taxes apply to freight are NOT settled here: see report section 10 (questions for Jake).
+# The checker only tests the federal-level component (GST or HST) unless the text names PST/QST.
+version: tax-v0.1
+effective: {from: "2021-01-01", to: "2022-12-31"}
+province_basis: destination   # configurable; open question
+provinces:   # keys quoted: unquoted ON is read by YAML 1.1 as boolean true
+  "AB": {gst: 0.05}
+  "BC": {gst: 0.05, pst: 0.07, pst_applies_to_freight: unknown}
+  "MB": {gst: 0.05, pst: 0.07, pst_applies_to_freight: unknown}
+  "SK": {gst: 0.05, pst: 0.06, pst_applies_to_freight: unknown}
+  "QC": {gst: 0.05, qst: 0.09975, pst_applies_to_freight: unknown}
+  "ON": {hst: 0.13}
+  "NB": {hst: 0.15}
+  "NL": {hst: 0.15}
+  "NS": {hst: 0.15}
+  "PE": {hst: 0.15}
+  "NT": {gst: 0.05}
+  "NU": {gst: 0.05}
+  "YT": {gst: 0.05}
+non_canadian: "No Canadian tax rule; a tax mention is recorded as ITEM.TAX.NO_RULE"

@@ -23,7 +23,7 @@ CMU Intro to AI client project (Team 16) for PPG. Convert the free-text explanat
 ## Conventions
 - Source code in src/freight_lineitems/, tests in tests/ using pytest.
 - Every agent tool has type hints and a docstring written for an LLM reader: what it does, when to use it, arguments, return value, failure modes.
-- Every tool has unit tests built from dev-split examples.
+- Every tool has unit tests built from synthetic examples.
 - Commands: `uv run pytest`, `uv add <package>`.
 - Keep changes small and explain what changed and why.
 

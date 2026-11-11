@@ -1,7 +1,7 @@
 # A2 Problem inventory (01, 01b): test report
 
 - **Evidence level**: in-sample
-- **Card colour**: 🟩 Light green (board: [A2](../../status/project_status.en.md#card-a2))
+- **Card colour**: 🟩 Light green (board: [A2](../../../STATUS.md#card-a2))
 - **Card type**: analysis card. The "check" is script reproducibility and number cross-checking, not a test of a feature.
 - **Compiled on**: 2026-11-03 (task 04). Content is taken from task 03's deliverable; no check was rerun this time.
 - Deliverable description: [README.en.md](README.en.md); comparison table: [results/comparison.md](results/comparison.md); examples: [results/examples.md](results/examples.md); Chinese version (authoritative): [test_report.zh.md](test_report.zh.md)

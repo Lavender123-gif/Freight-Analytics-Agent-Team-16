@@ -19,10 +19,14 @@
 
 > **{{ L.generated }}** {{ L.generated_how }}
 
+{% if m.update_note %}
+- {{ t(m.update_note) }}
+{% endif %}
 - **{{ L.updated }}**{{ L.sep }}{{ m.updated }}
 - **{{ L.task }}**{{ L.sep }}{{ t(m.task) }}
 - {{ L.authoritative }}
 - {{ t(m.flow_note) }}
+- {{ t(m.must_note) }}
 
 <a id="progress"></a>
 ## {{ L.progress }}
@@ -36,7 +40,21 @@
 {% for k, col in m.colors.items() %}{{ col.emoji }} {{ col.name[lang] }} {{ p.counts[k] }}{% if not loop.last %} · {% endif %}{% endfor %}
 
 
+**{{ L.denominator }}**{{ L.sep }}{{ p.n_must }} {{ L.progress_count }}{{ L.period | trim }} {{ L.all_cards.format(n=d.cards | length) }} {{ L.outside | capitalize }}{{ L.sep }}{{ m.colors.grey.emoji }} {{ p.grey_must }}{% for k, n in p.outside.items() %} · {{ m.tiers[k].name[lang] }} {{ n }}{% endfor %}
+
+
 **{{ L.progress_formula }}**{{ L.sep }}{{ t(m.progress.note) }}
+
+<a id="must"></a>
+## {{ L.must }}
+
+{{ L.must_legend }}
+
+| {{ L.col_plan }} | {{ L.col_task }} | {{ L.col_hours }} | {{ L.col_owner }} | {{ L.col_task_status }} | {{ L.col_cards }} |
+|---|---|---|---|---|---|
+{% for r in must %}
+| {{ r.id }} | {{ r.name }} | {{ r.hours }} | {{ r.owner }} | {{ r.status }} | {% for c in r.cards %}[{{ c.id }}](#card-{{ c.id | lower }}) {{ m.colors[c.color].emoji }}{% if not loop.last %} · {% endif %}{% endfor %} |
+{% endfor %}
 
 <a id="standard"></a>
 ## {{ L.standard }}
@@ -94,10 +112,10 @@ flowchart LR
 <a id="card-table"></a>
 ## {{ L.table }}
 
-| {{ L.col_id }} | {{ L.col_card }} | {{ L.color }} | {{ L.evidence }} | {{ L.col_status }} | {{ L.col_summary }} | {{ L.col_deliv }} | {{ L.col_report }} |
-|---|---|---|---|---|---|---|---|
+| {{ L.col_id }} | {{ L.col_plan }} | {{ L.col_card }} | {{ L.color }} | {{ L.evidence }} | {{ L.col_status }} | {{ L.col_summary }} | {{ L.col_deliv }} | {{ L.col_report }} |
+|---|---|---|---|---|---|---|---|---|
 {% for c in d.cards %}
-| {{ c.id }} | {{ c.name[lang] }} | {{ badge(c) }} | {{ m.evidence_levels[c.evidence_level].name[lang] }} | {{ c.status_line[lang] }} | [{{ L.summary_link }}](#card-{{ c.id | lower }}) | {% if c.get("deliverable_dir") %}[{{ L.folder }}]({{ c.deliverable_dir | rel }}){% else %}{{ L.none }}{% endif %} | {% if c.get("test_report") %}[{{ L.report }}]({{ c.test_report[lang] | rel }}){% else %}{{ L.none }}{% endif %} |
+| {{ c.id }} | {% if c.tier == "must" %}{{ c.plan_tasks | join("、" if lang == "zh" else ", ") }}{% else %}{{ m.tiers[c.tier].name[lang] }}{% if c.plan_tasks %}{{ "（" if lang == "zh" else " (" }}{{ c.plan_tasks | join("、" if lang == "zh" else ", ") }}{{ "）" if lang == "zh" else ")" }}{% endif %}{% endif %} | {{ c.name[lang] }} | {{ badge(c) }} | {{ m.evidence_levels[c.evidence_level].name[lang] }} | {{ c.status_line[lang] }} | [{{ L.summary_link }}](#card-{{ c.id | lower }}) | {% if c.get("deliverable_dir") %}[{{ L.folder }}]({{ c.deliverable_dir | rel }}){% else %}{{ L.none }}{% endif %} | {% if c.get("test_report") %}[{{ L.report }}]({{ c.test_report[lang] | rel }}){% else %}{{ L.none }}{% endif %} |
 {% endfor %}
 {% for col in d.columns %}
 
@@ -108,6 +126,9 @@ flowchart LR
 
 <a id="card-{{ c.id | lower }}"></a>
 ### {{ c.id }} {{ c.name[lang] }} · {{ badge(c) }}
+
+**{{ L.col_plan }}**{{ L.sep }}{% if c.plan_tasks %}{{ c.plan_tasks | join("、" if lang == "zh" else ", ") }}{% else %}{{ L.none }}{% endif %} · **{{ L.tier }}**{{ L.sep }}{{ m.tiers[c.tier].name[lang] }}{% if c.tier != "must" %}{{ "（" if lang == "zh" else " (" }}{{ L.outside }}{{ "）" if lang == "zh" else ")" }}{% endif %}
+
 
 {% if c.get("note") %}
 {{ t(c.note) }}

@@ -107,7 +107,7 @@
       "type": "backend",
       "label": "0-1 读入",
       "sublabel": "原样存行 · 脱敏 · 注入检查",
-      "tag": "B01 · 待改"
+      "tag": "B01"
     },
     {
       "id": "nums",
@@ -122,7 +122,7 @@
       "id": "llminput",
       "lane": "code",
       "col": 2,
-      "type": "security",
+      "type": "backend",
       "label": "模型输入（白名单）",
       "sublabel": "去掉 Delta · 只给数字表",
       "tag": "B04"
@@ -134,7 +134,7 @@
       "type": "cloud",
       "label": "4-5 提交检查",
       "sublabel": "算式 · 防凑数 · 依据 · 对 Delta",
-      "tag": "B07 · 待改"
+      "tag": "B07"
     },
     {
       "id": "history",
@@ -143,13 +143,13 @@
       "type": "cloud",
       "label": "5.5 多层面查重",
       "sublabel": "行 · 发票内 · 票货内 · 跨批次",
-      "tag": "B08 · 待改"
+      "tag": "B09 · B08"
     },
     {
       "id": "understand",
       "lane": "llm",
       "col": 2,
-      "type": "security",
+      "type": "backend",
       "label": "3 盲解析（agent 循环）",
       "sublabel": "不给 Delta · 每次尝试都留",
       "tag": "B04"
@@ -179,8 +179,8 @@
       "col": 5,
       "type": "cloud",
       "label": "6b 推荐颜色",
-      "sublabel": "正常 · 有标识 · 建议退回",
-      "tag": "B09 · 待改",
+      "sublabel": "通过 · 人工 · 建议退回",
+      "tag": "B09",
       "yOffset": 48
     },
     {
@@ -190,7 +190,7 @@
       "type": "cloud",
       "label": "SKILL.md",
       "sublabel": "操作规程 · 例子",
-      "tag": "B05 · 待改"
+      "tag": "B05"
     },
     {
       "id": "taxonomy",
@@ -208,7 +208,7 @@
       "type": "cloud",
       "label": "工具 · 税率表",
       "sublabel": "计算器 · 税率 · 示例",
-      "tag": "B06 · 待改"
+      "tag": "B06"
     },
     {
       "id": "store",
@@ -217,7 +217,7 @@
       "type": "backend",
       "label": "7 解析结果库",
       "sublabel": "事实层 · 判断层分开",
-      "tag": "B10 · 待改"
+      "tag": "B10"
     },
     {
       "id": "rulesyaml",
@@ -243,9 +243,10 @@
       "id": "review",
       "lane": "reviewer",
       "col": 5,
-      "type": "external",
+      "type": "backend",
       "label": "审核界面（终点）",
-      "sublabel": "决定 · 理由"
+      "sublabel": "决定 · 理由",
+      "tag": "U2"
     }
   ],
   "edges": [
@@ -386,7 +387,8 @@
       "title": "颜色 = 看板卡片状态",
       "items": [
         "浅绿：样本内证据 + 交付物；黄：部分完成；红：未开始",
-        "角标是卡片编号；\"待改\" = 现有实现与 2026-11-04 决定不一致，颜色暂不动"
+        "角标是卡片编号；\"待改\" = 现有实现与 2026-11-04 决定不一致，颜色暂不动",
+        "2026-11-10：B04 升浅绿（开发集全量）；审核界面有了卡片 U2；B08 的两层是 Optional"
       ]
     },
     {
