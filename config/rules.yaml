@@ -9,7 +9,7 @@
 # severity `info` is shown to the reviewer and never changes the recommendation.
 # Every record reaches a reviewer whatever its recommendation (decision 2.2). The system takes no action.
 # `carrier_fix` is the line used in a return draft (only for `return` flags); the reviewer may edit it.
-version: rules-v1.5-2026-11-16   # task 23: is_credit checked against the text (F-01). v1.4: task 20 D-95, concepts.gap, SHIP.GAP.* (v1.3 = tag t17-frozen)
+version: rules-v1.7-2026-11-16   # task 23c: local scope bounded only by money-like numbers ('$' or exactly two decimals). v1.6 task 23b: credit support bound to each amount's local scope; adjacent minus alone -> person (F-01 recheck). v1.5 task 23: is_credit checked against the text (F-01). v1.4: task 20 D-95, concepts.gap, SHIP.GAP.* (v1.3 = tag t17-frozen)
 
 flags:
   # ---- record text and fields (steps 1-2)
@@ -34,7 +34,8 @@ flags:
   NUM.JUDGMENT.DOLLAR_EXCLUDED:      {severity: info}     # '$' amount not counted; the exclusion phrase is shown (decision 3.5)
   NUM.JUDGMENT.EXCLUSION_BASIS_UNLISTED: {severity: attention}   # P-15 (task 10 §1.3): adopted by the pre-stated rule (+0.0 pp on dev-weighted A and B2, limit 3 pp); docs/autorun/rule_changes_leg2.zh.md
   NUM.JUDGMENT.SPACE_MERGED_IN_CLAIM: {severity: attention}
-  NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT: {severity: attention}   # task 23 (audit F-01): a counted item read as positive, but its evidence phrase has a credit word (exclusion_basis.categories.credit) or the amount is in parentheses. A minus sign alone raises nothing (dash separators). is_credit true with none of the three marks is a mandatory check (NUM.JUDGMENT.CREDIT_UNSUPPORTED)
+  NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT: {severity: attention}   # task 23/23b (audit F-01): a counted item read as positive, but a credit word (exclusion_basis.categories.credit) lies in its local scope (text between the previous and the next money-like number-table entry: '$' or exactly two decimals, task 23c) or the amount is in parentheses. is_credit true with no credit word in the local scope, no parentheses and no adjacent minus is a mandatory check (NUM.JUDGMENT.CREDIT_UNSUPPORTED)
+  NUM.JUDGMENT.CREDIT_MINUS_UNCLEAR:  {severity: attention}   # task 23b (audit F-01 recheck): a counted item with a minus sign written directly before it ('-$20', '$-20', 'PLACEMENT-$69.00') and no credit word in its local scope and no parentheses: separator or credit is unclear, so a person looks whether it was read as positive or as a credit. A spaced dash ('- $18.00') raises nothing
   NUM.ARITH.CUE_WITHOUT_RELATION:    {severity: info}
   ITEM.ARITH.QTY_RATE_NO_RESULT:     {severity: attention}   # text gives quantity x rate but states no result: per-unit or whole charge is unclear (user req. b, 11-10)     # '@', 'X', 'PER', 'DAYS' near a number but no relation written (decision 3.3)
   # ---- line items

@@ -113,3 +113,24 @@ R1c、P4b、其他 Optional、V4、M1、读预留 mock。
 - 第 1、2 节：`scratch/eval/t20b_midterm_eval.py`（事后定义的两个视图，不调模型）；放行但总额错 0/561，注入按文字分三组，12 个漏报出自两个模板。
 - 第 3 节：中期汇报、项目总结（中英）、组员更新。第 4 节：审核页面表头读 `shipment_result.result`，页面全英文。
 - 汇报 `docs/deliverables/T20b-midterm-fix/00-sync.zh.md`、正文 `01-results.zh.md`。
+
+## 任务 23（2026-11-16 上午，按 Codex 审计修正）
+
+- 任务书 `docs/tasks/cc_task_23_audit_fixes.md`，审计任务 `docs/tasks/codex_audit_mvp.md`。分支 `mvp-v1`，标签 `mvp-v1.2` = `48e2e2c`（`mvp-v1`、`mvp-v1.1` 保留）。团队导出分支 `team-update-mvp-v1` 重建为 `39010ba`（父提交 `5e28bde`，内容同 `mvp-v1.2`），不由 CC 推送。
+- F-01：`is_credit` 由代码核对原文依据（规则 1 强制检查、规则 2 attention 标识），`rules-v1.5-2026-11-16`；三份存档读法重放 0 / 0。F-02：审核列表算票货级提醒。F-03：两份接口说明列全字段，`tests/test_output_contracts.py`。F-04：真实例子逐项比较，全部一致。F-05：匹配方式写进接口说明。
+- 汇报 `docs/deliverables/T23-audit-fixes/00-sync.zh.md`、正文 `01-report.zh.md`。
+- 下一步：用户确认规则 2 的范围、推送导出分支；然后跨批次历史（X1）、审核界面重做（U3）。
+
+## 任务 23b（2026-11-16 上午，按 Codex 复查补完 F-01）
+
+- 任务书 `docs/tasks/cc_task_23b_credit_fix.md`。分支 `mvp-v1`，标签 `mvp-v1.3` = `9d257a3`（此前标签保留）。团队导出分支 `team-update-mvp-v1` = `8ec2954`（父提交为已推送的 `39010ba`，内容同 `mvp-v1.3`），不由 CC 推送。
+- 贷记依据按金额的本地范围核对；紧贴负号说不清的送人工（`NUM.JUDGMENT.CREDIT_MINUS_UNCLEAR`），`rules-v1.6-2026-11-16`。重放：开发集 0 / 2 / 0，mock 第三轮 0 / 6 / 0，第四轮新增 0 / 0 / 0。
+- 汇报 `docs/deliverables/T23b-credit-fix/00-sync.zh.md`。
+- 下一步：用户推送导出分支；视需要再交 Codex 复查 `mvp-v1.3`。
+
+## 任务 23c（2026-11-16 中午，本地范围只按像金额的数字划界）
+
+- 任务书 `docs/tasks/cc_task_23c_credit_window.md`。分支 `mvp-v1`，标签 `mvp-v1.4` = `7d622d3`（此前标签保留）。团队导出分支 `team-update-mvp-v1` = `61f359e`（父提交 `8ec2954`，内容同 `mvp-v1.4`），不由 CC 推送。
+- 本地范围的边界只取带 `$` 或恰好两位小数的数字表条目，`rules-v1.7-2026-11-16`。重放和 23b 逐条相同：开发集 0 / 2 / 0，mock 第三轮 0 / 6 / 0，第四轮新增 0 / 0 / 0。
+- 汇报 `docs/deliverables/T23c-credit-window/00-sync.zh.md`。
+- 下一步：用户推送导出分支；视需要再交 Codex 复查 `mvp-v1.4`。

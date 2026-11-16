@@ -211,49 +211,116 @@ def test_region_value_handles_comma_decimal():
     assert "NUM.READ.REGION_VALUE_DERIVED" in codes(rec)
 
 
-# ---- task 23 (audit F-01): is_credit must have support in the text. Pairs: each direction, accepted and refused.
+# ---- task 23 / 23b (audit F-01 and its recheck): is_credit must have support in the amount's own stretch of text.
+# Every case asserts one outcome: refused (mandatory error), sent to a person (attention flag), or passed.
+REFUSE, PERSON, PASS = "refused", "person", "passed"
+SIGN_FLAGS = {"NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT", "NUM.JUDGMENT.CREDIT_MINUS_UNCLEAR"}
 
-def _credit_case(text, credit, ev, codes_=("ACCESSORIAL.LIFTGATE",)):
+
+def _credit_case(text, credit, ev=None, kind="CHARGE_AMOUNT", codes_=("ACCESSORIAL.LIFTGATE",)):
+    """One amount, '#1'. ev defaults to the whole text (the audit's repro quoted the whole text)."""
     c = ctx(text)
-    return check_submission(c, sub(S([N("#1", codes=codes_, ev=ev, credit=credit)], [L("#1")])))
+    codes_ = () if kind == "UNSPECIFIED_AMOUNT" else (["TAX.GST"] if kind == "TAX_AMOUNT" else codes_)
+    return check_submission(c, sub(S([N("#1", kind=kind, codes=codes_, ev=ev or text, credit=credit)], [L("#1")])))
+
+
+def _outcome(errs, rec):
+    if errs:
+        return REFUSE
+    return PERSON if SIGN_FLAGS & set(codes(rec)) else PASS
 
 
 def test_credit_without_any_mark_in_the_text_is_refused():
-    errs, _, _ = _credit_case("LIFTGATE $50.00", True, "LIFTGATE $50.00")
-    assert "NUM.JUDGMENT.CREDIT_UNSUPPORTED" in codes(errs)
+    errs, _, _ = _credit_case("LIFTGATE $50.00", True)
+    assert codes(errs) == ["NUM.JUDGMENT.CREDIT_UNSUPPORTED"]
 
 
-def test_credit_with_a_credit_word_parentheses_or_adjacent_minus_is_accepted():
-    for text, ev in [("LIFTGATE CREDIT $50.00", "LIFTGATE CREDIT"), ("REFUNDED LIFTGATE $50.00", "REFUNDED LIFTGATE"),
-                     ("LIFTGATE ($50.00)", "LIFTGATE"), ("LIFTGATE ( 50.00 )", "LIFTGATE"),
-                     ("LIFTGATE -$50.00", "LIFTGATE"), ("LIFTGATE $-50.00", "LIFTGATE")]:
-        errs, rec, claim = _credit_case(text, True, ev)
-        assert errs == [], text
+def test_credit_with_a_credit_word_or_parentheses_passes_and_is_negative():
+    for text in ["LIFTGATE CREDIT $50.00", "REFUNDED LIFTGATE $50.00", "LIFTGATE $50.00 CREDITED",
+                 "LIFTGATE ($50.00)", "LIFTGATE ( 50.00 )", "CREDIT -$50.00 LIFTGATE", "LIFTGATE CREDIT $-50.00"]:
+        errs, rec, claim = _credit_case(text, True, ev="LIFTGATE")
+        assert _outcome(errs, rec) == PASS, text
         assert claim.signed_sum == Decimal("-50.00"), text
-        assert "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" not in codes(rec)
 
 
-def test_positive_reading_of_a_credit_word_or_parentheses_is_flagged_not_refused():
-    for text, ev in [("CREDIT -$50.00 LIFTGATE", "CREDIT -$50.00 LIFTGATE"), ("LIFTGATE ($50.00)", "LIFTGATE ($50.00)")]:
-        errs, rec, claim = _credit_case(text, False, ev)
-        assert errs == [], text
+def test_positive_reading_of_a_credit_word_or_parentheses_goes_to_a_person():
+    for text in ["CREDIT -$50.00 LIFTGATE", "LIFTGATE ($50.00)", "LIFTGATE CREDIT $50.00"]:
+        errs, rec, claim = _credit_case(text, False, ev="LIFTGATE")
+        assert _outcome(errs, rec) == PERSON, text
         assert "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" in codes(rec), text
         assert claim.signed_sum == Decimal("50.00")
 
 
-def test_positive_reading_without_credit_marks_raises_nothing():
-    errs, rec, _ = _credit_case("LIFTGATE $50.00", False, "LIFTGATE $50.00")
-    assert errs == [] and "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" not in codes(rec)
-
-
-def test_dash_separator_read_as_positive_passes_without_a_flag():
-    """About a third of real amounts follow a hyphen that is a separator; the minus sign alone is never a flag."""
-    for text, ev in [("INSIDE PLACEMENT-[PERSON_1]-$69.00 DUE", "INSIDE PLACEMENT"), ("FUEL - $12.00", "FUEL - $12.00"),
-                     ("LIFTGATE-$50.00", "LIFTGATE-$50.00")]:
-        errs, rec, claim = _credit_case(text, False, ev)
-        assert errs == [], text
-        assert "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" not in codes(rec), text
+def test_positive_reading_without_credit_marks_passes():
+    for text in ["LIFTGATE $50.00", "FUEL - $12.00", "FUEL SURCHARGE - $18.00 DUE"]:
+        errs, rec, claim = _credit_case(text, False)
+        assert _outcome(errs, rec) == PASS, text
         assert claim.signed_sum > 0
+
+
+def test_spaced_dash_is_no_support_for_a_credit():
+    errs, rec, _ = _credit_case("FUEL - $12.00", True)
+    assert _outcome(errs, rec) == REFUSE
+
+
+def test_adjacent_minus_alone_goes_to_a_person_whichever_way_it_is_read():
+    """Audit recheck repros: '-$20' / '$-20' read as positive passed silently, and the separator in
+    'PLACEMENT-[PERSON_1]-$69.00 DUE' read as a credit passed. Separator or minus sign is unclear: a person looks."""
+    cases = [("LIFTGATE -$20.00", "CHARGE_AMOUNT"), ("LIFTGATE $-20.00", "CHARGE_AMOUNT"),
+             ("TAX -$20.00", "TAX_AMOUNT"), ("AMOUNT -$20.00", "UNSPECIFIED_AMOUNT"),
+             ("INSIDE PLACEMENT-[PERSON_1]-$69.00 DUE", "CHARGE_AMOUNT"), ("LIFTGATE-$50.00", "CHARGE_AMOUNT")]
+    for text, kind in cases:
+        for credit in (False, True):
+            errs, rec, claim = _credit_case(text, credit, kind=kind)
+            assert _outcome(errs, rec) == PERSON, (text, credit)
+            assert "NUM.JUDGMENT.CREDIT_MINUS_UNCLEAR" in codes(rec), (text, credit)
+            assert (claim.signed_sum < 0) == credit, (text, credit)
+
+
+def test_credit_word_of_another_amount_does_not_support_a_credit():
+    """Audit recheck repro: 'CREDIT' before the 10.00 let the 50.00 be read as -50.00."""
+    c = ctx("CREDIT $10.00 WAS PAID; LIFTGATE $50.00")
+    s = S([N("#1", status="PAID", ev="CREDIT $10.00 WAS PAID", excl="WAS PAID"),
+           N("#2", codes=["ACCESSORIAL.LIFTGATE"], ev="CREDIT $10.00 WAS PAID; LIFTGATE $50.00", credit=True)], [L("#2")])
+    errs, rec, _ = check_submission(c, sub(s))
+    assert _outcome(errs, rec) == REFUSE and codes(errs) == ["NUM.JUDGMENT.CREDIT_UNSUPPORTED"]
+    s["numbers"][1]["is_credit"] = False
+    errs, rec, claim = check_submission(c, sub(s))
+    assert _outcome(errs, rec) == PASS and claim.signed_sum == Decimal("50.00")
+
+
+def test_reference_number_does_not_cut_a_credit_word_off_from_its_amount():
+    """Task 23c: only money-like numbers ('$' or exactly two decimals) bound the local scope. In 'CREDIT MEMO 12345
+    $50.00' the reference 12345 used to cut CREDIT off, so a positive reading of 50.00 passed without a person."""
+    c = ctx("CREDIT MEMO 12345 $50.00")
+    s = S([N("#1", kind="REFERENCE", status="NONE", ev="CREDIT MEMO 12345"),
+           N("#2", codes=["ACCESSORIAL.LIFTGATE"], ev="$50.00")], [L("#2")])
+    errs, rec, claim = check_submission(c, sub(s))
+    assert _outcome(errs, rec) == PERSON and "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" in codes(rec)
+    assert claim.signed_sum == Decimal("50.00")
+    s["numbers"][1]["is_credit"] = True
+    errs, rec, claim = check_submission(c, sub(s))
+    assert _outcome(errs, rec) == PASS and claim.signed_sum == Decimal("-50.00")
+
+
+def test_quantities_weights_and_dates_do_not_bound_the_local_scope():
+    from freight_lineitems.checks import local_scope, money_like_spans
+    from freight_lineitems.numbers import parse
+    text = "REFUND 2 PALLETS 1500 LBS 05/27 $40.00 LIFTGATE 75.00 CASE 7 $ 12"
+    p = parse(text)
+    spans = money_like_spans(p)
+    assert [text[a:b] for a, b in spans] == ["$40.00", "75.00", "$ 12"]
+    forty = next(n.span for n in p.numbers if n.raw == "$40.00")
+    lo, hi = local_scope(text, spans, forty)
+    assert text[lo:hi].startswith("REFUND") and text[hi:].startswith("75.00")
+
+
+def test_credit_word_between_two_amounts_belongs_to_both():
+    c = ctx("LIFTGATE $50.00 CREDIT $10.00")
+    s = S([N("#1", codes=["ACCESSORIAL.LIFTGATE"], ev="LIFTGATE"), N("#2", codes=["ACCESSORIAL.LIFTGATE"], ev="CREDIT", credit=True)],
+          [L("#1"), L("#2")])
+    errs, rec, claim = check_submission(c, sub(s))
+    assert _outcome(errs, rec) == PERSON and claim.signed_sum == Decimal("40.00")
 
 
 def test_credit_word_on_an_uncounted_amount_raises_no_sign_flag():
@@ -262,7 +329,7 @@ def test_credit_word_on_an_uncounted_amount_raises_no_sign_flag():
     s = S([N("#1", status="PAID", ev="CREDIT $10.00 WAS PAID", excl="WAS PAID"),
            N("#2", codes=["ACCESSORIAL.LIFTGATE"], ev="LIFTGATE $50.00")], [L("#2")])
     errs, rec, _ = check_submission(c, sub(s))
-    assert errs == [] and "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" not in codes(rec)
+    assert _outcome(errs, rec) == PASS
 
 
 def test_unsupported_credit_goes_through_the_main_flow_to_a_person():

@@ -95,8 +95,9 @@ def credit_words_in(phrase: str | None) -> list[str]:
 def credit_marks(text: str, span: tuple[int, int]) -> dict:
     """Sign marks written around one number (task 23, audit F-01). `minus`: a '-' directly before the number or its
     '$' ('-$20', '-20', '$-20'), with nothing in between. `parentheses`: the number, with its '$', is enclosed in
-    '(' and ')' ('($45.00)', '( 45.00 )'). A dash after a charge name is usually a separator ('LIFTGATE-$69.00'), so
-    `minus` alone is never treated as evidence against a positive reading; see check_submission."""
+    '(' and ')' ('($45.00)', '( 45.00 )'). A dash with a space before the amount ('FUEL - $12.00') is not `minus`.
+    A dash written against a charge name may be a separator ('LIFTGATE-$69.00'), so `minus` without a credit word
+    or parentheses is the unclear case that goes to a person; see check_submission (task 23b)."""
     a, b = span
     raw = text[a:b]
     m = re.search(r"\d", raw)
@@ -105,6 +106,31 @@ def credit_marks(text: str, span: tuple[int, int]) -> dict:
     opened = text[:a].rstrip().endswith("(") or lead.lstrip().startswith("(")
     closed = text[b:].lstrip().startswith(")") or raw.rstrip().endswith(")")
     return {"minus": minus, "parentheses": opened and closed}
+
+
+MONEY_LIKE_RE = re.compile(r"\$|(?<![\d.])\d[\d,]*\.\d{2}(?!\d)")
+
+
+def money_like_spans(parse) -> list[tuple[int, int]]:
+    """Number-table entries that code judges to look like money (task 23c): a number with '$' or with exactly two
+    decimals; an unrecognized region whose raw text holds a '$' or a number with exactly two decimals. Decided from
+    the number table alone, never from the model's reading, so the model cannot move these boundaries. References,
+    quantities, weights and dates are not money-like and do not cut an amount's local scope."""
+    spans = [n.span for n in parse.numbers if n.has_dollar or n.decimals == 2]
+    spans += [u.span for u in parse.unrecognized if MONEY_LIKE_RE.search(u.raw)]
+    return spans
+
+
+def local_scope(text: str, spans: list[tuple[int, int]], span: tuple[int, int]) -> tuple[int, int]:
+    """The stretch of text that belongs to one amount (task 23b, boundaries from task 23c): from the end of the
+    previous money-like number-table entry (money_like_spans) to the start of the next one; the text edges when there
+    is none. A credit word supports or questions the sign of an amount only when it lies here, so 'CREDIT $10.00 WAS
+    PAID; LIFTGATE $50.00' gives no credit word for the 50.00, while in 'CREDIT MEMO 12345 $50.00' the reference
+    12345 does not cut CREDIT off from the 50.00. A word between two amounts belongs to both."""
+    a, b = span
+    prev_end = max((e for s_, e in spans if e <= a), default=0)
+    next_start = min((s_ for s_, e in spans if s_ >= b), default=len(text))
+    return prev_end, next_start
 
 
 def digits(x) -> str:
@@ -267,6 +293,7 @@ def check_submission(ctx: Ctx, sub: Submission) -> tuple[list[RepairError], list
                          ["add a judgment for every id; use kind REFERENCE/QUANTITY and status NONE for non-money numbers"]))
 
     by_id = {j.id: j for j in judged if j.id in values}
+    money_spans = money_like_spans(ctx.parse)   # task 23c: only money-like entries bound a local scope
     for j in by_id.values():
         path = f"numbers/{j.id}"
         tok = table.get(j.id)
@@ -303,23 +330,31 @@ def check_submission(ctx: Ctx, sub: Submission) -> tuple[list[RepairError], list
         if j.is_credit and j.kind not in ITEM_KINDS:
             errs.append(_err("NUM.JUDGMENT.CREDIT_ON_NON_ITEM", path, {"id": j.id, "kind": j.kind.value},
                              ["is_credit applies to CHARGE_AMOUNT / UNSPECIFIED_AMOUNT / TAX_AMOUNT only"]))
-        # task 23 (audit F-01): the sign must have support in the text. Code checks the model's is_credit; it does not
-        # derive the sign itself, because most dashes before amounts are separators ('PLACEMENT-[PERSON_1]-$69.00').
+        # task 23 / 23b (audit F-01): the sign must have support in the text. Code checks the model's is_credit; it
+        # does not derive the sign, because most dashes before amounts are separators ('PLACEMENT-[PERSON_1]-$69.00').
+        # Support: a credit word in the amount's local scope (bounded by money-like entries only, task 23c), parentheses
+        # around it, or a minus sign written directly before it. A spaced dash ('- $18.00') is no support, raises nothing.
         span = tok.span if tok else (regions[j.id].span if j.id in regions else None)
         if span is not None:
             marks = credit_marks(ctx.text, span)
-            words = credit_words_in(j.evidence_phrase)
+            lo, hi = local_scope(ctx.text, money_spans, span)
+            words = credit_words_in(ctx.text[lo:hi])
+            raw = tok.raw if tok else regions[j.id].raw
             if j.is_credit and not (words or marks["parentheses"] or marks["minus"]):
                 errs.append(_err("NUM.JUDGMENT.CREDIT_UNSUPPORTED", path,
-                                 {"id": j.id, "evidence_phrase": j.evidence_phrase},
+                                 {"id": j.id, "raw": raw, "local_scope": [lo, hi]},
                                  ["set is_credit false: the text shows no credit for this amount (no credit word such as "
-                                  "CREDIT or REFUND in evidence_phrase, no parentheses around it, no minus sign directly "
-                                  "before it)",
-                                  "or quote in evidence_phrase the words of the text that present it as a credit"]))
-            elif not j.is_credit and (words or marks["parentheses"]) and j.kind in ITEM_KINDS and is_counted(j.kind, j.status):
-                rec.append(diag("NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT", path, {
-                    "id": j.id, "raw": tok.raw if tok else regions[j.id].raw, "credit_words": words,
-                    "parentheses": marks["parentheses"], "evidence_phrase": j.evidence_phrase}, "4"))
+                                  "CREDIT or REFUND between the amount before it and the amount after it, no parentheses "
+                                  "around it, no minus sign directly before it)"]))
+            elif j.kind in ITEM_KINDS and is_counted(j.kind, j.status):
+                if marks["minus"] and not (words or marks["parentheses"]):
+                    # separator or minus sign: the text does not say; a person looks whichever way it was read
+                    rec.append(diag("NUM.JUDGMENT.CREDIT_MINUS_UNCLEAR", path, {
+                        "id": j.id, "raw": raw, "is_credit": j.is_credit, "local_scope": [lo, hi]}, "4"))
+                elif not j.is_credit and (words or marks["parentheses"]):
+                    rec.append(diag("NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT", path, {
+                        "id": j.id, "raw": raw, "credit_words": words, "parentheses": marks["parentheses"],
+                        "minus": marks["minus"], "local_scope": [lo, hi]}, "4"))
 
     counted = [j for j in by_id.values() if is_counted(j.kind, j.status)]
 

@@ -1,6 +1,8 @@
-# Project summary (16 November 2026, MVP v1)
+# Project summary (16 November 2026, Base v1)
 
-Team 16, CMU Intro to AI, client project for PPG. State of the repository at tag `mvp-v1.2` (branch `mvp-v1`).
+Team 16, CMU Intro to AI, client project for PPG. State of the repository at Base v1 (tag `base-v1`, branch `mvp-v1`): the internal checkpoint `mvp-v1.4` plus the
+release documents. Midterm report, case study and team update: [`docs/reports/`](../reports/README.md); pipeline
+diagram: [`docs/flow.md`](../flow.md).
 Chinese version: [`2026-11-16_project_summary.zh.md`](2026-11-16_project_summary.zh.md). Every number below names
 its evidence level: **in sample** (data we looked at while building), **independent** (data not used while building)
 or **human annotation** (compared with answers written by people).
@@ -37,8 +39,8 @@ structured output (the reading contract and the shipment contract).
 | improve rules and the skill | person decides; Claude Code proposes and verifies | `scratch/eval/` |
 
 The model only says what the text writes, referring to number ids: it cannot write a number that is not in the text,
-the sign it gives an amount (credit or not) must have support in the text (a credit word, parentheses or a minus sign
-directly before the number), which code checks, and it never sees an expected total. Code computes every total and decides every colour.
+the sign it gives an amount (credit or not) must have support in the text next to that amount (a credit word, parentheses or a
+minus sign directly before the number), which code checks; a bare minus sign that may be a separator goes to a person, and it never sees an expected total. Code computes every total and decides every colour.
 
 ## 3. Key decisions (one line each; full log in `docs/autorun/decision_log.zh.md`)
 
@@ -77,9 +79,12 @@ directly before the number), which code checks, and it never sees an expected to
 | 17 | Four code fixes, rules frozen |
 | 18 | Architecture review and redesign of the reading module |
 | 19 | Reading module rebuilt (core + topic notes, one definition per concept, screening skill); gates met |
-| 20 | MVP: roll-up wired into the main flow, BALANCE DUE anywhere, gap column, client table export, output contracts, extension points, clean-checkout smoke test |
+| 20 | Base v1 build: roll-up wired into the main flow, BALANCE DUE anywhere, gap column, client table export, output contracts, extension points, clean-checkout smoke test |
 | 20b | Midterm additions: post-hoc metrics, injection results by written text, review page reads the stored shipment result |
 | 23 | Fixes after an independent audit: the credit sign is checked against the text, the review list counts shipment reminders, complete field lists in both contracts with a test, the client's real examples compared item by item (tag `mvp-v1.2`) |
+| 23b | Credit sign check completed after the audit recheck: a credit word counts only next to its own amount; a bare minus sign that may be a separator goes to a person whichever way it was read (tag `mvp-v1.3`) |
+| 23c | The stretch of text that counts as an amount's own is bounded only by money-like numbers (`$` or exactly two decimals): in `CREDIT MEMO 12345 $50.00` the reference no longer cuts the credit word off from the amount; replay on three stored runs unchanged (tag `mvp-v1.4`) |
+| 24 | Base v1 release: the version is named Base v1; pipeline diagram with the planned additions (`docs/flow.md`); midterm report, case study and team update in `docs/reports/`; no code change (tag `base-v1`) |
 
 ## 5. Results
 
@@ -89,13 +94,13 @@ directly before the number), which code checks, and it never sees an expected to
 | Same set: share of passed explanations that needed a person (FOR) | 3.6% (2/55); 0% (0/55) after D-97 | human annotation, in sample |
 | Public synthetic mock, round 3 (568 events), mock answers | Recall 94.2% (245/260), FOR 8.5% (15/176) | in sample (used while building) |
 | Same, our written standard | Recall 96.7% (350/362), FOR 6.8% (12/176) | in sample |
-| Full development split | 908 explanations, 225 sent to a person (24.8%), 813 shipments each with a default total | in sample (no truth) |
+| Full development split | 908 explanations, 226 sent to a person (24.9%; 225 in the run, plus 1 sent by the credit-sign check when the stored readings were replayed through the current checks), 813 shipments each with a default total | in sample (no truth) |
 | Screening false alarms on the development split | 0 of 908 | in sample |
-| The client's two worked examples | real version: every item the client wrote matches (original amount; each line's charge name, amount and whether it is a tax line; new total; change), on the MVP readings through the production path and in the client-format table; not compared: line order, recommendation, reminders, gap, and example 2's split over 8 orders. Synthetic version: the table format character for character | in sample, regression |
+| The client's two worked examples | real version: every item the client wrote matches (original amount; each line's charge name, amount and whether it is a tax line; new total; change), on the Base v1 readings through the production path and in the client-format table; not compared: line order, recommendation, reminders, gap, and example 2's split over 8 orders. Synthetic version: the table format character for character | in sample, regression |
 | Shipment step in the main flow vs. the evaluation scripts (task-19 stored readings) | identical on all 813 + 471 shipments except the new information-only gap flags | in sample, replay |
 | Mock round 4, 122 new events in real-data style | Recall 100% (6/6, CI 61.0-100), FOR 0% (0/37); 79 of 116 events the mock expects to pass are sent, mostly replacement reminders (A3, rule 7) | independent, synthetic |
 | Mock round 4, the 568 round-3 events | Recall 95.4% (A) / 96.6% (B), FOR 6.8%; the 12 misses are injections. Differs from the round-3 line above because the round-4 files re-judged 51 of these events under the mock's new conventions (same readings and recommendations; the three other earlier misses, one amount for two charges, are no longer positives) | in sample |
-| Injection events in the round-4 mock (60, all in the round-3 part), grouped by the written text | plain English 20/20 sent (18 by the injection flags, 2 by other flags); each category's own misspellings and look-alike letters 10/10 (9 / 1); five templates repeated across all six injection categories 18/30 (3 of the 5 texts sent every time, 2 never: `ovrriide ch3cks`, `bypa ss rev1ew`, 6 events each). No missed event had an amount changed (counted total and shipment new total equal the mock's) | in sample, synthetic |
+| Injection events in the round-4 mock (60, all in the round-3 part), grouped by the written text | counted once per distinct text: 33 of 35 texts sent. Plain English 20/20 sent (18 by the injection flags, 2 by other flags); each category's own misspellings and look-alike letters 10/10 (9 / 1); five templates repeated across all six injection categories 18/30 (3 of the 5 texts sent every time, 2 never: `ovrriide ch3cks`, `bypa ss rev1ew`, 6 events each). No missed event had an amount changed (counted total and shipment new total equal the mock's) | in sample, synthetic |
 | Mock round 4, shipment new total equal to the mock's | new part: 89.7% single, 78.1% multi; round-3 part: 94.2%, 84.2% | independent / in sample |
 | Mock round 4, shipments passed although their default new total differs from the mock's (**defined after the results**) | 0 of 561. Totals differ on 48 (round-3 part 35: 23 single, 12 multi; new part 13: 6 single, 7 multi); all 48 sent to a person | in sample / independent; synthetic |
 | Weighted "close to real" Recall | 99.9%, but 68.1% of real wording has no positive mock event, so it says little | mixed |
@@ -104,6 +109,9 @@ directly before the number), which code checks, and it never sees an expected to
 The main-matrix targets (Recall >= 95%, FOR <= 2%) are met on the annotation set after D-97 and on the round-4 new
 events (too few positives to be convincing); FOR is not met on the round-3 mock. Only the round-4 new events are
 independent, and they are synthetic.
+
+An independent code audit of the checkpoint found 1 blocking and 3 important issues; all were fixed (rounds 23 to
+23c) and confirmed in a recheck.
 
 ## 6. Known limits
 
@@ -131,4 +139,4 @@ independent, and they are synthetic.
 1. The reserved mocks and the one-time test-split run at the end (method and gates written first).
 2. Cross-batch history and the cross-explanation concepts (replacement words, references, dates).
 3. Review page by shipment (the shipment table, then each explanation).
-4. Midterm report and final presentation (team).
+4. Midterm slides and the final presentation and report (team).

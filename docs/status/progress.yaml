@@ -284,7 +284,7 @@ tasks:
   owner: CC
   status: 已做待验收
   leg: T20
-  why: '任务 20 新增（不在 11 月 5 日计划里）。第 2 节全部做完：主流程和评估走同一个函数，重放和原评估完全一致；票货表格式按客户两个例子的合成版逐字符一致；两份接口说明；三个扩展口有接口、默认实现和测试；干净检出照 README 跑通。报告 `docs/deliverables/T20-mvp/01-report.zh.md`。任务 23 按 Codex 审计修正：贷记正负号由代码核对原文依据（F-01）；审核列表算上票货级提醒（F-02）；两份接口说明列全字段并有测试（F-03）；客户两个真实例子按客户写明的每一项比较，全部一致（F-04）；证据短语的匹配方式写明（F-05）。报告 `docs/deliverables/T23-audit-fixes/00-sync.zh.md`，标签 `mvp-v1.2`。'
+  why: '任务 20 新增（不在 11 月 5 日计划里）。第 2 节全部做完：主流程和评估走同一个函数，重放和原评估完全一致；票货表格式按客户两个例子的合成版逐字符一致；两份接口说明；三个扩展口有接口、默认实现和测试；干净检出照 README 跑通。报告 `docs/deliverables/T20-mvp/01-report.zh.md`。任务 23 按 Codex 审计修正：贷记正负号由代码核对原文依据（F-01）；审核列表算上票货级提醒（F-02）；两份接口说明列全字段并有测试（F-03）；客户两个真实例子按客户写明的每一项比较，全部一致（F-04）；证据短语的匹配方式写明（F-05）。报告 `docs/deliverables/T23-audit-fixes/00-sync.zh.md`，标签 `mvp-v1.2`。任务 23b 按 Codex 复查补完 F-01：贷记词只算本金额旁边的，紧贴负号说不清的送人工；报告 `docs/deliverables/T23b-credit-fix/00-sync.zh.md`，标签 `mvp-v1.3`。任务 23c：本地范围只按像金额的数字划界，编号、数量不再切断；报告 `docs/deliverables/T23c-credit-window/00-sync.zh.md`，标签 `mvp-v1.4`。'
 - id: X1
   name:
     zh: '跨批次历史和跨说明概念的实现'
@@ -305,7 +305,7 @@ tasks:
   why: '任务 20 新增，下周做。现在的界面按发票列出；票货表已在每次运行的输出和库表里。'
 owner_actions:
 - 任务 20：看 `docs/deliverables/T20-mvp/00-sync.zh.md`，定其中“需要用户定的事”。
-- 推送团队导出分支前先确认团队仓库是私有的；推送命令在任务 23 汇报里（`docs/deliverables/T23-audit-fixes/00-sync.zh.md`，导出分支已重建到 `mvp-v1.2`）。
+- 推送团队导出分支前先确认团队仓库是私有的；推送命令在任务 23c 汇报里（`docs/deliverables/T23c-credit-window/00-sync.zh.md`，导出分支已加到 `mvp-v1.4`）。
 - 验收已做的任务：你说验收了，状态才从“已做待验收”改成“已验收”。
 - 定 mock 预期由谁改（M1）。
 - 中期汇报（D1）和期末展示（D2）由你和组员准备（任务 20 写了中期汇报稿 `docs/status/2026-11-16_midterm_report.md`）；测试集终测（V4）由你亲自打开开关。

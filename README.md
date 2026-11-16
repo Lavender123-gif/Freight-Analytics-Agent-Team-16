@@ -1,9 +1,22 @@
 # freight-lineitems
 
+## Base v1 (16 November 2026)
+
+This release is called Base v1. Base v1 = the internal checkpoint `mvp-v1.4` plus the release documents (tag
+`base-v1`).
+
+- [docs/reports/README.md](docs/reports/README.md): the midterm report, a case study that follows one explanation
+  through every step, and the team update, with who each one is for.
+- [docs/flow.md](docs/flow.md): the pipeline diagram, with the planned additions drawn separately.
+
+## Earlier documents
+
 - [PROGRESS_UPDATE.md](PROGRESS_UPDATE.md): the milestone progress report (2026-11-15): what the system does, what is built, what changed after the client's answers, assumptions, progress and next steps.
 - [STATUS.md](STATUS.md): the status board, one card per piece of work with its colour and the evidence behind it.
 - [WORKFLOW.md](WORKFLOW.md): the pipeline diagram, with one sentence on what each step does.
 - [QUESTIONS_FOR_JAKE.md](QUESTIONS_FOR_JAKE.md): the questions for the client and his answers (2026-11-13, paraphrased), with what each answer changed.
+
+## About the project
 
 CMU Intro to AI client project (Team 16). Carriers explain freight invoice adjustments in free text. This project
 converts each explanation into structured line items, checks the result for internal consistency, and raises flags
