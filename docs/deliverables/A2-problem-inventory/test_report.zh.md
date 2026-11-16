@@ -4,7 +4,7 @@
 - **卡片颜色**：🟩 浅绿（看板：[A2](../../status/project_status.zh.md#card-a2)）
 - **卡片类型**：分析类。"检验"是脚本可复现与数字核对，不是对某个功能的测试。
 - **整理日期**：2026-11-03（任务 04）。内容取自任务 03 的交付物，本次没有重跑任何检验。
-- 交付物说明：[README.zh.md](README.zh.md)；对照表：[results/comparison.md](results/comparison.md)；示例：[results/examples.md](results/examples.md)；英文版：[test_report.en.md](test_report.en.md)
+- 交付物说明：[README.zh.md](README.zh.md)；对照表：[results/comparison.md](results/comparison.md)；示例：`results/examples.md`（含客户原文，未公开）；英文版：[test_report.en.md](test_report.en.md)
 
 ## 1. 声称的结论
 

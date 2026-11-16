@@ -3,7 +3,7 @@
 - **证据级别**：样本内
 - **卡片颜色**：🟩 浅绿（看板：[B01](../../status/project_status.zh.md#card-b01)）
 - **整理日期**：2026-11-03（任务 04）。内容取自任务 03 的交付物，本次没有重跑任何检验。
-- 交付物说明：[README.zh.md](README.zh.md)；结果文件：[results/summary.md](results/summary.md)；例子：[results/examples.md](results/examples.md)；英文版：[test_report.en.md](test_report.en.md)
+- 交付物说明：[README.zh.md](README.zh.md)；结果文件：[results/summary.md](results/summary.md)；例子：`results/examples.md`（含客户原文，未公开）；英文版：[test_report.en.md](test_report.en.md)
 
 ## 1. 声称的结论
 

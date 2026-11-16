@@ -24,3 +24,6 @@ data/
 
 # Archify delivery receipts record absolute local paths; regenerated with the HTML
 docs/status/*.delivery.json
+
+# Local copies of files removed from the public team repository on 2026-11-16 (contain client text); never commit
+/agent/removed-public-files-2026-11-16/
