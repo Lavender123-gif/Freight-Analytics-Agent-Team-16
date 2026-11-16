@@ -243,8 +243,11 @@ def write_outputs(out_dir, run_id: str, run_name: str, records: list[InputRecord
     con = db.connect(out_dir / "run.sqlite")
     db.write_run(con, run_id, run_name, records, results, model_settings, RULES)
     db.write_shipments(con, run_id, ships)
-    (out_dir / "export_facts.json").write_text(json.dumps(db.export_facts(con, run_id), indent=1, default=str))
-    (out_dir / "export_review.json").write_text(json.dumps(db.export_review(con, run_id), indent=1, default=str, ensure_ascii=False))
+    facts, review = db.export_facts(con, run_id), db.export_review(con, run_id)
+    (out_dir / "export_facts.json").write_text(json.dumps(facts, indent=1, default=str))
+    (out_dir / "export_review.json").write_text(json.dumps(review, indent=1, default=str, ensure_ascii=False))
+    from freight_lineitems.export_csv import write_run_csvs
+    write_run_csvs(out_dir, facts, review)          # same content as the two JSON files, flat, for Excel
     con.close()
 
 

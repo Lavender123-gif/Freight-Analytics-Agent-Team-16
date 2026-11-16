@@ -143,6 +143,7 @@ Each run writes to `data/interim/runs/<run_id>/` (git-ignored):
 | `run.sqlite` | the run in SQLite (schema: `config/schema_v1.yaml`), including `shipment_result` and `shipment_line` |
 | `export_facts.json` | for downstream use: only readings that passed the checks and have the recommendation `PASSED_CHECKS` |
 | `export_review.json` | for reviewers: every dispute with its recommendation and flags |
+| `export_facts.csv`, `export_review.csv` | the same two exports as flat tables for Excel (UTF-8 with BOM): one row per line item, with `signed_amount` (credits negative), and one row per dispute with flag counts and codes. Text cells that would run as a spreadsheet formula get a leading apostrophe |
 | `run_info.json` | run id, counts, `run_record` (git commit, redaction method, skill layout, skill / rules / taxonomy versions, model), ledger entry |
 
 The review page (`uv run python -m freight_lineitems.review_ui --run <run_id>`, English) shows in each invoice header
@@ -188,6 +189,32 @@ The page labels are in Chinese; the three recommendations are 解析通过检查
 | a rule (a flag) | the check in code (`checks.py` for one reading, `reading_checks.py` for reading fields, `rollup.py` for a shipment) raises a `Diagnostic` with a new code; its severity (`info`, `attention`, `return`) goes in `config/rules.yaml` `flags`; settings it reads go in `rules.yaml` too; a business term it uses goes in `rules.yaml` `concepts` | `uv run pytest -q` (add a test with a synthetic text for when the rule fires and when it does not) | a code missing from `rules.yaml` still shows up, as an `attention` flag marked unconfigured (`tests/test_tools_and_rules.py`); no carrier names in rules |
 | a topic reference file | a new file in `skill/freight-dispute-line-items/reference/`; a regex for the wording that needs it in `config/rules.yaml` `features.groups` and the file name in `features.references` | `uv run pytest -q tests/test_skilltext.py tests/test_concepts.py` | concept text in the file is a placeholder `{{CONCEPT:<id>}}` filled from `rules.yaml` `concepts`; in the `routed` layout code adds the file to an explanation's input when its regex matches |
 | a cross-batch history source | a subclass of `rollup.PriorHistory` passed to `pipeline.finish_batch(prior_history=...)` | `uv run pytest -q tests/test_rollup_t20.py` | three states: `FOUND`, `CHECKED_NONE`, `NOT_PROVIDED` ([contract](docs/shipment_output_contract.md) section 5) |
+
+## Try the review screen without a key or data
+
+`scratch/demo/build_offline_demo.py` builds a run from the 7 synthetic rows of `tests/fixtures/smoke` plus 6 more invented
+rows (none is a real row), with hand-written readings in place of the model, so it needs no API key, no `data/` folder
+and costs nothing. It uses `freight_lineitems.offline`: every stored reading goes through the real submission checks, and
+everything after the model is the real pipeline (redaction, number table, flags, recommendation, shipment roll-up,
+SQLite store, JSON and CSV exports).
+
+```
+uv run python scratch/demo/build_offline_demo.py
+uv run python -m freight_lineitems.review_ui --run demo-offline
+```
+
+Then open `http://127.0.0.1:8765/`. The review screen is in English. The records cover each colour (passed checks, human
+review, return suggested), a sum with a stated total, order copies, a credit with tax, an empty text, digits only, a text
+with no number, an instruction-like text, a redacted name and a reading whose quoted evidence is not in the text. The
+numbers are not evidence about model accuracy: the readings are written by hand. `tests/test_offline_demo.py` fails if a
+rule change moves a demo record to another colour.
+
+If `import freight_lineitems` fails on macOS with the project under `~/Desktop`, the `.pth` file in `.venv` was marked
+hidden; run `chflags -R nohidden .venv`.
+
+## Plain-language rule sheet
+
+`docs/rule_sheet.en.md` lists every flag, its severity and when it is raised, in plain English, for reviewers and the client. It is generated from `config/rules.yaml` (severities and numbers) and `config/rule_sheet_text.en.yaml` (wording). After changing either, run `uv run python scratch/rules/build_rule_sheet.py`; `--check` (also run by the tests) fails if wording is missing or the sheet is out of date.
 
 ## Repository layout
 

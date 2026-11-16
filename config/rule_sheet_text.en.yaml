@@ -1,0 +1,196 @@
+# Plain-English wording for every flag in config/rules.yaml, used only to generate docs/rule_sheet.en.md
+# (scratch/rules/build_rule_sheet.py). The severity of a flag is NOT here: it comes from rules.yaml, so the sheet can
+# never say something different from what the system does. Each flag needs `when` (what makes the system raise it)
+# and `look` (what a reviewer should look at). The check `build_rule_sheet.py --check` and tests/test_rule_sheet.py
+# fail if a flag in rules.yaml has no wording here, or if wording here belongs to no flag.
+
+REC.TEXT.EMPTY:
+  when: The carrier's explanation is empty or only spaces.
+  look: Nothing to read. A return to the carrier can be suggested, asking for each charge and its amount.
+REC.TEXT.NUMBERS_ONLY:
+  when: The explanation has digits but no letters at all (for example just "126.50").
+  look: The amount has no charge name. A return can be suggested, asking which charge each amount is for.
+REC.TEXT.NO_NUMBER:
+  when: The explanation has words but no number at all.
+  look: A charge is named without an amount, so it cannot be checked against the invoice adjustment. A claim may still be valid, so a person looks.
+REC.TEXT.INJECTION_SUSPECT:
+  when: The text matches a pattern that looks like an instruction to the model (for example "ignore previous instructions"), or contains unprintable characters, or is very long.
+  look: Read the original text. The text may be trying to influence the automatic processing. The model is told to treat note text as data only.
+REC.TEXT.PII_REDACTED:
+  when: A personal name or e-mail address was replaced by a placeholder before the text went to the model.
+  look: Nothing to do. Shown so that the reviewer knows the text on screen was changed.
+REC.TEXT.REDACTION_ALTERED_DIGITS:
+  when: The digits in the text were different before and after redaction.
+  look: Redaction may have damaged an amount, so the reading cannot be trusted. Check the original text.
+REC.TEXT.DATE_AFTER_EVENT:
+  when: A date with a year in the text is more than the allowed number of days after the event date of the record.
+  look: The text may have been written or edited later than the event date, which matters when comparing with earlier records.
+REC.FIELD.CROSS_BORDER:
+  when: Origin and destination are in different countries.
+  look: Tax and currency rules may differ. The currency of such a record is not derived.
+REC.FIELD.REASON_CODE_CONFLICT:
+  when: The Reason Code of the record maps to a specific charge category and the charge code the model chose is in a different specific category.
+  look: The structured code and the text disagree. The text is the reference; the conflict is kept for statistics.
+NUM.PARSE.UNRECOGNIZED_REGION:
+  when: Some digits in the text were not recognised as a number or a date by the number rules (for example "CV19").
+  look: The model read that part; its reading was compared digit by digit with the original.
+NUM.PARSE.SPACE_MERGED:
+  when: A number was formed by joining digit groups separated by spaces (for example "1 684.68").
+  look: The joining is a guess. It may really be two numbers.
+NUM.PARSE.UNUSUAL_DECIMALS:
+  when: A number has a number of decimals other than 0, 1 or 2 (for example "33.744").
+  look: The dot may be a thousands separator.
+NUM.PARSE.LEADING_DOT:
+  when: A decimal is written starting with a dot (for example ".73").
+  look: Often a rate such as a per-mile fuel rate, not an amount of money.
+NUM.PARSE.MINUS_ADJACENT:
+  when: A minus sign touches a number or a dollar sign (for example "-250").
+  look: The minus may be a negative sign or just a separator.
+NUM.READ.REGION_VALUE_DERIVED:
+  when: Code took a value for a region it could not parse, so that a number could still be used.
+  look: Shown so that a wrong guess about a decimal point would be visible.
+NUM.JUDGMENT.DOLLAR_EXCLUDED:
+  when: A number written with a dollar sign was not counted as part of this claim.
+  look: Check that leaving it out is justified; the words the model quoted as the reason are shown. Per-unit prices written with "@", "AT", "EACH" or "PER" do not raise this.
+NUM.JUDGMENT.EXCLUSION_BASIS_UNLISTED:
+  when: A dollar amount was left out of the claim, but the words the model quoted contain none of the accepted reasons listed under "Words accepted as a reason to leave an amount out" below.
+  look: The exclusion has no recognised wording behind it. Check the original text.
+NUM.JUDGMENT.SPACE_MERGED_IN_CLAIM:
+  when: A number formed by joining space-separated digit groups was counted in the claim.
+  look: The counted amount rests on a guess about the joining. Check the original text.
+NUM.ARITH.CUE_WITHOUT_RELATION:
+  when: The text has a sign of arithmetic ("@", "X", "PER", "EACH", "DAYS" and similar) but the model stated no calculation.
+  look: Possible quantity times rate that was not linked.
+ITEM.ARITH.QTY_RATE_NO_RESULT:
+  when: The text gives a quantity and a rate (for example "3 DAYS @ $75") but no result.
+  look: It is not stated whether the amount is the price per unit or the whole charge.
+ITEM.CODE.OTHER:
+  when: The model chose the code OTHER because the charge is not in the charge-code table.
+  look: Confirm the charge name. Also a candidate for adding to the code table.
+ITEM.CODE.PENDING_MEANING:
+  when: The charge belongs to a family whose meaning has not been confirmed with the client (for example "purchased transportation surcharge").
+  look: The reading only says that the carrier charged this item. It does not explain what it is.
+ITEM.CODE.COMBINED:
+  when: One amount was assigned to several charge codes.
+  look: The amount cannot be split between the charges. Do not split it by habit.
+ITEM.AMOUNT.MISSING:
+  when: A charge other than tax is named but has no amount.
+  look: This charge cannot be reconciled. Raised from the model's reading, so it is never a return.
+ITEM.AMOUNT.UNNAMED:
+  when: An amount counted in the claim has no charge code.
+  look: The text does not say what the money is for. Do not fill the name in from the Reason Code or from habit.
+ITEM.TAX.PRESENT:
+  when: The text mentions tax of any kind.
+  look: Every tax question goes to a person, because the tax rules are not confirmed with the client.
+ITEM.TAX.NO_AMOUNT:
+  when: The text names a tax (for example "+ HST") but gives no tax amount.
+  look: The tax amount is not in the text. The expected tax from the table of provincial rates is shown as a hint only; it is not an amount from the text and is not added to anything.
+ITEM.TAX.RATE_MISMATCH:
+  when: The tax amount (written or inferred) differs from base times the table rate by more than the tolerance.
+  look: Shown as a fact, never as a carrier error. Check the province and the base.
+ITEM.TAX.NO_RULE:
+  when: Tax is mentioned but there is no rate rule for the province (not Canadian, or the table has no entry for the date).
+  look: The tax amount was not checked.
+ITEM.BASIS.PPG_CLAIMED:
+  when: The carrier says that PPG notified, approved or listed the charge.
+  look: Not verified by the system. Check PPG's own records.
+ITEM.BASIS.CONTRACT_CLAIMED:
+  when: The carrier cites a contract, tariff or shipping document as the basis for the charge.
+  look: Not verified by the system. Check the contract, rate sheet or document.
+ITEM.NATURE.RATE_CORRECTION:
+  when: The charge is a correction of a rate or of how the charge was calculated.
+  look: The amount is a difference, and the contract is needed to verify it.
+ITEM.ARITH.RELATION_FAILS:
+  when: A calculation written in the text (a sum or a quantity times rate) does not hold when code recomputes it.
+  look: The arithmetic in the carrier's own text is wrong, or the model linked the wrong numbers.
+CLAIM.ATTEMPT.STATUS_CHANGED:
+  when: Between the first and the final attempt, a number changed its kind or its status (for example from claimed to paid).
+  look: See exactly what changed and why the model gave for the change.
+CLAIM.RECON.TOTAL_MISMATCH:
+  when: A total stated in the text does not equal the sum of the counted amounts (plus any inferred tax).
+  look: The text's own arithmetic does not hold.
+RUN.AGENT.UNCERTAINTY_REPORTED:
+  when: The model said it was unsure about a specific part of the text.
+  look: Look at the place the model points to.
+RUN.SUBMIT.FAILED_CHECKS:
+  when: The model's last submission still fails the mandatory checks after the allowed repairs.
+  look: There is no accepted reading. The last attempt is shown for reference.
+RUN.SUBMIT.NONE:
+  when: The model never produced a submission.
+  look: There is no reading for this record.
+RUN.MODEL.REFUSAL:
+  when: The model refused to process the record.
+  look: There is no usable reading. Read the text.
+RUN.MODEL.ERROR:
+  when: A model call failed, or the session stopped on an error.
+  look: Attempts made before the error are kept and shown.
+RUN.MODEL.TRUNCATED:
+  when: A model response was cut off before it was complete.
+  look: The reading may be incomplete.
+RUN.AGENT.UNCERTAINTY_OVER_LIMIT:
+  when: The model reported more doubts than the allowed number.
+  look: The extra doubts were not recorded as readings but are still shown.
+REC.TEXT.NON_ASCII:
+  when: The text contains characters outside plain ASCII.
+  look: Kept apart from injection detection; shown so that odd characters are not missed.
+
+REC.TEXT.SCREEN_ADDRESSED_TO_SYSTEM:
+  when: A separate screening call, which sees only the text, says the text speaks to an AI system, a model, a tool or the review process. The quoted words must appear in the text.
+  look: Read the quote in the original text. The screening never changes the reading and never skips it; a person decides whether the text is an attempt to steer the system.
+RUN.SCREEN.FAILED:
+  when: The screening call gave no usable answer.
+  look: The text was not screened for instructions to the system. Read the text with that in mind.
+NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT:
+  when: The model counted an amount as a charge, but the text next to it has a credit word or parentheses.
+  look: The amount may be a credit that was read as a charge. Check the sign of this amount in the text.
+NUM.JUDGMENT.CREDIT_MINUS_UNCLEAR:
+  when: A minus sign is written directly before a counted amount, with no credit word or parentheses to explain it.
+  look: The text does not say whether the minus is a separator or a credit. A person decides, whichever way the model read it.
+ITEM.AMOUNT.LEADING_DOT_COUNTED:
+  when: A counted amount is written with a leading dot, such as ".74".
+  look: Such a number may be a rate (per mile, per pound) and not an amount. No rule decides which; check the text.
+CLAIM.NOTHING_COUNTED:
+  when: The text has at least one money amount and the reading counts none of them.
+  look: Often the text mentions an earlier charge without saying whether it is still asked for. A person decides.
+CLAIM.EARLIER_CLAIM_MENTIONED:
+  when: The reading quotes words in the text that mention an earlier claim for this shipment.
+  look: Check whether the earlier claim is still being asked for. The system does not decide this.
+SHIP.COPY.SAME_OR_NO_PK:
+  when: One explanation appears on several rows and some of those rows have no PK or repeat a PK.
+  look: The rows may be exported copies of one explanation, or the same explanation submitted again. The PK values are not enough to tell.
+SHIP.ROLLUP.SUPERSEDED_SAME_CHARGE:
+  when: A later explanation on the same shipment has a line with the same charge as an earlier counted line.
+  look: By default the later line replaces the earlier one in the shipment total. Check that it is a correction and not a second charge of the same kind.
+SHIP.ROLLUP.SAME_AMOUNT_EARLIER:
+  when: A line has the same amount as an earlier counted line but a different charge.
+  look: By default both are added. The total with the amount counted once is shown next to it. Check which is right.
+SHIP.ROLLUP.RATIO_SUPERSEDED:
+  when: An amount is 1.03 to 1.07 times an earlier amount, in a text with BALANCE DUE or in the next explanation, so it looks like a restated amount.
+  look: By default only the later amount counts. Check that this is a restatement and not a second charge.
+SHIP.ROLLUP.BALANCE_DUE_UNRESOLVED:
+  when: The text has BALANCE DUE next to other dollar amounts and none of the known patterns explains how they relate.
+  look: The model's reading stands. Check what the balance due amount is meant to cover.
+SHIP.ROLLUP.BALANCE_DUE_READING_DIFFERS:
+  when: Code decides from the BALANCE DUE wording which amounts count, and the model counted something else.
+  look: The model's reading is kept and the difference is shown. Check which amounts the text asks for.
+SHIP.ROLLUP.TAX_PARTLY_ORPHANED:
+  when: Some but not all lines of an explanation were replaced by a later explanation, so its tax stays.
+  look: The tax may belong to the replaced lines. Check whether the tax still applies.
+SHIP.ROLLUP.RELATION_UNDECIDED:
+  when: Code cannot decide whether one line replaces another, for example a free-text charge on either side, an amount with no charge name, or one amount for several overlapping charges.
+  look: By default both are added. Decide whether one replaces the other.
+SHIP.ROLLUP.INCOMPLETE:
+  when: An explanation on the shipment has no usable reading.
+  look: The default shipment total leaves that explanation out, so the total is not complete.
+SHIP.GAP.NONZERO:
+  when: A text states an amount due, and it differs from the total of the counted amounts.
+  look: Shown for information. The gap is never a line and never changes a total.
+SHIP.GAP.MULTI_EXPLANATION:
+  when: The shipment has several explanations and at least one states an amount due.
+  look: Shown for information. The shipment-level stated amount and gap are left empty because the system cannot tell which explanations the stated amount covers.
+SHIP.ROLLUP.ECHO_OF_HISTORY_AMOUNT:
+  when: A later counted amount equals, or is 1.03 to 1.07 times, an amount an earlier explanation read as history.
+  look: The earlier reading may have missed a claim that the later explanation restates. No total changes.
+SHIP.ROLLUP.ORDER_TIED:
+  when: Two explanations have the same Event Date, so which is earlier rests on the row order.
+  look: A replacement between them depends on that order. Check that the direction is right.
