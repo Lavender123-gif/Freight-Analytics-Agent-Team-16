@@ -545,7 +545,7 @@ tables:
         nullable: false
       invoice_amount:
         type: DECIMAL
-        meaning: Invoice Amount（= 运费 + 本行 Delta，不是发票合计）
+        meaning: Invoice Amount（= 运费 + 本行 Delta，不是发票合计）。任务 14 C2：客户的 Excel 估算，只作评估基线，运行时不读
         readers:
         - reviewer
         - audit
@@ -554,12 +554,33 @@ tables:
         pending: '[待 Jake J2]'
       delta:
         type: DECIMAL
-        meaning: Delta；只给代码比对，不进模型输入
+        meaning: Delta。任务 14 C1、C2：客户的 Excel 估算，只作评估基线；运行时不读，不进模型输入
+        readers:
+        - audit
+        source: excel
+        nullable: true
+      invoice_dups_removed:
+        type: DECIMAL
+        meaning: Invoice Dups Removed。任务 14 C2：客户的 Excel 估算（每票货只留一行），只作评估基线
+        readers:
+        - audit
+        source: excel
+        nullable: true
+      n_rows:
+        type: INTEGER
+        meaning: 这条说明合并了几行原始记录（任务 14 / T12-02）
+        readers:
+        - reviewer
+        - audit
+        source: code
+        nullable: false
+      n_orders:
+        type: INTEGER
+        meaning: 订单数：这条说明的各行里不同的非空 PK 个数（任务 14 / T12-02）。0 = 没有 PK
         readers:
         - reviewer
         - downstream
-        - audit
-        source: excel
+        source: code
         nullable: false
       currency:
         type: TEXT
@@ -571,8 +592,8 @@ tables:
         nullable: false
         pending: '[待 Jake J4]'
       currency_basis:
-        type: ENUM[DERIVED_FROM_COUNTRY, SOURCE_FIELD]
-        meaning: 币种怎么来的；现在只能是推算
+        type: ENUM[DERIVED_FROM_COUNTRY, SOURCE_FIELD, FIXED_USD]
+        meaning: 币种怎么来的。任务 14 C6：客户确认全部按 USD，现在只能是 FIXED_USD
         readers:
         - reviewer
         - downstream
@@ -588,7 +609,7 @@ tables:
         nullable: true
       content_key:
         type: TEXT
-        meaning: (票货, 承运商发票, 规范化文字, Delta, event_time) 的哈希；行层面查重的键，不含 PK
+        meaning: (票货, event_time, 规范化文字) 的哈希；合并订单副本的键，不含 PK、Delta、承运商发票号（任务 14 / T12-02）
         readers:
         - audit
         source: code
@@ -643,8 +664,8 @@ tables:
         source: code
         nullable: false
       link_type:
-        type: ENUM[FIRST_SEEN, RE_EXPORTED]
-        meaning: 第一次出现，还是之后批次重新导出
+        type: ENUM[FIRST_SEEN, RE_EXPORTED, ORDER_COPY]
+        meaning: 第一次出现，还是之后批次重新导出；ORDER_COPY = 同一说明的另一行（另一个订单，任务 14 / T12-02 合并副本）
         readers:
         - reviewer
         - audit
@@ -1472,8 +1493,8 @@ tables:
         source: reviewer
         nullable: 只在 CLEAR_FLAG 时必填
       action:
-        type: ENUM[APPROVE, RETURN_TO_CARRIER, CLEAR_FLAG, HOLD]
-        meaning: 审核员按了哪个按钮（决定 6.4）
+        type: ENUM[ACCEPT_READING, RETURN_TO_CARRIER, CLEAR_FLAG, HOLD]
+        meaning: 审核员按了哪个按钮（决定 6.4）。ACCEPT_READING = 认可这份读法，不是批准付款（任务 20，P-24）
         readers:
         - audit
         - downstream
@@ -1528,6 +1549,273 @@ tables:
         readers:
         - audit
         - downstream
+        source: code
+        nullable: false
+  shipment_result:
+    layer: judgment
+    purpose: 任务 20：票货汇总（rollup.py）在一次运行里的结果，一票货一行；由 pipeline.finish_batch 写，和导出、评估同一条路径。字段含义见 docs/shipment_output_contract.md。
+    primary_key:
+    - run_id
+    - shipment_gid
+    foreign_keys:
+      run_id: pipeline_run.run_id
+      shipment_gid: shipment.shipment_gid
+    columns:
+      run_id:
+        type: TEXT
+        meaning: 运行
+        readers:
+        - audit
+        source: code
+        nullable: false
+      shipment_gid:
+        type: TEXT
+        meaning: 票货（SHIPMENT_GID）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      schema_version:
+        type: TEXT
+        meaning: 票货输出的版本号
+        readers:
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      sap_bol:
+        type: TEXT
+        meaning: SAP BOL（显示用）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: 原始行没有时为空
+      original_amount:
+        type: DECIMAL
+        meaning: 原始运费（Shipment Amount）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: 原始行没有时为空
+      default_change:
+        type: DECIMAL
+        meaning: 默认读法下相对原始运费的变化（计入明细之和）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      new_total:
+        type: DECIMAL
+        meaning: 默认新总额
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: 没有原始运费时为空
+      other_readings:
+        type: JSON
+        meaning: 每个可能重复事件的另一读法总额（决定 A4）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      items_total:
+        type: DECIMAL
+        meaning: 明细合计（concepts.gap）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      stated_amount_due:
+        type: DECIMAL
+        meaning: 文字写明的应付数；多说明票货留空（concepts.gap）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: true
+      gap:
+        type: DECIMAL
+        meaning: 应付数 − 明细合计；没有应付数或多说明票货为空，不是 0
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: true
+      complete:
+        type: BOOLEAN
+        meaning: 每条说明都有可用读法
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      prior_history_status:
+        type: ENUM[FOUND, CHECKED_NONE, NOT_PROVIDED]
+        meaning: 跨批次历史：有、查过没有、未提供（未提供不等于没有重复）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      relation_undecided:
+        type: BOOLEAN
+        meaning: 有规则 7（关系定不了）的事件
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      recommendation:
+        type: ENUM[PASSED_CHECKS, HUMAN_REVIEW, RETURN_SUGGESTED]
+        meaning: 票货的建议：各说明和票货自己标识里最差的
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      result:
+        type: JSON
+        meaning: 完整的票货输出（docs/shipment_output_contract.md）
+        readers:
+        - downstream
+        - audit
+        source: code
+        nullable: false
+  shipment_line:
+    layer: judgment
+    purpose: 任务 20：票货汇总的每一条明细（税单列），含被取代、不计入的行；客户名由 charge_map 加。
+    primary_key:
+    - run_id
+    - line_id
+    foreign_keys:
+      run_id: pipeline_run.run_id
+      shipment_gid: shipment.shipment_gid
+      dispute_id: dispute.dispute_id
+    columns:
+      run_id:
+        type: TEXT
+        meaning: 运行
+        readers:
+        - audit
+        source: code
+        nullable: false
+      line_id:
+        type: TEXT
+        meaning: 明细编号（说明编号:数字编号）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      shipment_gid:
+        type: TEXT
+        meaning: 票货
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      dispute_id:
+        type: TEXT
+        meaning: 来自哪条说明
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      number_id:
+        type: TEXT
+        meaning: 数字编号
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      amount:
+        type: DECIMAL
+        meaning: 金额，贷记为负
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      internal_codes:
+        type: JSON
+        meaning: 内部代码（一项金额可对应几项费用）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      client_name:
+        type: TEXT
+        meaning: 客户的费用名（Addenda B）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      is_tax:
+        type: BOOLEAN
+        meaning: 税（单列）
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      status:
+        type: ENUM[COUNTED, SUPERSEDED, NOT_COUNTED]
+        meaning: 汇总对这一行的判定
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: false
+      replaced_by:
+        type: TEXT
+        meaning: 被哪一行取代
+        readers:
+        - reviewer
+        - downstream
+        - audit
+        source: code
+        nullable: 没被取代时为空
+      added_by_code:
+        type: BOOLEAN
+        meaning: 规则 6a 由代码计入的 BALANCE DUE 金额
+        readers:
+        - reviewer
+        - downstream
+        - audit
         source: code
         nullable: false
 views:

@@ -5,8 +5,8 @@ Two kinds of findings:
   the text and the submission only. `Ctx` deliberately has no Delta, so nothing here can leak it (decision 3.1).
 - Diagnostic: stored for the reviewer and turned into flags by rules.yaml. Never sent back to the model.
 
-The Delta comparison is not here: it lives in `agent.DeltaJudge`, which holds Delta and returns only
-'consistent' / 'inconsistent' to the model (decision 3.2).
+There is no comparison with the Excel Delta column anywhere at run time (task 14 C1: Delta is the client's own
+estimate, used only as a baseline in evaluation).
 """
 
 from __future__ import annotations
@@ -17,8 +17,9 @@ from datetime import datetime
 from decimal import Decimal
 
 from freight_lineitems.config import CODES, RULES, TAX, category
-from freight_lineitems.schemas import (COUNTED_STATUSES, ITEM_KINDS, MONEY_KINDS, BasisType, Diagnostic, Kind,
-                                       NumberJudgment, ParseResult, RepairError, Status, Submission)
+from freight_lineitems.claim import is_counted, signed_amount, status_counted
+from freight_lineitems.schemas import (ITEM_KINDS, MONEY_KINDS, BasisType, Diagnostic, Kind, NumberJudgment, ParseResult,
+                                       RepairError, Status, Submission)
 
 TOL = Decimal(str(RULES["tolerances"]["amount_abs"]))
 TAX_TOL = Decimal(str(RULES["tolerances"]["tax_abs"]))
@@ -80,6 +81,30 @@ def exclusion_basis_category(phrase: str | None) -> str | None:
             if (re.search(r"(?<![A-Z])" + re.escape(w) + r"(?![A-Z])", up) if re.search(r"[A-Z]", w) else w in up):
                 return cat
     return None
+
+
+CREDIT_WORDS = [str(w).upper() for w in RULES["exclusion_basis"]["categories"]["credit"]]
+
+
+def credit_words_in(phrase: str | None) -> list[str]:
+    """Credit words (rules.yaml exclusion_basis.categories.credit) found as whole words in a phrase, upper-cased."""
+    up = " ".join((phrase or "").upper().split())
+    return [w for w in CREDIT_WORDS if re.search(r"(?<![A-Z])" + re.escape(w) + r"(?![A-Z])", up)]
+
+
+def credit_marks(text: str, span: tuple[int, int]) -> dict:
+    """Sign marks written around one number (task 23, audit F-01). `minus`: a '-' directly before the number or its
+    '$' ('-$20', '-20', '$-20'), with nothing in between. `parentheses`: the number, with its '$', is enclosed in
+    '(' and ')' ('($45.00)', '( 45.00 )'). A dash after a charge name is usually a separator ('LIFTGATE-$69.00'), so
+    `minus` alone is never treated as evidence against a positive reading; see check_submission."""
+    a, b = span
+    raw = text[a:b]
+    m = re.search(r"\d", raw)
+    lead = raw[: m.start()] if m else ""
+    minus = text[:a].endswith("-") or lead.replace("$", "").replace(" ", "").endswith("-")
+    opened = text[:a].rstrip().endswith("(") or lead.lstrip().startswith("(")
+    closed = text[b:].lstrip().startswith(")") or raw.rstrip().endswith(")")
+    return {"minus": minus, "parentheses": opened and closed}
 
 
 def digits(x) -> str:
@@ -262,7 +287,7 @@ def check_submission(ctx: Ctx, sub: Submission) -> tuple[list[RepairError], list
                              ["set other_phrase to the verbatim phrase naming the charge"]))
         # decision 3.5: a '$' amount left out of the claim needs a source phrase that says why
         dollar = tok.has_dollar if tok else "$" in (regions[j.id].raw if j.id in regions else "")
-        if dollar and j.kind != Kind.TOTAL and j.status not in COUNTED_STATUSES:
+        if dollar and j.kind != Kind.TOTAL and not is_counted(j.kind, j.status):
             if not phrase_found(j.exclusion_phrase, ctx.text):
                 errs.append(_err("NUM.JUDGMENT.EXCLUSION_UNSUPPORTED", path, {"id": j.id, "exclusion_phrase": j.exclusion_phrase},
                                  ["quote the words in the text that show this amount is not part of this claim",
@@ -278,8 +303,25 @@ def check_submission(ctx: Ctx, sub: Submission) -> tuple[list[RepairError], list
         if j.is_credit and j.kind not in ITEM_KINDS:
             errs.append(_err("NUM.JUDGMENT.CREDIT_ON_NON_ITEM", path, {"id": j.id, "kind": j.kind.value},
                              ["is_credit applies to CHARGE_AMOUNT / UNSPECIFIED_AMOUNT / TAX_AMOUNT only"]))
+        # task 23 (audit F-01): the sign must have support in the text. Code checks the model's is_credit; it does not
+        # derive the sign itself, because most dashes before amounts are separators ('PLACEMENT-[PERSON_1]-$69.00').
+        span = tok.span if tok else (regions[j.id].span if j.id in regions else None)
+        if span is not None:
+            marks = credit_marks(ctx.text, span)
+            words = credit_words_in(j.evidence_phrase)
+            if j.is_credit and not (words or marks["parentheses"] or marks["minus"]):
+                errs.append(_err("NUM.JUDGMENT.CREDIT_UNSUPPORTED", path,
+                                 {"id": j.id, "evidence_phrase": j.evidence_phrase},
+                                 ["set is_credit false: the text shows no credit for this amount (no credit word such as "
+                                  "CREDIT or REFUND in evidence_phrase, no parentheses around it, no minus sign directly "
+                                  "before it)",
+                                  "or quote in evidence_phrase the words of the text that present it as a credit"]))
+            elif not j.is_credit and (words or marks["parentheses"]) and j.kind in ITEM_KINDS and is_counted(j.kind, j.status):
+                rec.append(diag("NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT", path, {
+                    "id": j.id, "raw": tok.raw if tok else regions[j.id].raw, "credit_words": words,
+                    "parentheses": marks["parentheses"], "evidence_phrase": j.evidence_phrase}, "4"))
 
-    counted = [j for j in by_id.values() if j.status in COUNTED_STATUSES and j.kind in ITEM_KINDS]
+    counted = [j for j in by_id.values() if is_counted(j.kind, j.status)]
 
     # ---- line items
     refs: dict[str, int] = {}
@@ -293,7 +335,7 @@ def check_submission(ctx: Ctx, sub: Submission) -> tuple[list[RepairError], list
                 reason = "unknown id"
             elif j.kind not in ITEM_KINDS:
                 reason = f"kind {j.kind.value} is not an item amount"
-            elif j.status not in COUNTED_STATUSES:
+            elif not status_counted(j.status):
                 reason = f"status {j.status.value} is not counted in this dispute"
             elif refs[li.amount_ref] > 1:
                 reason = "amount already used by another line item"
@@ -331,13 +373,29 @@ def check_submission(ctx: Ctx, sub: Submission) -> tuple[list[RepairError], list
             errs.append(_err("REL.REF.INVALID", f"relations/{k}", {"unknown_ids": bad, "n_operands": len(rel.operand_ids)},
                              ["use number ids from the table", "give at least one operand"]))
 
+    # ---- task 19: the two description fields. Quotes must be in the text; the stated amount due must be a number id.
+    if sub.earlier_claim_quote is not None and not phrase_found(sub.earlier_claim_quote, ctx.text):
+        errs.append(_err("ITEM.PHRASE.NOT_FOUND", "earlier_claim_quote", {"phrase": sub.earlier_claim_quote},
+                         ["quote verbatim from redacted_text the words that mention the earlier claim",
+                          "or set earlier_claim_quote null"]))
+    sid, sev = sub.stated_amount_due_id, sub.stated_amount_due_evidence
+    if (sid is None) != (sev is None):
+        errs.append(_err("ITEM.PHRASE.NOT_FOUND", "stated_amount_due_evidence", {"stated_amount_due_id": sid, "evidence": sev},
+                         ["give both stated_amount_due_id and stated_amount_due_evidence, or set both null"]))
+    elif sid is not None:
+        if sid not in values:
+            errs.append(_err("NUM.REF.UNKNOWN_ID", "stated_amount_due_id", {"given": sid, "valid_ids": list(values)},
+                             ["use a number id from the table", "or set stated_amount_due_id and its evidence null"]))
+        elif not phrase_found(sev, ctx.text):
+            errs.append(_err("ITEM.PHRASE.NOT_FOUND", "stated_amount_due_evidence", {"phrase": sev},
+                             ["quote verbatim from redacted_text"]))
+
     if any(e.code.startswith(("NUM.REF", "REL.REF")) for e in errs):
         return errs, rec, None
 
     # ---- claim arithmetic (no Delta here)
-    sign = lambda j: -1 if j.is_credit else 1  # noqa: E731
-    signed_sum = sum((sign(j) * values[j.id] for j in counted), Decimal("0"))
-    base_sum = sum((sign(j) * values[j.id] for j in counted if j.kind != Kind.TAX_AMOUNT), Decimal("0"))
+    signed_sum = sum((signed_amount(values[j.id], j.is_credit) for j in counted), Decimal("0"))
+    base_sum = sum((signed_amount(values[j.id], j.is_credit) for j in counted if j.kind != Kind.TAX_AMOUNT), Decimal("0"))
     tax_items_no_amt = [(k, li) for k, li in enumerate(sub.line_items) if li.amount_ref is None and any(category(c) == "TAX" for c in li.charge_codes)]
     all_codes = {c for li in sub.line_items for c in li.charge_codes} | {c for j in by_id.values() for c in j.charge_codes}
     rate, prov = tax_rate(ctx, all_codes)

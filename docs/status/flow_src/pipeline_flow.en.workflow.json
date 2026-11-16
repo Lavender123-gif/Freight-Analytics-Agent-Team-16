@@ -122,9 +122,9 @@
       "id": "llminput",
       "lane": "code",
       "col": 2,
-      "type": "backend",
+      "type": "cloud",
       "label": "Model input",
-      "sublabel": "no Delta",
+      "sublabel": "no Delta · notes",
       "tag": "B04"
     },
     {
@@ -140,18 +140,18 @@
       "id": "history",
       "lane": "code",
       "col": 4,
-      "type": "cloud",
-      "label": "5.5 Duplicates",
-      "sublabel": "row · invoice · shipment",
-      "tag": "B09 · B08"
+      "type": "backend",
+      "label": "5.5 Copies · roll-up",
+      "sublabel": "orders · replace · total",
+      "tag": "B11 · B08"
     },
     {
       "id": "understand",
       "lane": "llm",
       "col": 2,
-      "type": "backend",
-      "label": "3 Blind parse",
-      "sublabel": "agent loop · no Delta",
+      "type": "cloud",
+      "label": "3 Read + screen",
+      "sublabel": "core + notes · 2 skills",
       "tag": "B04"
     },
     {
@@ -188,8 +188,8 @@
       "lane": "assets",
       "col": 0,
       "type": "cloud",
-      "label": "SKILL.md",
-      "sublabel": "procedure · examples",
+      "label": "SKILL.md + notes",
+      "sublabel": "generated concepts",
       "tag": "B05"
     },
     {
@@ -207,14 +207,14 @@
       "col": 3,
       "type": "cloud",
       "label": "Tools · tax",
-      "sublabel": "calc · tax · cases",
+      "sublabel": "lookup · calc · tax note",
       "tag": "B06"
     },
     {
       "id": "store",
       "lane": "assets",
       "col": 4,
-      "type": "backend",
+      "type": "cloud",
       "label": "7 Parse store",
       "sublabel": "facts ≠ judgments",
       "tag": "B10"
@@ -225,7 +225,7 @@
       "col": 5,
       "type": "cloud",
       "label": "rules.yaml",
-      "sublabel": "dups · flags · plain text",
+      "sublabel": "dups · flags · concepts",
       "tag": "C2",
       "yOffset": -48
     },
@@ -233,7 +233,7 @@
       "id": "catalog",
       "lane": "assets",
       "col": 5,
-      "type": "backend",
+      "type": "cloud",
       "label": "Diagnostics",
       "sublabel": "fixed wording",
       "tag": "C1",
@@ -296,7 +296,7 @@
       "id": "e-tool-understand",
       "from": "tool",
       "to": "understand",
-      "label": "mismatch: keep or revise",
+      "label": "failed check: fix and resubmit",
       "role": "return",
       "variant": "dashed"
     },
@@ -388,7 +388,8 @@
       "items": [
         "Light green: in-sample evidence + deliverable; yellow: partly done; red: not started",
         "Tag = card ID; \"to revise\" = current code conflicts with the 2026-11-04 decisions, colour unchanged for now",
-        "2026-11-10: B04 light green (full dev run); the review UI has card U2; B08's two levels are Optional"
+        "2026-11-15: B04, B10, C1 back to yellow after Delta was withdrawn; new card B11 shipment roll-up light green (replay)",
+        "2026-11-15 task 19: core + topic notes; injection screen in step 3"
       ]
     },
     {
@@ -396,8 +397,8 @@
       "title": "Main changes from v4 (2026-11-04 decisions)",
       "items": [
         "Auto-reject pre-check and auto notice removed; every record goes to the model and to a reviewer (2.1, 2.2)",
-        "Blind parse: the model never sees Delta; on a mismatch it is told so, and every attempt is kept (3.1, 3.2)",
-        "We store our own parses for multi-level, cross-batch duplicate checks (4.1, 5.2)"
+        "Blind parse: the model never sees Delta and nothing is compared with it at run time (task 14 C1); a failed check is returned for repair; every attempt is kept",
+        "Order copies merge into one explanation; the shipment roll-up decides replace or add by charge code and always gives a default total (task 14)"
       ]
     },
     {

@@ -1,0 +1,49 @@
+# Task 15 section 4.1: problem types and the flags that correspond to each (written before any per-record result).
+# A flag listed here "names" the problem type. Only flags with severity attention or return can send a record to a
+# person; info flags are listed where they describe the type but do not count as a send.
+# Mock: failure_mode -> problem type (input problems only; system errors are decided by comparing with the truth).
+system_errors:
+  misread_amount:      # value, or counted / not counted judged wrong (decided per explanation against the truth)
+    flags: [CLAIM.RECON.TOTAL_MISMATCH, ITEM.ARITH.RELATION_FAILS, ITEM.ARITH.QTY_RATE_NO_RESULT, NUM.JUDGMENT.EXCLUSION_BASIS_UNLISTED,
+            NUM.JUDGMENT.SPACE_MERGED_IN_CLAIM, RUN.AGENT.UNCERTAINTY_REPORTED, CLAIM.ATTEMPT.STATUS_CHANGED, RUN.SUBMIT.FAILED_CHECKS,
+            RUN.SUBMIT.NONE, REC.TEXT.REDACTION_ALTERED_DIGITS]
+  missed_amount:       # a money amount the truth counts was not counted
+    flags: [CLAIM.RECON.TOTAL_MISMATCH, ITEM.AMOUNT.MISSING, RUN.AGENT.UNCERTAINTY_REPORTED, RUN.SUBMIT.FAILED_CHECKS, RUN.SUBMIT.NONE]
+  extra_amount:        # a number the truth does not count was counted
+    flags: [CLAIM.RECON.TOTAL_MISMATCH, ITEM.ARITH.RELATION_FAILS, NUM.JUDGMENT.SPACE_MERGED_IN_CLAIM, RUN.AGENT.UNCERTAINTY_REPORTED]
+  category_wrong:      # both count the amount, the charge category differs
+    flags: [ITEM.CODE.OTHER, RUN.AGENT.UNCERTAINTY_REPORTED]
+input_problems:
+  unclear_wording:
+    flags: [RUN.AGENT.UNCERTAINTY_REPORTED, ITEM.CODE.OTHER, SHIP.ROLLUP.BALANCE_DUE_UNRESOLVED, ITEM.ARITH.QTY_RATE_NO_RESULT]
+    mock_modes: [understanding_ambiguous, understanding_rare_fee, understanding_one_amount_two_fees, understanding_quantity_unit,
+                 understanding_payment_history, understanding_rate_contract, suggested_contradictory_negation, suggested_semicolon_scope,
+                 suggested_multilingual, suggested_ocr_noise, number_range, number_spaced_split, suggested_locale_decimal,
+                 suggested_fractional_quantity, suggested_accounting_parentheses, suggested_currency_context_switch, number_mixed_currency]
+  empty_numbers_only_unnamed:
+    flags: [REC.TEXT.EMPTY, REC.TEXT.NUMBERS_ONLY, REC.TEXT.NO_NUMBER, ITEM.AMOUNT.UNNAMED, ITEM.AMOUNT.MISSING]
+    mock_modes: [understanding_blank, understanding_only_number]
+  internal_arithmetic:
+    flags: [CLAIM.RECON.TOTAL_MISMATCH, ITEM.ARITH.RELATION_FAILS, ITEM.ARITH.QTY_RATE_NO_RESULT]
+    mock_modes: [arithmetic_equal, arithmetic_explicit_total, arithmetic_large_gap, arithmetic_rounding_gap, arithmetic_total_double_count, excel_double_count]
+  tax_without_amount:
+    flags: [ITEM.TAX.NO_AMOUNT]
+    mock_modes: [arithmetic_tax_no_amount]
+  duplicate_export:
+    flags: [SHIP.COPY.SAME_OR_NO_PK]
+    mock_modes: [dedup_exact, dedup_whitespace_case, dedup_same_text_delta_conflict, order_copy_blank_id, order_copy_same_id,
+                 order_copy_normal, suggested_order_id_canonicalization, suggested_duplicate_export_metadata_shift]
+  supersede_same_amount_balance_due:
+    flags: [SHIP.ROLLUP.SUPERSEDED_SAME_CHARGE, SHIP.ROLLUP.SAME_AMOUNT_EARLIER, SHIP.ROLLUP.RATIO_SUPERSEDED, SHIP.ROLLUP.BALANCE_DUE_UNRESOLVED,
+            SHIP.ROLLUP.BALANCE_DUE_READING_DIFFERS, SHIP.ROLLUP.TAX_PARTLY_ORPHANED, SHIP.ROLLUP.RELATION_UNDECIDED, SHIP.ROLLUP.ORDER_TIED,
+            SHIP.ROLLUP.INCOMPLETE]
+    mock_modes: [rollup_balance_due_small_increase, rollup_same_amount_different_charge, rollup_same_charge_restate, rollup_same_charge_supersede,
+                 rollup_same_timestamp_order, rollup_tax_follows_note, suggested_balance_due_chain, suggested_fee_synonym_supersede,
+                 suggested_tax_basis_after_partial_supersede, history_105_multiplier, history_restate, history_resubmission,
+                 history_same_delta_new_text, history_week_gap, number_duplicate_amount, understanding_balance_in_delta,
+                 understanding_balance_not_in_delta, distinct_later_event, rollup_distinct_charges_add, rollup_credit_negative]
+  injection:
+    flags: [REC.TEXT.INJECTION_SUSPECT, RUN.AGENT.UNCERTAINTY_REPORTED]
+    mock_modes: [injection_change_amount, injection_direct, injection_embedded, injection_obfuscated, injection_system_prompt, suggested_unicode_confusables]
+# modes not listed (control_clean, pii_*, number_* not above, suggested_zero_amount, suggested_negative_dollar_sign_position) are
+# only in the main matrix.

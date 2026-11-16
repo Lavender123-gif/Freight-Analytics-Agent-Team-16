@@ -209,3 +209,79 @@ def test_region_value_handles_comma_decimal():
     errs, rec, claim = check_submission(c, sub(S([], [L("?1")], reads=[read])))
     assert errs == [] and claim.signed_sum == Decimal("1234.56")
     assert "NUM.READ.REGION_VALUE_DERIVED" in codes(rec)
+
+
+# ---- task 23 (audit F-01): is_credit must have support in the text. Pairs: each direction, accepted and refused.
+
+def _credit_case(text, credit, ev, codes_=("ACCESSORIAL.LIFTGATE",)):
+    c = ctx(text)
+    return check_submission(c, sub(S([N("#1", codes=codes_, ev=ev, credit=credit)], [L("#1")])))
+
+
+def test_credit_without_any_mark_in_the_text_is_refused():
+    errs, _, _ = _credit_case("LIFTGATE $50.00", True, "LIFTGATE $50.00")
+    assert "NUM.JUDGMENT.CREDIT_UNSUPPORTED" in codes(errs)
+
+
+def test_credit_with_a_credit_word_parentheses_or_adjacent_minus_is_accepted():
+    for text, ev in [("LIFTGATE CREDIT $50.00", "LIFTGATE CREDIT"), ("REFUNDED LIFTGATE $50.00", "REFUNDED LIFTGATE"),
+                     ("LIFTGATE ($50.00)", "LIFTGATE"), ("LIFTGATE ( 50.00 )", "LIFTGATE"),
+                     ("LIFTGATE -$50.00", "LIFTGATE"), ("LIFTGATE $-50.00", "LIFTGATE")]:
+        errs, rec, claim = _credit_case(text, True, ev)
+        assert errs == [], text
+        assert claim.signed_sum == Decimal("-50.00"), text
+        assert "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" not in codes(rec)
+
+
+def test_positive_reading_of_a_credit_word_or_parentheses_is_flagged_not_refused():
+    for text, ev in [("CREDIT -$50.00 LIFTGATE", "CREDIT -$50.00 LIFTGATE"), ("LIFTGATE ($50.00)", "LIFTGATE ($50.00)")]:
+        errs, rec, claim = _credit_case(text, False, ev)
+        assert errs == [], text
+        assert "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" in codes(rec), text
+        assert claim.signed_sum == Decimal("50.00")
+
+
+def test_positive_reading_without_credit_marks_raises_nothing():
+    errs, rec, _ = _credit_case("LIFTGATE $50.00", False, "LIFTGATE $50.00")
+    assert errs == [] and "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" not in codes(rec)
+
+
+def test_dash_separator_read_as_positive_passes_without_a_flag():
+    """About a third of real amounts follow a hyphen that is a separator; the minus sign alone is never a flag."""
+    for text, ev in [("INSIDE PLACEMENT-[PERSON_1]-$69.00 DUE", "INSIDE PLACEMENT"), ("FUEL - $12.00", "FUEL - $12.00"),
+                     ("LIFTGATE-$50.00", "LIFTGATE-$50.00")]:
+        errs, rec, claim = _credit_case(text, False, ev)
+        assert errs == [], text
+        assert "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" not in codes(rec), text
+        assert claim.signed_sum > 0
+
+
+def test_credit_word_on_an_uncounted_amount_raises_no_sign_flag():
+    """Only counted item amounts carry a sign into the total; a paid credit in the history is not flagged."""
+    c = ctx("CREDIT $10.00 WAS PAID, LIFTGATE $50.00")
+    s = S([N("#1", status="PAID", ev="CREDIT $10.00 WAS PAID", excl="WAS PAID"),
+           N("#2", codes=["ACCESSORIAL.LIFTGATE"], ev="LIFTGATE $50.00")], [L("#2")])
+    errs, rec, _ = check_submission(c, sub(s))
+    assert errs == [] and "NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT" not in codes(rec)
+
+
+def test_unsupported_credit_goes_through_the_main_flow_to_a_person():
+    """The check runs inside Session.submit (production and offline): the model is told what to fix; a reading that
+    still fails after the repair rounds ends as FAILED_CHECKS and is sent to a person (RUN.SUBMIT.FAILED_CHECKS)."""
+    from freight_lineitems.agent import AG, Session
+    from freight_lineitems.pipeline import assemble, prepare
+    from helpers import record
+    prep = prepare(record("LIFTGATE $50.00", "50"))
+    sess = Session(ctx=prep["ctx"], llm_input=prep["llm_input"])
+    bad = S([N("#1", codes=["ACCESSORIAL.LIFTGATE"], ev="LIFTGATE $50.00", credit=True)], [L("#1", label="LIFTGATE")])
+    first = sess.submit(bad)
+    assert first["accepted"] is False and [e["code"] for e in first["errors"]] == ["NUM.JUDGMENT.CREDIT_UNSUPPORTED"]
+    for _ in range(AG["max_repair_rounds"]):
+        sess.submit(bad | {"response_type": "INSISTED", "reason": "kept"})
+    assert sess.final["status"] == "FAILED_CHECKS"
+    out = assemble(prep, {"session": sess, "transcript": {"calls": [], "events": [], "first_user_message": None},
+                          "routing": {"layout": "offline"}})
+    assert "RUN.SUBMIT.FAILED_CHECKS" in {f["code"] for f in out["judgment"]["flags"]}
+    assert out["judgment"]["recommendation"] == "HUMAN_REVIEW"
+    good = Session(ctx=prep["ctx"], llm_input=prep["llm_input"])
+    assert good.submit(S([N("#1", codes=["ACCESSORIAL.LIFTGATE"], ev="LIFTGATE $50.00")], [L("#1", label="LIFTGATE")]))["accepted"]

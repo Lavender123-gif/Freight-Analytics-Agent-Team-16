@@ -12,3 +12,10 @@ cache_ttl: 5m
 fallbacks: "off"
 sdk_max_retries: 4
 timeout_s: 120
+# charge-code layout in the prompt (task 14 stage 2): internal | client_rooted (codes grouped under the client's
+# Addenda B names; the model still outputs internal codes). FL_TAXONOMY_LAYOUT overrides it for one run.
+taxonomy_layout: internal
+# reading-skill layout (task 19): single (core + every topic reference in the system prompt, fixed examples) | routed
+# (core + generic examples; code adds the topic references and 1-2 similar examples an explanation needs to its input).
+# FL_SKILL_LAYOUT overrides it for one run.
+skill_layout: routed

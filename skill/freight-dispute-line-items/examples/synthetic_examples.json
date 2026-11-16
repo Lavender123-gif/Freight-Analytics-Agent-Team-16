@@ -32,7 +32,10 @@
     }
    ],
    "relations": [],
-   "unrecognized_reads": []
+   "unrecognized_reads": [],
+   "earlier_claim_quote": null,
+   "stated_amount_due_id": null,
+   "stated_amount_due_evidence": null
   },
   "note": "One named charge with one amount: one CLAIMED number, one line item; the reason is quoted, not judged."
  },
@@ -129,7 +132,10 @@
      "result_id": "#4"
     }
    ],
-   "unrecognized_reads": []
+   "unrecognized_reads": [],
+   "earlier_claim_quote": null,
+   "stated_amount_due_id": "#4",
+   "stated_amount_due_evidence": "= TOTAL $215.00"
   },
   "note": "Several items and their stated total: each item is CLAIMED with its own line item; the total is a TOTAL, never a line item, and a SUM relation lets code recompute it."
  },
@@ -186,7 +192,10 @@
     }
    ],
    "relations": [],
-   "unrecognized_reads": []
+   "unrecognized_reads": [],
+   "earlier_claim_quote": null,
+   "stated_amount_due_id": "#3",
+   "stated_amount_due_evidence": "IS STILL OWED"
   },
   "note": "Payment history: the billed and paid amounts are history, each with an exclusion phrase because it carries '$'; only the amount still owed is counted (UNPAID). The text states no arithmetic, so no relation is written."
  },
@@ -282,7 +291,10 @@
      "result_id": "#3"
     }
    ],
-   "unrecognized_reads": []
+   "unrecognized_reads": [],
+   "earlier_claim_quote": null,
+   "stated_amount_due_id": null,
+   "stated_amount_due_evidence": null
   },
   "note": "Quantity x rate with the result stated: the result is the charge; the unit price is a RATE excluded with 'PER DAY', the day count a QUANTITY. Weight, pallet count and a document number are not money."
  },
@@ -349,7 +361,10 @@
     }
    ],
    "relations": [],
-   "unrecognized_reads": []
+   "unrecognized_reads": [],
+   "earlier_claim_quote": null,
+   "stated_amount_due_id": null,
+   "stated_amount_due_evidence": null
   },
   "note": "A credit is still part of the claim: CLAIMED with is_credit true, and code subtracts it. A tax named without an amount ('PLUS GST') is a line item with no amount_ref; code works out the implied tax."
  }

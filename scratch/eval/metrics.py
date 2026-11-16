@@ -44,8 +44,15 @@ THREE = ("COUNTED", "NOT_COUNTED", "CREDIT")
 
 
 def load_run(run_id: str, runs_dir: Path = RUNS_DIR) -> dict[str, dict]:
+    """Results by record id. A run made after task 14 holds one result per explanation; every source row of the
+    explanation (an order copy) maps to that result, so an annotated copy finds the reading of its explanation."""
     path = runs_dir / run_id / "records.jsonl"
-    return {r["record_id"]: r for r in (json.loads(x) for x in path.read_text().splitlines() if x.strip())}
+    out = {}
+    for r in (json.loads(x) for x in path.read_text().splitlines() if x.strip()):
+        out[r["record_id"]] = r
+        for s in r["facts"].get("source_rows") or []:
+            out.setdefault(s["record_id"], r)
+    return out
 
 
 # ------------------------------------------------------------------------------------------------ the model's reading

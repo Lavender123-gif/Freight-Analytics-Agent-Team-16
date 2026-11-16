@@ -1,25 +1,27 @@
 # 给 Jake 的问题清单 / Questions for Jake
 
-版本：2026-11-10（任务 10 第 7 节）。对应计划任务 J01。本文件是问题、答复、回填位置的唯一记录；发出或收到答复后改第 3 节的状态列。
+版本：2026-11-10（任务 10 第 7 节）；2026-11-15 回填客户 11-13 的答复（任务 14，T14-09，第 5 节）。对应计划任务 J01。本文件是问题、答复、回填位置的唯一记录；发出或收到答复后改第 3 节的状态列。
 
 ## 0. 给项目负责人的摘要
 
-**结论：10 个问题，全部还没有问过，也没有任何答复。** 仓库里没有发送记录，也没有 Jake 的答复：`docs/client/` 之前是空的，没有会议纪要；11-05 的会前材料还把"14 个问题什么时候、用什么方式发给 Jake"列为待定（`docs/plan/2026-11-05_debrief.zh.md` 第 10 节第 5 条）；更早的三份草稿（01 第 3 节、02 §10.2、`ppg_pipeline_v2.md`）同样只有问题没有答复。我只能看到仓库，如果你口头问过，请直接改第 3 节。
+**2026-11-15 更新：客户已于 11-13 答复（他收到的是改写后的 9 题），答复和因此做的改动见第 5 节。以下是 11-10 的原文，保留作记录。**
+
+**（11-10）结论：10 个问题，全部还没有问过，也没有任何答复。** 仓库里没有发送记录，也没有 Jake 的答复：`docs/client/` 之前是空的，没有会议纪要；11-05 的会前材料还把"14 个问题什么时候、用什么方式发给 Jake"列为待定（`docs/plan/2026-11-05_debrief.zh.md` 第 10 节第 5 条）；更早的三份草稿（01 第 3 节、02 §10.2、`ppg_pipeline_v2.md`）同样只有问题没有答复。我只能看到仓库，如果你口头问过，请直接改第 3 节。
 
 原来的 J1 到 J14 压成 10 个，按"答复对实现的改动大小"排序：
 
 | 编号 | 一句话标题 | 状态 |
 |---|---|---|
-| Q1 | Delta 是怎么算出来的，文字里的合计会不会被算进去两次 | 未问 |
-| Q2 | 同一笔争议出现在好几行（只有 PK 不同），是导出造成的还是真的提交了多次 | 未问 |
-| Q3 | 同一票货再次出现同一种费用：更正、追加，还是按天按次的下一期 | 未问 |
-| Q4 | purchased transportation surcharge 是什么费用、怎么算 | 未问 |
-| Q5 | 加拿大运费的税：按哪个省，省税算不算 | 未问 |
-| Q6 | 币种从哪里来，文字金额和 Delta 是不是同一币种 | 未问 |
+| Q1 | Delta 是怎么算出来的，文字里的合计会不会被算进去两次 | 已答（问法不同，见第 5 节 J-Q2） |
+| Q2 | 同一笔争议出现在好几行（只有 PK 不同），是导出造成的还是真的提交了多次 | 已答（问法不同，见第 5 节 J-Q3） |
+| Q3 | 同一票货再次出现同一种费用：更正、追加，还是按天按次的下一期 | 未问（由用户决定 A3 代替） |
+| Q4 | purchased transportation surcharge 是什么费用、怎么算 | 已答（第 5 节 J-Q9） |
+| Q5 | 加拿大运费的税：按哪个省，省税算不算 | 部分已答（第 5 节 J-Q8：税单独成行；按哪个省没有答） |
+| Q6 | 币种从哪里来，文字金额和 Delta 是不是同一币种 | 已答（第 5 节 J-Q6、J-Q7） |
 | Q7 | 审核员现在对一笔争议能做哪几种操作 | 未问 |
-| Q8 | 审核员最怕漏掉什么，哪些提醒是噪音 | 未问 |
-| Q9 | 审核之后谁用这份结构化结果，用来算什么 | 未问 |
-| Q10 | PPG 或 OTM 有没有现成的附加费代码表 | 未问 |
+| Q8 | 审核员最怕漏掉什么，哪些提醒是噪音 | 已答（问法不同，见第 5 节 J-Q1） |
+| Q9 | 审核之后谁用这份结构化结果，用来算什么 | 已答（第 5 节 J-Q5，指向 J-Q1、J-Q3） |
+| Q10 | PPG 或 OTM 有没有现成的附加费代码表 | 已答（第 5 节 J-Q4） |
 
 - J7 没有丢，并进了 Q3（换了问法：同一种费用再次出现意味着什么）；J8 并进了 Q9 的假设。
 - 不问的有：J3、J9、J13 全部，J1、J2、J4、J11 里不改变做法的部分，P-01 到 P-19 里除 P-11 以外的全部，以及旧草稿里的 9 项。原因逐条写在第 4 节。
@@ -46,16 +48,16 @@
 
 | 编号 | 覆盖的旧编号 | 状态 | 仓库里的依据 | 答复回填到哪里 |
 |---|---|---|---|---|
-| Q1 | J2（Delta 与 `Invoice Amount` 的口径、真实发票合计）；P-11；02 §10.2-1、-3；v2"要问 Jake"1、3 | 未问 | 无发送记录，无答复 | 决定记录 3.4、4.6；`rules.yaml` `CLAIM.DELTA.TOTAL_COUNTED_TWICE_PATTERN`；`schema_v1.yaml` `dispute.invoice_amount` 的 pending；`pending.zh.md` P-11；mock 设计（M1）；卡片 B07、C2 |
-| Q2 | J1；02 §10.2-6（能否给不重复的导出） | 未问 | 同上 | 决定记录 4.6、5.3；`rules.yaml` `DUP.ROW.COPY`、`DUP.ROW.HAS_LATER_COPIES` 的档位；`schema_v1.yaml` `carrier_invoice.carrier_invoice_no`、`bill_record.pk_date`、`source_row.row_fingerprint` 和行层面查重说明的 pending；mock 设计；卡片 B08 |
-| Q3 | J6、J7 | 未问 | 同上 | 决定记录 5.2；`rules.yaml` `DUP.INVOICE.SAME_CHARGE`、`duplicates.clear_rules`；`schema_v1.yaml` 发票内查重说明的 pending、视图 `post_review_aggregates`；mock 设计；卡片 B08 |
-| Q4 | J14；01 P12；02 §10.2-4 | 未问 | 同上 | `taxonomy.yaml` `PENDING.PURCHASED_TRANSPORTATION`（换成正式代码和定义）；`rules.yaml` `ITEM.CODE.PENDING_MEANING`；卡片 C3 |
-| Q5 | J5；02 §10.2-8（税的部分）；v2"要问 Jake"6 | 未问 | 同上 | 决定记录 4.4；`tax_rules.yaml` `province_basis`、各省 `pst_applies_to_freight`；`rules.yaml` `ITEM.TAX.PRESENT` 的档位；卡片 B06、C3 |
-| Q6 | J4（币种来源）；设计假设 H2（文字与 Delta 同币种） | 未问 | 同上 | 决定记录 4.3；`rules.yaml` `currency.*`、`REC.FIELD.CURRENCY_UNDETERMINED`；`schema_v1.yaml` `dispute.currency`（来源从"代码推算"改为"Excel 原样"）；卡片 C2 |
+| Q1 | J2（Delta 与 `Invoice Amount` 的口径、真实发票合计）；P-11；02 §10.2-1、-3；v2"要问 Jake"1、3 | 已答（问法不同，见第 5 节 J-Q2） | 无发送记录，无答复 | 决定记录 3.4、4.6；`rules.yaml` `CLAIM.DELTA.TOTAL_COUNTED_TWICE_PATTERN`；`schema_v1.yaml` `dispute.invoice_amount` 的 pending；`pending.zh.md` P-11；mock 设计（M1）；卡片 B07、C2 |
+| Q2 | J1；02 §10.2-6（能否给不重复的导出） | 已答（问法不同，见第 5 节 J-Q3） | 同上 | 决定记录 4.6、5.3；`rules.yaml` `DUP.ROW.COPY`、`DUP.ROW.HAS_LATER_COPIES` 的档位；`schema_v1.yaml` `carrier_invoice.carrier_invoice_no`、`bill_record.pk_date`、`source_row.row_fingerprint` 和行层面查重说明的 pending；mock 设计；卡片 B08 |
+| Q3 | J6、J7 | 未问（由用户决定 A3 代替） | 同上 | 决定记录 5.2；`rules.yaml` `DUP.INVOICE.SAME_CHARGE`、`duplicates.clear_rules`；`schema_v1.yaml` 发票内查重说明的 pending、视图 `post_review_aggregates`；mock 设计；卡片 B08 |
+| Q4 | J14；01 P12；02 §10.2-4 | 已答（第 5 节 J-Q9） | 同上 | `taxonomy.yaml` `PENDING.PURCHASED_TRANSPORTATION`（换成正式代码和定义）；`rules.yaml` `ITEM.CODE.PENDING_MEANING`；卡片 C3 |
+| Q5 | J5；02 §10.2-8（税的部分）；v2"要问 Jake"6 | 部分已答（第 5 节 J-Q8：税单独成行；按哪个省没有答） | 同上 | 决定记录 4.4；`tax_rules.yaml` `province_basis`、各省 `pst_applies_to_freight`；`rules.yaml` `ITEM.TAX.PRESENT` 的档位；卡片 B06、C3 |
+| Q6 | J4（币种来源）；设计假设 H2（文字与 Delta 同币种） | 已答（第 5 节 J-Q6、J-Q7） | 同上 | 决定记录 4.3；`rules.yaml` `currency.*`、`REC.FIELD.CURRENCY_UNDETERMINED`；`schema_v1.yaml` `dispute.currency`（来源从"代码推算"改为"Excel 原样"）；卡片 C2 |
 | Q7 | J10 | 未问 | 同上 | 决定记录 6.4、6.5；`schema_v1.yaml` `reviewer_decision.action` 的枚举；审核界面任务 U1、U2；卡片 F2 |
-| Q8 | J11（最担心漏掉什么）；02 §10.2-11；01 第 3 节第 10 题 | 未问 | 同上 | 决定记录 1.6、6.1 到 6.3；`rules.yaml` `flags` 各条的 severity；`pending.zh.md` P-13、P-14 的复议依据；卡片 C2、B09 |
-| Q9 | J8；02 §10.2-11（输出给谁用） | 未问 | 同上 | 决定记录 4.5、5.4；`schema_v1.yaml` 视图 `accepted_line_items`、`post_review_aggregates`；`pending.zh.md` P-02、P-07 的复议依据；卡片 B10 |
-| Q10 | J12；02 §10.2-7（代码表的部分） | 未问 | 同上 | `taxonomy.yaml`（加一列客户代码，或填 `x12_ref`）；`schema_v1.yaml` `line_item.charge_code`；06 报告 E 部分第 15 项；卡片 C3 |
+| Q8 | J11（最担心漏掉什么）；02 §10.2-11；01 第 3 节第 10 题 | 已答（问法不同，见第 5 节 J-Q1） | 同上 | 决定记录 1.6、6.1 到 6.3；`rules.yaml` `flags` 各条的 severity；`pending.zh.md` P-13、P-14 的复议依据；卡片 C2、B09 |
+| Q9 | J8；02 §10.2-11（输出给谁用） | 已答（第 5 节 J-Q5，指向 J-Q1、J-Q3） | 同上 | 决定记录 4.5、5.4；`schema_v1.yaml` 视图 `accepted_line_items`、`post_review_aggregates`；`pending.zh.md` P-02、P-07 的复议依据；卡片 B10 |
+| Q10 | J12；02 §10.2-7（代码表的部分） | 已答（第 5 节 J-Q4） | 同上 | `taxonomy.yaml`（加一列客户代码，或填 `x12_ref`）；`schema_v1.yaml` `line_item.charge_code`；06 报告 E 部分第 15 项；卡片 C3 |
 
 卡片编号按现在的 `docs/status/cards.yaml`；状态板重排后以新编号为准。回填卡片只改 `cards.yaml` 再跑生成脚本。
 
@@ -112,3 +114,25 @@ P-11 在 Q1。其余都不问 Jake：
 | 02 §10.2-12 | PPG 是否愿意自动退回空文本的争议 | 已决定系统不做任何动作，退回只生成草稿（决定 2.2）。退回这个操作是否存在已在 Q7 |
 | v2-4 | 文本里是否混有 PPG 这边写的话 | 模型逐条读文字，谁写的不改变拆分；说不清的由模型报告疑问 |
 | v2-5 | 审核员是否需要单独看到"理由或证据" | 已作为提示保留（`ITEM.BASIS.PPG_CLAIMED`、`ITEM.BASIS.CONTRACT_CLAIMED`），有没有用已在 Q8 的清单里 |
+
+
+---
+
+## 5. 客户的答复（2026-11-13，任务 14 回填）
+
+客户实际收到并回答的是 9 个问题，编号和措辞与上面仓库里的 Q1 到 Q10 不同（问题由负责人改写后发出）。下表按客户收到的编号（记作 J-Q1 到 J-Q9）逐题写：答复（转述，不贴原文）、对应仓库的哪一题、因此改了什么。原文只在 git 忽略的 `data/incoming/2026-11-13/`。
+
+| 编号 | 问的是什么 | 答复（转述） | 对应仓库 | 因此改了什么 |
+|---|---|---|---|---|
+| J-Q1 | 审核员最关心哪些发现 | 最关心内部不一致和措辞不清，以及怎么和原始运费（Shipment Amount）比。Invoice Amount、Invoice Dups Removed、Delta 三列是 Excel 里的估算，“其实是猜的”。给了一个算好的例子：原始金额、各项费用（税单独成行）、新总额、相对原始金额的变化。系统的结果要替代这三列 | Q8 | 撤掉运行时与 Delta 的比较和回馈（C1，规则 v1.2）；三列只作评估基线（C2）；两组标识排在最前、单独统计（C6）；输出改成客户例子的表格（T14-06 重放）；例子做成回归测试（T14-04） |
+| J-Q2 | 金额几列是怎么算出来的 | 是第一版做法：原始运费加上文字里的金额，用 Excel 公式找 `$` 取旁边的数。让我们不要管这几列，它们正是要被超越的对象 | Q1 | 同上；待决 P-11（“合计被算两次”）有了答案：是 Excel 公式本身的算法 |
+| J-Q3 | 新的 PK 或 Bill ID 从哪里来 | SAP 里多个订单排进一车（SAP BOL）；费用发生在票货层面（付的是这一车），发票却开在各个订单上。要把各项费用算对并汇总到 SAP BOL（票货）层面。给了第二个例子，附带把总额平均分到 8 个订单 | Q2 | 订单副本合并成一条说明、记订单数，只有 PK 相同或为空才打标识（C4，T14-02）；新增票货汇总层（T14-03）；分摊到订单（D1）本轮不做 |
+| J-Q4 | 有没有现成的费用代码表 | 没有专门的表。EDI X12 有松散的标准，只在 EDI 里用；自由文本里什么写法都有。附了一份承运商的 Addenda B 附加费清单作参考 | Q10 | T13 把我们的 37 个代码对到清单上；T14-05 做成确定的换算（客户名称、EDI 候选、内部代码三列），复现 T13 的五类数字；第二段对比要不要把客户名称放进提示词 |
+| J-Q5 | 希望从这个流程得到什么洞察 | 前面几题已经说得差不多了 | Q9 | 无单独改动；输出目标以 J-Q1、J-Q3 的表格为准 |
+| J-Q6 | 国家栏和地址不一致时信哪个 | 按实际地址 | Q6（US/CAN 栏的部分） | 无改动：现状就是按起讫省州推国家（决定 4.3），得到确认 |
+| J-Q7 | 币种 | 可以放心假设全部是 USD | Q6 | 币种固定 USD，删掉“币种未知”标识和按国家推币种的代码（C6，T14-08） |
+| J-Q8 | 税 | 把税拆成单独的一行 | Q5 | 现状已是单独成行；“提到税”降为提示，“写了税种没写税额”升为送人工（C6，T14-08）。按哪个省算税没有回答，现有做法不变 |
+| J-Q9 | purchased transportation 是什么 | 听起来像是新手录入的线路运费（客户的猜测，不是确认） | Q4 | 作为 Freight（line haul）下面的子项，保留自己的内部代码（C5，T14-05 的换算表）；提示词里的定义改动放在第二段 v1.3b |
+| 另附 | 能否提供审核员的标注或内部指引 | 不能，能提供的就是以上这些 | 第 4.3 节的请求 | 不再期待外部标注；评估只用组内标注和 Excel 基线 |
+
+仓库 10 题里没有被问到的：Q3（同一票货再次出现同一种费用）由负责人的决定 A3 代替（后一条取代前一条，不同费用相加）；Q7（审核员能做哪些操作）没有问，界面按钮仍用决定 6.4。

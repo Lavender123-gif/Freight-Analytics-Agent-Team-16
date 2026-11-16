@@ -1,0 +1,49 @@
+# Task 16 pre-registration: wording features (regular expressions on the text before redaction, upper-cased), the
+# flag -> source table, and the mock fee names judged against our taxonomy. Written before any new per-record result.
+features:
+  balance_due_first: "^\\W*(?:[A-Z ]{0,40})?BALANCE\\s+DUE(?!.*\\$.*BALANCE\\s+DUE)"   # BALANCE DUE before any $ amount (checked in code: no $ before the phrase)
+  balance_due_after: "BALANCE\\s+DUE"                                                  # BALANCE DUE after at least one $ amount (checked in code)
+  history_words: "\\b(EARLIER|PRIOR|PREVIOUS|PREVIOUSLY|PAID|BILLED|ALREADY|ORIGINAL)\\b"
+  tax_words: "\\b(GST|HST|PST|QST|TAX|SALES TAX)\\b"
+  rate_words: "@|\\bPER\\b|\\bEACH\\b"
+  leading_dot: "(?<![\\d.,])\\.\\d+"
+  combined_and: "[A-Z]{3,} AND [A-Z]{3,}[^$\\d]{0,30}\\$?\\s?\\d"
+  redaction_placeholder: "\\[PERSON_\\d+\\]"        # on the redacted text
+  dollar_present: "\\$"
+# flag (decisive or shipment-level) -> main source (section 1 of the brief)
+flag_source:
+  REC.TEXT.EMPTY: input
+  REC.TEXT.NUMBERS_ONLY: input
+  REC.TEXT.NO_NUMBER: input
+  ITEM.AMOUNT.UNNAMED: input
+  ITEM.AMOUNT.MISSING: input
+  ITEM.TAX.NO_AMOUNT: input
+  ITEM.ARITH.QTY_RATE_NO_RESULT: input
+  ITEM.CODE.OTHER: rule_not_covered          # the charge is not in our code table
+  CLAIM.RECON.TOTAL_MISMATCH: model_misread_or_input   # resolved per record in the report as input when the text's own sum is wrong
+  ITEM.ARITH.RELATION_FAILS: input
+  RUN.AGENT.UNCERTAINTY_REPORTED: input       # the model says the text is unclear; secondary source model when the reading is also wrong
+  NUM.JUDGMENT.EXCLUSION_BASIS_UNLISTED: model_misread
+  NUM.JUDGMENT.SPACE_MERGED_IN_CLAIM: input
+  CLAIM.ATTEMPT.STATUS_CHANGED: model_misread
+  RUN.SUBMIT.FAILED_CHECKS: model_misread
+  REC.TEXT.INJECTION_SUSPECT: security
+  REC.TEXT.REDACTION_ALTERED_DIGITS: redaction
+  SHIP.COPY.SAME_OR_NO_PK: history
+  SHIP.ROLLUP.SUPERSEDED_SAME_CHARGE: history
+  SHIP.ROLLUP.SAME_AMOUNT_EARLIER: history
+  SHIP.ROLLUP.RATIO_SUPERSEDED: history
+  SHIP.ROLLUP.BALANCE_DUE_UNRESOLVED: history
+  SHIP.ROLLUP.BALANCE_DUE_READING_DIFFERS: history
+  SHIP.ROLLUP.TAX_PARTLY_ORPHANED: history
+  SHIP.ROLLUP.RELATION_UNDECIDED: history
+  SHIP.ROLLUP.ORDER_TIED: history
+  SHIP.ROLLUP.INCOMPLETE: model_misread
+# mock fee names judged against config/taxonomy.yaml (names and example phrasings), not against any system output
+mock_fee_names:
+  in_taxonomy: [liftgate service, liftgate delivery, tail lift, fuel surcharge, detention, inside delivery, dock appointment fee,
+                base charge, tax, sales tax, credit correction, freight credit, overpayment credit]
+  history_or_reference: [prior accessorial, prior payment, historical billed amount, historical payment, historical amount, prior invoice, prior balance]
+  no_charge_named: [balance due, 未说明费用]
+  not_in_taxonomy: [yard escort, inside placement, border handling, additional stop, dock assist, rounding remainder, accessorial,
+                    moonlight gate escort, winter tarp thawing, magnetic seal witness, remote lantern staging, quarantine chalk marking]

@@ -73,12 +73,6 @@ def test_system_prompt_renders_with_synthetic_examples():
     assert "{{" not in sp and "### SYN-1" in sp and "### SYN-5" in sp
 
 
-def test_find_similar_examples_accepts_the_synthetic_library():
-    res = tools.find_similar_examples("DETENTION [#1 2] DAYS AT [#2 $50.00] PER DAY", 1, EXAMPLES, set(), None)
-    assert res["examples"][0]["example_id"] == "SYN-4"
-    assert list(res["examples"][0]) == ["example_id", "marked_text", "reading", "note"]
-
-
 def test_loader_falls_back_to_synthetic_with_a_warning():
     missing = Path(__file__).parent / "no_such_examples_file.json"
     with pytest.warns(UserWarning, match="synthetic"):

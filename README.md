@@ -1,9 +1,9 @@
 # freight-lineitems
 
-- [PROGRESS_UPDATE.md](PROGRESS_UPDATE.md): what changed since the 2026-11-05 sync, what can be run, and what is not done yet.
+- [PROGRESS_UPDATE.md](PROGRESS_UPDATE.md): the milestone progress report (2026-11-15): what the system does, what is built, what changed after the client's answers, assumptions, progress and next steps.
 - [STATUS.md](STATUS.md): the status board, one card per piece of work with its colour and the evidence behind it.
 - [WORKFLOW.md](WORKFLOW.md): the pipeline diagram, with one sentence on what each step does.
-- [QUESTIONS_FOR_JAKE.md](QUESTIONS_FOR_JAKE.md): the ten open questions for the client, each with our current assumption.
+- [QUESTIONS_FOR_JAKE.md](QUESTIONS_FOR_JAKE.md): the questions for the client and his answers (2026-11-13, paraphrased), with what each answer changed.
 
 CMU Intro to AI client project (Team 16). Carriers explain freight invoice adjustments in free text. This project
 converts each explanation into structured line items, checks the result for internal consistency, and raises flags
@@ -63,6 +63,25 @@ uv run python scratch/skill/build_synthetic_examples.py --check
 
 Expected output: `5 examples valid; committed file matches`.
 
+## Run the whole pipeline without a key (smoke test)
+
+The repository carries a small synthetic batch (`tests/fixtures/smoke/`: 7 rows in the client's column layout, 5
+shipments, one with two explanations, one with two order copies) and a stored reading for each explanation. The
+offline runner uses every production step except the model call: it reads the CSV, merges order copies, redacts and
+parses the text, submits each stored reading through the same checks the model's submission goes through, and then
+runs the shipment roll-up and writes every output. No key, no data files, no cost.
+
+```
+uv run python -m freight_lineitems.offline --input tests/fixtures/smoke/batch.csv \
+    --readings tests/fixtures/smoke/readings.json --name smoke
+```
+
+Expected: a JSON summary with `"rows": 7`, `"explanations": 6`, `"shipments": 5`, explanation recommendations
+`PASSED_CHECKS` 5 and `HUMAN_REVIEW` 1, and the files listed in [Where the outputs are](#where-the-outputs-are) in
+`data/interim/runs/<run_id>/`. The shipment table is `shipment_table.csv` there. Add `--out <folder>` to write
+somewhere else. To check that the fixture still matches the skill's synthetic examples:
+`uv run python scratch/smoke/build_smoke_fixture.py --check`.
+
 ## Run a sample through the pipeline
 
 These commands call the model and cost money. They need the `.env` file and input data under `data/`:
@@ -89,7 +108,7 @@ The first argument is a name that becomes part of the run id. All options:
 
 What to expect:
 
-- The run prints aggregates only (counts by recommendation, parse status, Delta consistency) and the `run_id`.
+- The run prints aggregates only (counts by recommendation and parse status) and the `run_id`.
 - Before calling the model, the run reserves its estimated cost (`--est`, USD per record, default 0.04) against
   a cumulative cap (`CAP_USD` in `src/freight_lineitems/budget.py`). If the cap would be exceeded the run stops
   with `budget: …` and makes no call. After the run, one line with the measured token usage is appended to
@@ -104,12 +123,19 @@ Each run writes to `data/interim/runs/<run_id>/` (git-ignored):
 
 | file | content |
 |---|---|
-| `records.jsonl` | one JSON object per record with three layers: `facts`, `judgment`, `process` |
-| `records_before_duplicates.jsonl` | the same, saved before duplicate flags are added |
-| `run.sqlite` | the run in SQLite (schema: `config/schema_v1.yaml`) |
-| `export_facts.json` | for downstream use: only readings that passed the checks, agree with Delta and have the recommendation `PASSED_CHECKS` |
+| `records.jsonl` | the reading output: one JSON object per explanation with three layers: `facts`, `judgment`, `process` ([contract](docs/reading_output_contract.md)) |
+| `records_before_duplicates.jsonl` | the same, saved before duplicate flags are added (model runs only) |
+| `shipments.jsonl` | the shipment output: one roll-up per shipment ([contract](docs/shipment_output_contract.md)) |
+| `shipment_table.csv`, `shipment_table.json` | the client's table: per shipment the original amount, every line (client name, internal code, amount, status, replaced by; tax on its own line), new total, change, other-reading totals, stated amount due, gap, reminders, recommendation |
+| `run.sqlite` | the run in SQLite (schema: `config/schema_v1.yaml`), including `shipment_result` and `shipment_line` |
+| `export_facts.json` | for downstream use: only readings that passed the checks and have the recommendation `PASSED_CHECKS` |
 | `export_review.json` | for reviewers: every dispute with its recommendation and flags |
-| `run_info.json` | run id, versions, model settings, ledger entry |
+| `run_info.json` | run id, counts, `run_record` (git commit, redaction method, skill layout, skill / rules / taxonomy versions, model), ledger entry |
+
+The review page (`uv run python -m freight_lineitems.review_ui --run <run_id>`, English) shows in each invoice header
+the stored shipment result (recommendation, new total, change, other-reading totals, stated amount due, gap,
+shipment reminders; [contract section 2.2](docs/shipment_output_contract.md)). Reviewer decisions recorded there can be
+exported: `uv run python -m freight_lineitems.review_ui --run <run_id> --export-decisions decisions.csv`.
 
 Aggregates of a run:
 
@@ -141,14 +167,23 @@ redacted text, so it is written to a git-ignored folder.
 The page labels are in Chinese; the three recommendations are 解析通过检查 (`PASSED_CHECKS`), 建议人工审核
 (`HUMAN_REVIEW`) and 建议退回承运商 (`RETURN_SUGGESTED`).
 
+## Extend the system
+
+| to add | edit | then run | notes |
+|---|---|---|---|
+| a charge code | `config/taxonomy.yaml` (code, category, definition, example phrasings) and `config/charge_map.yaml` (the client's Addenda B name, relation, EDI candidates; normally regenerated with `scratch/rollup/build_charge_map.py` from `docs/deliverables/T13-taxonomy-mapping/scripts/t13_mapping.py`) | `uv run pytest -q tests/test_charge_map.py tests/test_tools_and_rules.py` | the taxonomy is part of the model's prompt: a new code changes the model-facing text, so readings must be rerun before results are comparable |
+| a rule (a flag) | the check in code (`checks.py` for one reading, `reading_checks.py` for reading fields, `rollup.py` for a shipment) raises a `Diagnostic` with a new code; its severity (`info`, `attention`, `return`) goes in `config/rules.yaml` `flags`; settings it reads go in `rules.yaml` too; a business term it uses goes in `rules.yaml` `concepts` | `uv run pytest -q` (add a test with a synthetic text for when the rule fires and when it does not) | a code missing from `rules.yaml` still shows up, as an `attention` flag marked unconfigured (`tests/test_tools_and_rules.py`); no carrier names in rules |
+| a topic reference file | a new file in `skill/freight-dispute-line-items/reference/`; a regex for the wording that needs it in `config/rules.yaml` `features.groups` and the file name in `features.references` | `uv run pytest -q tests/test_skilltext.py tests/test_concepts.py` | concept text in the file is a placeholder `{{CONCEPT:<id>}}` filled from `rules.yaml` `concepts`; in the `routed` layout code adds the file to an explanation's input when its regex matches |
+| a cross-batch history source | a subclass of `rollup.PriorHistory` passed to `pipeline.finish_batch(prior_history=...)` | `uv run pytest -q tests/test_rollup_t20.py` | three states: `FOUND`, `CHECKED_NONE`, `NOT_PROVIDED` ([contract](docs/shipment_output_contract.md) section 5) |
+
 ## Repository layout
 
 | path | content |
 |---|---|
-| `src/freight_lineitems/` | the pipeline: `pipeline.py` (steps and batch runner), `agent.py` (loop, Delta judge), `tools.py`, `checks.py`, `numbers.py`, `textprep.py`, `disposition.py`, `duplicates.py`, `db.py`, `budget.py` |
+| `src/freight_lineitems/` | the pipeline: `pipeline.py` (steps, batch runner, `finish_batch`), `agent.py` (loop), `rollup.py` (shipment roll-up, gap, extension points), `charge_map.py` (client names), `shipment_table.py` (client-format table), `offline.py` (run with stored readings), `tools.py`, `checks.py`, `numbers.py`, `textprep.py`, `disposition.py`, `duplicates.py`, `db.py`, `budget.py`, `review_ui.py` |
 | `config/` | `rules.yaml` (flag severities, thresholds), `taxonomy.yaml`, `tax_rules.yaml`, `schema_v1.yaml`, `model.yaml` |
 | `skill/freight-dispute-line-items/` | `SKILL.md`, its README, synthetic examples |
-| `tests/` | pytest suite |
+| `tests/` | pytest suite; `tests/fixtures/smoke/` the synthetic smoke batch |
 | `scratch/` | runners and analysis scripts (`autorun/`), status-board generator (`status/`), example generator (`skill/`) |
 | `docs/` | architecture note, status board, plans, decisions, run logs and reports (aggregates only) |
 | `data/` | git-ignored: raw file, splits, run outputs |

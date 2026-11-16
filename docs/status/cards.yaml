@@ -43,13 +43,13 @@
 #   test_report      测试报告 {zh, en}（相对仓库根目录）；没有则省略
 #
 meta:
-  updated: '2026-11-10'
+  updated: '2026-11-15'
   update_note:
-    zh: '**上次同步之后发生了什么**：给组员和他们的 agent 的进展说明 [`2026-11-10_progress_update.zh.md`](2026-11-10_progress_update.zh.md)（基线是 2026-11-05 送到团队远端的提交）。'
-    en: '**What happened since the last sync**: progress update for teammates and their agents, [`PROGRESS_UPDATE.md`](../../PROGRESS_UPDATE.md) (baseline: the commit sent to the team remote on 2026-11-05).'
+    zh: '**上次同步之后发生了什么**：里程碑进展报告 [`2026-11-15_milestone_report.zh.md`](2026-11-15_milestone_report.zh.md)（英文版是仓库根目录的 `PROGRESS_UPDATE.md`）；上一份是 [`2026-11-10_progress_update.zh.md`](2026-11-10_progress_update.zh.md)。'
+    en: '**What happened since the last sync**: milestone progress report [`PROGRESS_UPDATE.md`](../../PROGRESS_UPDATE.md) (2026-11-15); the previous one is archived as [`2026-11-10_PROGRESS_UPDATE.md`](2026-11-10_PROGRESS_UPDATE.md).'
   task:
-    zh: '`docs/tasks/cc_task_10_autorun_leg2.md`（任务 10）'
-    en: '`docs/tasks/cc_task_10_autorun_leg2.md` (task 10)'
+    zh: '`docs/tasks/cc_task_20_mvp_wrapup.md`（任务 20）'
+    en: '`docs/tasks/cc_task_20_mvp_wrapup.md` (task 20)'
   flow_note:
     zh: 流程图（按"谁来做"分泳道）：[`pipeline_flow.zh.html`](pipeline_flow.zh.html)，由 Archify 3.2.0 生成；源文件是 [`flow_src/pipeline_flow.zh.workflow.json`](flow_src/pipeline_flow.zh.workflow.json)（英文版是仓库根目录的 [`WORKFLOW.md`](../../WORKFLOW.md)，由 `.en.workflow.json` 生成），修改和重新生成的方法见 [`flow_src/README.md`](flow_src/README.md)。GitHub 不渲染 `.html`，要下载后在浏览器打开。
     en: 'Pipeline flow with one sentence per step: [`WORKFLOW.md`](../../WORKFLOW.md) (a Mermaid diagram GitHub renders), generated from [`flow_src/pipeline_flow.en.workflow.json`](flow_src/pipeline_flow.en.workflow.json); the interactive Archify diagram exists in Chinese only ([`pipeline_flow.zh.html`](pipeline_flow.zh.html)); how to edit and regenerate is in [`flow_src/README.md`](flow_src/README.md).'
@@ -285,6 +285,11 @@ overview_edges:
   - V3
 - - B04
   - F2
+- - B09
+  - B11
+  - B10
+- - B11
+  - V6
 cards:
 - id: S1
   column: W1
@@ -299,8 +304,8 @@ cards:
   color: yellow
   evidence_level: in_sample
   status_line:
-    zh: 任务 09 把 schema 定为 v1（`config/schema_v1.yaml`），SQLite 由它建表；开发集全量运行库按它建成（953 条争议、813 张发票）。组内评审没有开过，J1、J3 未答复，所以是黄
-    en: Task 09 finalised the schema as v1 (`config/schema_v1.yaml`) and SQLite tables are built from it; the full dev run database was built on it (953 disputes, 813 invoices). No team review has been held and J1, J3 are unanswered, so the card is yellow
+    zh: '任务 09 把 schema 定为 v1（`config/schema_v1.yaml`），SQLite 由它建表。任务 14：`dispute` 加 `n_rows`、`n_orders`、`invoice_dups_removed`，副本行以 `ORDER_COPY` 关联；Delta 相关两列停写。任务 20：加票货结果两张表 `shipment_result`、`shipment_line`；`reviewer_decision.action` 的 APPROVE 改为 ACCEPT_READING。组内评审没有开过，J1、J3 未答复，所以是黄'
+    en: 'Task 09 fixed the schema as v1 (`config/schema_v1.yaml`); SQLite tables are built from it. Task 14: `dispute` gained `n_rows`, `n_orders`, `invoice_dups_removed`; copy rows link as `ORDER_COPY`; the two Delta columns are no longer written. Task 20: two shipment tables `shipment_result` and `shipment_line`; `reviewer_decision.action` APPROVE becomes ACCEPT_READING. No team review yet and J1, J3 unanswered, so yellow'
   what_is:
     lead:
       zh: 数据库的表结构定义：原始行、票货、发票、争议、每次解析尝试、数字读法、标识、判断、审核员的决定。
@@ -367,12 +372,12 @@ cards:
   color: light_green
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：默认脱敏方式按事先写定的选择规则改为白名单反转（`allowlist`）：合成人名漏检从 29.0% 降到 10.9%，开发集上改动数字 0 条、费用词被遮 0 条，解析不差于波动范围。本卡建议的深绿门槛（漏检不超过 2%）**没有达到**，颜色不变。两个副作用列在待决 P-20：词表里没有的费用词会被遮住；公开 mock 上模型报告注入的次数变少。浅绿依据仍是原型的 908 条
-    en: 'Task 10: the default redaction engine was changed to the inverted allow-list (`allowlist`) by the selection rule written beforehand: the miss rate on synthetic names falls from 29.0% to 10.9%, with 0 records with altered digits and 0 masked charge words on the dev split, and parsing not worse than the run-to-run range. The dark-green threshold suggested on this card (miss rate at most 2%) is **not met**, so the colour does not change. Two side effects are in pending item P-20: charge words missing from the word list get masked, and on the public mock the model reports fewer injections. Light green still rests on the prototype''s 908 events'
+    zh: 任务 10：默认脱敏方式按事先写定的选择规则改为白名单反转（`allowlist`）：合成人名漏检从 29.0% 降到 10.9%，开发集上改动数字 0 条、费用词被遮 0 条，解析不差于波动范围。本卡建议的深绿门槛（漏检不超过 2%）**没有达到**，颜色不变。两个副作用列在待决 P-20：词表里没有的费用词会被遮住；公开 mock 上模型报告注入的次数变少。浅绿依据仍是原型的 908 条。任务 14：币种固定 USD（不再按国家推）；订单副本按（票货、Event Date、文字）合并成说明，开发集 953 行合成 908 条
+    en: "Task 10: the default redaction engine was changed to the inverted allow-list (`allowlist`) by the selection rule written beforehand: the miss rate on synthetic names falls from 29.0% to 10.9%, with 0 records with altered digits and 0 masked charge words on the dev split, and parsing not worse than the run-to-run range. The dark-green threshold suggested on this card (miss rate at most 2%) is **not met**, so the colour does not change. Two side effects are in pending item P-20: charge words missing from the word list get masked, and on the public mock the model reports fewer injections. Light green still rests on the prototype's 908 events. Task 14: currency fixed to USD (no longer derived from country); order copies merge by (shipment, Event Date, text) into explanations, 953 dev rows into 908"
   summary:
     claim:
-      zh: 第 0-1 步在 908 条事件上跑通，8 种诊断计数与 02 一致；当前脱敏配置在开发集上 0 漏检。
-      en: Steps 0-1 run on 908 events; the 8 diagnostic counts match 02; the current redaction setup misses 0 names on the dev split.
+      zh: '第 0-1 步在 908 条事件上跑通，8 种诊断计数与 02 一致；原型的脱敏配置（Presidio）在开发集上 0 漏检，现在默认的白名单方法对合成人名漏检 10.9%。'
+      en: 'Steps 0-1 run on the 908 events with the eight diagnostic counts of 02; the prototype''s redaction setup (Presidio) missed 0 names on the dev split; the current default allow-list method misses 10.9% of synthetic names.'
     tested:
       zh: 门控诊断计数对照 02 §7.2；`presidio_eval.py` 的脱敏评估对照 02 §7.4；3 条合成字符串检验注入规则。
       en: Gate diagnostic counts vs 02 §7.2; the `presidio_eval.py` redaction evaluation vs 02 §7.4; 3 synthetic strings for the injection rule.
@@ -462,8 +467,8 @@ cards:
   color: yellow
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：160 个 pytest 通过（另有 2 个默认跳过），主线在开发集全量上跑过。完成标准里“开发集结果与原型一致”已经不适用（决定改了行为），这一条怎么改写由项目负责人定，所以保持黄；历史检查（R1c）和别名表（P4b）是 Optional，未迁
-    en: 'Task 10: 160 pytest tests pass (2 more skipped by default) and the main line ran on the full dev split. The done-when item "dev results match the prototype" no longer applies (the decisions changed the behaviour); how to restate it is for the project owner, so the card stays yellow; history checks (R1c) and the alias table (P4b) are Optional and not moved'
+    zh: '任务 20：276 个 pytest 通过（另有 2 个默认跳过），干净检出上也通过；主线在开发集全量上跑过。完成标准里“开发集结果与原型一致”已经不适用（决定改了行为），这一条怎么改写由项目负责人定，所以保持黄；历史检查（R1c）和别名表（P4b）是 Optional，未迁'
+    en: 'Task 20: 276 pytest tests pass (2 more skipped by default), also from a clean checkout; the main line has run on the full dev split. The criterion ''dev results match the prototype'' no longer applies (decisions changed the behaviour); how to rewrite it is the owner''s call, so yellow; history checks (R1c) and the alias table (P4b) are Optional and not moved'
   what_is:
     lead:
       zh: 把 `scratch/prototype/` 的原型整理成 `src/freight_lineitems/` 下的正式代码，依赖进 `pyproject.toml`，测试进 `tests/`。
@@ -724,12 +729,12 @@ cards:
   color: yellow
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：加了“不计入依据不在词表里”的标识（按事先写定的规则采用，开发集全量上不改变任何一条的颜色）；开发集全量跑过，强制检查最终不通过 1 条。各诊断在全量上的触发次数还没有整理成报告，也没有交付物文件夹，所以保持黄
-    en: 'Task 10: added the flag "exclusion basis not in the word list" (adopted by the rule written beforehand; it changes no colour on the full dev split); ran on the full dev split, 1 record failed the mandatory checks at the end. Per-diagnostic trigger counts on the full run are not yet in a report and there is no deliverable folder, so the card stays yellow'
+    zh: '任务 14：提交检查不含任何与 Delta 的比较；检查不过才退回模型修正（最多 2 次）。撤 Delta 后，单个金额读错而模型不自报疑问的情形没有代码检查（第一段报告 2.1）。任务 23（审计 F-01）：`is_credit` 必须有原文依据：标成贷记、却没有贷记词、括号或紧贴的负号，强制检查不过，退回模型；读成正数、但证据短语里有贷记词或金额带括号，打 attention 标识；只有紧贴负号的不打（连字符分隔符）。在任务 19、20 的存档读法上重放（908 + 564 + 122 条），两条规则都是 0 条'
+    en: 'Task 14: the submission checks contain no comparison with Delta; only a failed check goes back to the model for repair (at most twice). With Delta withdrawn, a single misread amount without a model-reported doubt has no code check (stage-1 report 2.1). Task 23 (audit F-01): `is_credit` needs support in the text: a credit with no credit word, parentheses or minus sign directly before the number fails a mandatory check and goes back to the model; a positive reading whose evidence has a credit word, or whose amount is in parentheses, gets an attention flag; a minus sign alone raises nothing (dash separators). Replayed on the stored readings of tasks 19 and 20 (908 + 564 + 122): 0 hits for either rule'
   summary:
     claim:
-      zh: 提交检查的逻辑在 17 个合成用例和 02 第 8 节走例上表现符合预期；有两处已知问题。
-      en: The submission checks behave as expected on 17 synthetic cases and the 02 §8 walk-throughs; two known issues.
+      zh: '提交检查的逻辑在合成用例和 02 第 8 节走例上表现符合预期；任务 09 以来 `DOLLAR_EXCLUDED` 覆盖所有没计入的 `$` 金额，`reconcile` 已删。'
+      en: 'The submission checks behave as expected on the synthetic cases and the walk-through of 02 section 8; since task 09 `DOLLAR_EXCLUDED` covers every uncounted ''$'' amount and `reconcile` is gone.'
     tested:
       zh: '`scratch/prototype/prototype_checks.py` 的 17 个合成用例；02 第 8 节 10 条走例（第 3 步是扮演的）。'
       en: The 17 synthetic cases in `scratch/prototype/prototype_checks.py`; the 10 walk-throughs of 02 §8 (step 3 role-played).
@@ -740,8 +745,8 @@ cards:
       zh: 任务 03 重跑 17 个全过（只记在看板里，没有单独的结果文件）。门槛未事先设定。
       en: Task 03 reran the 17 and all passed (recorded only on the board; no separate result file). Threshold not set in advance.
     limits:
-      zh: '`DOLLAR_EXCLUDED` 覆盖不全；`reconcile` 容差写死；没有真实模型提交。'
-      en: '`DOLLAR_EXCLUDED` coverage is incomplete; the `reconcile` tolerance is hard-coded; no real-model submissions.'
+      zh: '撤掉 Delta 后，单个金额读错而模型不自报疑问的情形没有代码检查。'
+      en: 'Without Delta, a single misread amount the model does not report is not caught by any code check.'
   what_is:
     lead:
       zh: 在 `submit_line_items` 内部检查模型的提交：结构、引用、短语、单位冲突、对账、税、合计。"模型能改的错"退回给模型重试，"数据本身的问题"只记录。
@@ -825,15 +830,15 @@ cards:
     en: 7 Outputs
   kind: build
   weight: 1
-  color: light_green
+  color: yellow
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：新实现在开发集全量（v1.1 加旧脱敏方式）上建了运行库（953 条争议、813 张发票）并生成两种导出；审核界面直接读这个库。本卡的 11 项检查没有在新实现上重跑，浅绿依据仍是原型
-    en: 'Task 10: the new implementation built the run database on the full dev split (v1.1 with the old redaction engine; 953 disputes, 813 invoices) and both exports; the review interface reads that database directly. This card''s 11 checks were not rerun on the new implementation, so light green still rests on the prototype'
+    zh: '任务 20：每次运行写读法层（`records.jsonl`，带 `schema_version`）、票货层（`shipments.jsonl`）、客户格式票货表（`shipment_table.csv`、`.json`）、SQLite（含 `shipment_result`、`shipment_line`）和两份导出；接口说明 `docs/reading_output_contract.md`、`docs/shipment_output_contract.md`；干净检出上用合成样例跑通。下游导出不再要求“与 Delta 一致”。原来的 11 项结构检查还没按新格式重写，所以仍是黄。任务 23（审计 F-03）：两份接口说明列出到第二层的每个字段，每个标明稳定接口或诊断信息（模型调用记录等属诊断信息），测试比对实际输出的字段集合和说明，多一个或少一个都失败；证据短语写明按忽略大小写和空白匹配（F-05）'
+    en: 'Task 20: every run writes the reading output (`records.jsonl`, with `schema_version`), the shipment output (`shipments.jsonl`), the client-format shipment table (`shipment_table.csv`, `.json`), SQLite (including `shipment_result`, `shipment_line`) and the two exports; contracts in `docs/reading_output_contract.md` and `docs/shipment_output_contract.md`; run end to end on the synthetic batch from a clean checkout. The downstream export no longer requires agreement with Delta. The 11 structural checks have not been rewritten for the new format, so it stays yellow. Task 23 (audit F-03): both contracts list every field to the second level, each marked stable or diagnostic (the model transcript and the like are diagnostic); a test compares the fields of real output with the list and fails on any extra or missing field; phrase matching stated as case- and whitespace-insensitive (F-05)'
   summary:
     claim:
-      zh: 记录对象 JSON、事件日志、Excel 三种输出在 908 条上生成，并能按 schema 读回。
-      en: The record JSON, event log and Excel outputs are produced for 908 events and read back against the schema.
+      zh: '每次运行写读法层、票货层、客户格式票货表和 SQLite，下游用到的字段写在两份接口说明里。'
+      en: 'Every run writes the reading output, the shipment output, the client-format shipment table and SQLite; the fields downstream steps use are described in two contracts.'
     tested:
       zh: 11 项结构检查：schema 读回、ID 唯一、事件数对账、Excel 两张表、`Dispute Status` 只在 Excel。
       en: '11 structural checks: schema read-back, unique IDs, event-count reconciliation, two Excel sheets, `Dispute Status` only in Excel.'
@@ -844,8 +849,8 @@ cards:
       zh: 11 / 11 通过。门槛未事先设定。
       en: 11 / 11 pass. Threshold not set in advance.
     limits:
-      zh: '`llm_input`、`content`、`claim` 全为空；事件日志只写 8 种中的 3 种；Excel 格式未经客户看过。'
-      en: '`llm_input`, `content` and `claim` are all empty; the event log writes only 3 of 8 event types; the Excel layout has not been seen by the client.'
+      zh: '11 项结构检查没按新格式重写；票货表只按客户两个例子核对过，客户没看过导出文件；没有 Excel 输出和事件日志。'
+      en: 'The 11 structural checks are not rewritten for the new format; the shipment table is checked only against the client''s two examples and the client has not seen an exported file; no Excel output and no event log.'
   what_is:
     lead:
       zh: 把每条争议的结果写成记录对象 JSON、追加式事件日志和 Excel（records、flags 两张表）。`Dispute Status` 只在导出 Excel 时关联回去。
@@ -920,12 +925,12 @@ cards:
   color: yellow
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：规则 v1.1。“建议退回”只留空文本和只有数字两种，并加了上位标识让它们不被别的标识盖住；模型自报疑问按事先写定的规则维持送人工（公开 mock 上报了疑问的读错比例是没报的 7.4 倍）。开发集全量（v1.1 加旧脱敏方式）760 通过 / 188 人工 / 5 退回。规则仍未经审核员反馈
-    en: 'Task 10: rules v1.1. "Return suggested" is kept only for empty text and numbers-only text, with a subsumption rule so other flags do not hide them; the model''s self-reported doubt stays human review by the rule written beforehand (on the public mock the misread rate with a doubt is 7.4 times the rate without). Full dev split (v1.1 with the old redaction engine): 760 passed / 188 human review / 5 return. The rules still have no reviewer feedback'
+    zh: 任务 14：规则 v1.2。撤掉 Delta 后逐行 766 / 177 / 10，再按 C6 改税 778 / 165 / 10；合并成说明 807 / 91 / 10；新增票货颜色（说明和票货标识里最重的）684 / 124 / 5。都在留存读法上，没有重跑模型
+    en: 'Task 14: rules v1.2. With Delta withdrawn, rows 766 / 177 / 10; with tax per C6, 778 / 165 / 10; merged into explanations 807 / 91 / 10; new shipment colour (worst of explanations and shipment flags) 684 / 124 / 5. All on the stored readings, no model rerun'
   summary:
     claim:
-      zh: 处置代码在 908 条的代码部分 flag 上跑通：自动打回 10、转人工 35、拆分可信 863，与 02 一致。
-      en: 'The disposition code runs on the code-only flags of 908 events: auto-reject 10, human review 35, split trusted 863, matching 02.'
+      zh: '规则 v1.4 下三种建议（解析通过检查、建议人工审核、建议退回承运商）全由标识算出；任务 19 版本开发集全量 908 条说明送人工 225 条。'
+      en: 'Under rules v1.4 the three recommendations (passed checks, human review, return suggested) are computed from flags only; on the task-19 version 225 of the 908 dev explanations are sent to a person.'
     tested:
       zh: B03、A3 交付物里的处置分布对照 02 §7.3。
       en: The disposition distribution in the B03 and A3 deliverables vs 02 §7.3.
@@ -936,8 +941,8 @@ cards:
       zh: 3 种处置计数全部一致。门槛未事先设定；阈值 3 和各项分数本身没有依据。
       en: All 3 disposition counts match. Threshold not set in advance; the threshold 3 and the scores themselves have no empirical basis.
     limits:
-      zh: '`ITEM.*`、`CLAIM.*`、`RUN.*` 类 flag 没参与过全量处置；"拆分可信"863 条在没有第 3 步时没有意义。'
-      en: '`ITEM.*`, `CLAIM.*` and `RUN.*` flags have never taken part in a full disposition; "split trusted" 863 means little without step 3.'
+      zh: '送人工的比例是否合适没有审核员评价；样本内。'
+      en: 'Whether the share sent to a person is right has not been judged by reviewers; in sample.'
   what_is:
     lead:
       zh: 把诊断按代码合并成 flag，从 `rules.yaml` 读严重程度和作用，按"自动打回 → 单独即转人工 → 累计分数转人工 → 拆分可信"算出处置；生成打回通知或审核员草稿。
@@ -1010,6 +1015,90 @@ cards:
   test_report:
     zh: docs/deliverables/B09-disposition/test_report.zh.md
     en: docs/deliverables/B09-disposition/test_report.en.md
+- id: B11
+  column: W3
+  tier: must
+  plan_tasks:
+  - R2
+  - T20
+  - X1
+  name:
+    zh: 票货汇总层
+    en: Shipment roll-up
+  kind: build
+  weight: 1
+  color: light_green
+  evidence_level: in_sample
+  status_line: &id002
+    zh: '任务 20：汇总接进主流程（`pipeline.finish_batch`；`run_batch`、离线运行和评估脚本走同一条路径），结果写进 `shipments.jsonl`、客户格式票货表（CSV、JSON）和库表 `shipment_result`、`shipment_line`；BALANCE DUE 不论写在哪里都和同一条说明的其他金额比（D-95）；gap 栏（D-96）；跨批次历史、关系建议两个扩展口。任务 19 存档读法上重放：主流程和原评估算法在 813 + 471 票货上完全一致（只多了只提示的 gap 标识）。合成用例 35 个；客户两个例子：客户写明的每一项都一致（每行费用名和金额、税行、新总额、变化；任务 23 改为用 MVP 读法走主流程逐项比较）；合成版表格逐字符一致'
+    en: 'Task 20: the roll-up runs inside the main flow (`pipeline.finish_batch`; `run_batch`, the offline run and every evaluation script use one path) and writes `shipments.jsonl`, the client-format shipment table (CSV, JSON) and the `shipment_result` / `shipment_line` tables; BALANCE DUE is compared with the explanation''s other amounts wherever it is written (D-95); gap column (D-96); cross-batch history and relation-suggestion extension points. Replay on the task-19 stored readings: the main flow and the former evaluation computation agree on all 813 + 471 shipments (only the new info-only gap flags are added). 35 synthetic cases; both client examples: every item the client wrote matches (each line''s charge name and amount, tax lines, new total, change; compared item by item through the main flow on the MVP readings since task 23); the synthetic table matches character for character'
+  what_is:
+    lead:
+      zh: 把同一票货的各条说明汇总成客户格式的表：原始金额、各项费用（税单独成行）、新总额、变化额；可能重复的都给另一种读法的总额。
+      en: "roll a shipment's explanations up into the client's table: original amount, each charge (tax on its own line), new total, change; every possible duplicate carries the total under the other reading."
+  status_detail:
+    lead: *id002
+  deliverable_note:
+    lead:
+      zh: 见状态行。
+      en: see the status line.
+  start_conditions:
+    lead:
+      zh: 无。
+      en: none.
+  approach:
+    lead:
+      zh: 代码按内部费用代码判定取代或相加（甲做法）；`scratch/rollup/replay.py` 在留存读法上重放。
+      en: code decides replace or add by internal charge code (option A); `scratch/rollup/replay.py` replays it on stored readings.
+  depends:
+    lead:
+      zh: 见总览图。
+      en: see the overview.
+  open_items:
+    lead:
+      zh: 无。
+      en: none.
+  completion_text:
+    lead:
+      zh: 两个例子精确复现；合成用例覆盖八条规则；开发集全量每票货都有默认总额（T12 调整计划第 5 节，2026-11-13 事先写定）。
+      en: both examples exact; synthetic cases cover the eight rules; every dev shipment has a default total (T12 adjustment plan section 5, written 2026-11-13 in advance).
+  criteria:
+    target: dark_green
+    method:
+      zh: 票货层面的人工核对：多说明票货的取代判定对不对
+      en: 'human check at shipment level: are the replacements right on multi-explanation shipments'
+    data:
+      zh: 标注里全部说明都被标的票货（多说明的只有 8 票）；不再新增标注
+      en: annotated shipments with every explanation annotated (only 8 multi-explanation); no new annotation
+    threshold:
+      zh: 未设定
+      en: not set
+    threshold_preset: false
+  needs_b04:
+    value: partly
+    note:
+      zh: 规则是纯代码；结果依赖模型给的费用代码。
+      en: The rules are code only; the result depends on the model's charge codes.
+  summary:
+    claim:
+      zh: 每票货都有默认总额；同一费用比最细一层的内部代码；可能重复的给另一种读法的总额。
+      en: Every shipment has a default total; 'same charge' compares the finest internal code; possible duplicates carry the other reading's total.
+    tested:
+      zh: '35 个合成用例（每条规则一正一反，加任务 20 的 BALANCE DUE、gap、扩展口）；两个客户例子（数字和表格）；开发集和 mock 第三轮存档读法上的重放。'
+      en: '35 synthetic cases (a positive and a negative per rule, plus the task-20 BALANCE DUE, gap and extension-point cases); the two client examples (numbers and table); replay on the stored dev and mock round-3 readings.'
+    data:
+      zh: '合成文本；任务 19 存档读法 devFullT19routed-055d（813 票货）、mockR3T19routed-4079（471 票货）。'
+      en: 'Synthetic text; the task-19 stored readings devFullT19routed-055d (813 shipments) and mockR3T19routed-4079 (471 shipments).'
+    result_vs_threshold:
+      zh: 三条事先写定的完成标准都满足（T12 调整计划第 5 节）。
+      en: All three pre-stated criteria met (T12 adjustment plan section 5).
+    limits:
+      zh: 例子是开发时见过的；取代判得对不对没有人工评估；依赖模型给的代码。
+      en: The examples were seen during development; replacements are not human-evaluated; depends on the model's codes.
+  deliverable_dir: docs/deliverables/T14-milestone-build/
+  test_report:
+    zh: docs/deliverables/T20-mvp/01-report.zh.md
+    en: docs/deliverables/T20-mvp/01-report.zh.md
 - id: C2
   column: W3
   tier: must
@@ -1023,8 +1112,8 @@ cards:
   color: yellow
   evidence_level: none
   status_line:
-    zh: 任务 10：`config/rules.yaml` 升到 v1.1：退回只留两种、上位标识、不计入依据的词表、默认脱敏方式改为白名单反转；每项改动前后的数字见 `docs/autorun/rule_changes_leg2.zh.md` 和 `docs/deliverables/T10-redaction-comparison/README.zh.md`
-    en: 'Task 10: `config/rules.yaml` is now v1.1: return kept for two cases, subsumption, the exclusion-basis word list, default redaction engine changed to the inverted allow-list; before and after numbers are in `docs/autorun/rule_changes_leg2.zh.md` and `docs/deliverables/T10-redaction-comparison/README.zh.md`'
+    zh: '任务 17：升到 v1.3（三个送人工标识和脱敏前的模糊注入检测；A5 和数量乘单价的规则文字写清楚），当时冻结在标签 `t17-frozen`。任务 19 加了 `concepts` 一节（概念一处定义）；任务 20 改了 BALANCE DUE 规则（D-95），加了 `concepts.gap` 和两个只提示的 `SHIP.GAP.*` 标识，版本号升为 `rules-v1.4-2026-11-15`。跨说明的 6 个概念只有定义。任务 23：加 `NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT`（attention），版本升为 `rules-v1.5-2026-11-16`；给模型看的文字没变'
+    en: 'Task 17: v1.3 (three send-to-a-person flags and the fuzzy injection check before redaction; the A5 and quantity x rate wording made explicit), frozen then at tag `t17-frozen`. Task 19 added the `concepts` section (one definition per concept); task 20 changed the BALANCE DUE rule (D-95), added `concepts.gap` and two info-only `SHIP.GAP.*` flags, and raised the version to `rules-v1.4-2026-11-15`. The six cross-explanation concepts are definitions only. Task 23: added `NUM.JUDGMENT.CREDIT_MARK_NOT_CREDIT` (attention) and raised the version to `rules-v1.5-2026-11-16`; the text the model sees is unchanged'
   what_is:
     lead:
       zh: 规则配置：每种 flag 的严重程度和转人工作用、自动打回、累计阈值、容差、重试和轮数上限、单位词、注入模式。改规则不用改代码。
@@ -1110,11 +1199,11 @@ cards:
     en: Diagnostics catalog
   kind: build
   weight: 1
-  color: light_green
+  color: yellow
   evidence_level: in_sample
   status_line:
-    zh: 待改（与 2026-11-04 决定不一致）；61 种诊断各有固定说明，12 项一致性检查全过
-    en: To revise (conflicts with the 2026-11-04 decisions); 61 diagnostics with fixed texts; 12 consistency checks pass
+    zh: '任务 14：回到黄。规则 v1.2 删了 10 个标识（9 个 Delta、1 个币种）和 4 个查重标识，加了票货层面的标识；任务 20 后票货层标识共 13 个（含只提示的 `SHIP.GAP.NONZERO`、`SHIP.GAP.MULTI_EXPLANATION`）。诊断目录的固定说明还没有跟着改，一致性检查要重跑'
+    en: 'Task 14: back to yellow. Rules v1.2 removed 10 flags (9 Delta, 1 currency) and 4 duplicate flags and added shipment-level flags; after task 20 there are 13 shipment-level flags (including the info-only `SHIP.GAP.NONZERO` and `SHIP.GAP.MULTI_EXPLANATION`). The catalogue''s fixed texts have not followed; the consistency check must be rerun'
   summary:
     claim:
       zh: 61 种诊断各有固定说明，目录与规则、代码一致；开发集上生成的通知和草稿全部来自目录。
@@ -1204,8 +1293,8 @@ cards:
   color: red
   evidence_level: none
   status_line:
-    zh: 未开始：按任务 10 的指示本段不做。现有的公开 mock（360 个事件）是另一个代理维护的，其中一部分预期已经过时，清单在 `docs/autorun/mock_deterministic_review.zh.md`
-    en: 'Not started: by the instruction of task 10 it was not done in this leg. The existing public mock (360 events) is maintained by another agent and part of its expectations are out of date; the list is in `docs/autorun/mock_deterministic_review.zh.md`'
+    zh: 任务 14：mock 第三轮由另一个代理更新完（开放部分 568 个事件）；本任务只读评估，结果在 T14 第二、三段报告第 5 节。M1 是 mock 一侧的任务，颜色由那边的验收定
+    en: "Task 14: the third mock round was produced by the other agent (open part, 568 events); this task only read and evaluated it (T14 stages 2-3 report section 5). M1 is the mock side's task; its colour follows that side's acceptance"
   what_is:
     lead:
       zh: 按 2026-11-04 的决定改现有 mock 的预期，并为行层面、发票内两层查重补正例和只差一个特征的反例。
@@ -1269,8 +1358,8 @@ cards:
   color: light_green
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：开发集全量 953 条用真实模型跑完，每条都有结果：760 通过 / 188 人工 / 5 退回；首次不一致 44 条；1 条强制检查最终不通过，已明确标出。全量是在 SKILL.md v1.1 加旧脱敏方式下跑的，没有用最终版本（v1.2 加白名单脱敏）重跑（待决 P-23）；最终版本只跑了样本 A、B2 和公开 mock
-    en: 'Task 10: the full dev split, 953 records, ran with the real model and every record has a result: 760 passed / 188 human review / 5 return; 44 first-attempt mismatches; 1 record failed the mandatory checks at the end and is flagged explicitly. The full run used SKILL.md v1.1 with the old redaction engine and was not repeated with the final version (v1.2 plus allow-list redaction; pending item P-23); the final version ran on samples A, B2 and the public mock only'
+    zh: '任务 19：当前版本（`routed` 布局 + 注入筛查）跑完开发集全量 908 条说明（devFullT19routed-055d），908 条都通过强制检查，送人工 225 条。任务 14 的 v1.2 版本全量结果见 T14 报告'
+    en: 'Task 19: the current version (`routed` layout plus screening) ran the full dev split, 908 explanations (devFullT19routed-055d); all 908 pass the mandatory checks; 225 are sent to a person. The task-14 v1.2 full run is in the T14 report'
   what_is:
     lead:
       zh: 第 3 步：单一模型在 agent 循环里读一条争议，用五个工具查税率、找例子、试算、报告没把握，最后通过 `submit_line_items` 提交拆分结果。
@@ -1340,24 +1429,26 @@ cards:
     note:
       zh: 本卡就是 B04。
       en: This card is B04.
-  test_report: *id001
-  deliverable_dir: docs/deliverables/T10-autorun-leg2/
+  test_report: &id003
+    zh: docs/deliverables/T14-milestone-build/02-stage2-3-report.zh.md
+    en: docs/deliverables/T14-milestone-build/02-stage2-3-report.en.md
+  deliverable_dir: docs/deliverables/T14-milestone-build/
   summary:
     claim:
-      zh: '`src/` 里的 agent 循环用真实模型跑完开发集全量，每条记录都经过模型、都有运行结果，没有静默失败。'
-      en: The agent loop in `src/` ran the full dev split with a real model; every record reached the model and has a run result, with no silent failure.
+      zh: 开发集全量每条说明都有真实模型的结果。
+      en: Every dev explanation has a real-model result.
     tested:
-      zh: 一次开发集全量真实模型运行，按运行库和留存记录数各类结果；160 个 pytest。
-      en: One real-model run over the full dev split, result categories counted from the run database and the retained records; 160 pytest tests.
+      zh: 全量运行一次，看结果是否齐全、强制检查是否通过。
+      en: One full run; completeness and mandatory checks.
     data:
-      zh: 开发集全量 953 条（样本内：写 SKILL.md 和规则时看过开发集的写法）。
-      en: 'Full dev split, 953 records (in-sample: dev phrasing was seen while writing SKILL.md and the rules).'
+      zh: 开发集 953 行 / 908 条说明。
+      en: Dev split, 953 rows / 908 explanations.
     result_vs_threshold:
-      zh: 953 / 953 条经过模型；760 / 188 / 5；首次与 Delta 不一致 44 条，其中修改后一致 4 条；强制检查最终不通过 1 条（带明确的失败状态）。对照的是任务 03 写在本卡的完成标准（每条都有真实模型的运行结果、可按版本重放、有交付物），没有数字门槛。
-      en: 953 / 953 records reached the model; 760 / 188 / 5; 44 first-attempt mismatches with Delta, 4 of them consistent after revision; 1 record failed the mandatory checks at the end (with an explicit failed status). Checked against the done-when text task 03 wrote on this card (every record has a real-model run result, replayable by version, a deliverable exists); there is no numeric threshold.
+      zh: 908 / 908 有结果，0 条最终不通过。门槛未事先设定（完成标准是“每条都有结果”）。
+      en: 908 / 908 results, 0 final failures. Threshold not set in advance (done-when is 'every record has a result').
     limits:
-      zh: 样本内；全量用的是 v1.1 加旧脱敏方式，最终版本（v1.2 加白名单脱敏）没有跑全量（待决 P-23）；被告知不一致后模型很少改读法（44 条里 4 条）；读得对不对要等人工标注（H3）和终测（V4）。
-      en: In-sample; the full run used v1.1 with the old redaction engine and the final version (v1.2 plus allow-list redaction) was not run in full (pending item P-23); the model rarely revises after being told of a mismatch (4 of 44); whether it reads correctly waits for human annotation (H3) and the final test (V4).
+      zh: 样本内；读得对不对见 H3。
+      en: In-sample; reading accuracy is card H3.
 - id: B05
   column: W5
   tier: must
@@ -1369,11 +1460,11 @@ cards:
     en: SKILL.md
   kind: build
   weight: 1
-  color: yellow
+  color: light_green
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：调优两轮，按事先写定的门槛第 1 轮回退、第 2 轮保留，定为 v1.2；仓库版的例子是 5 条合成例子。最终版本（v1.2 加白名单脱敏）在公开 mock 上主张金额正确 333 / 360。v1.2 只在样本 A、B2 和公开 mock 上跑过，没有跑开发集全量（待决 P-23），所以保持黄
-    en: 'Task 10: two tuning rounds; by the thresholds written beforehand round 1 was reverted and round 2 kept, giving v1.2; the repository copy uses 5 synthetic examples. The final version (v1.2 plus allow-list redaction) reads 333 / 360 claim totals correctly on the public mock. v1.2 ran only on samples A, B2 and the public mock, not on the full dev split (pending item P-23), so the card stays yellow'
+    zh: 任务 19：读数 skill 改为核心 + 代码按特征挑的专题说明，概念从 `rules.yaml` 生成，新增注入筛查 skill；回归（样本内）四条事先写定的门槛全过：标注 Recall 93.9%、mock 第三轮各组 Recall 不降（A 94.2%、B 96.7%）、开发集送人工 225 ≤ 233、筛查开发集命中 0
+    en: 'Task 19: the reading skill is now a core plus topic notes chosen by code, concepts generated from `rules.yaml`, and a new injection-screening skill; the in-sample regression met all four pre-written gates: annotation Recall 93.9%, no mock round-3 group lower (A 94.2%, B 96.7%), 225 <= 233 dev explanations sent, 0 screening hits on dev'
   what_is:
     lead:
       zh: 写给模型的操作规程：任务和不是任务的事、输入字段含义、要提交什么、费用代码、常见写法、工具表、收到回执怎么办、例子。
@@ -1412,8 +1503,8 @@ cards:
       zh: ''
       en: ''
     bullets:
-    - zh: 与 2026-11-04 决定不一致，待改：输入里有 `delta`、`delta_sign`，工具表里有 `reconcile`（决定 3.1）。颜色保持黄。
-      en: 'Conflicts with the 2026-11-04 decisions, to revise: the input still has `delta` and `delta_sign`, and the tool table has `reconcile` (decision 3.1). Colour stays yellow.'
+    - zh: 任务 19 已删掉全部和 Delta 比较、`inconsistent` 回执的文字；第四轮 mock 和预留 mock 还没有在新版本上跑（独立检验，深绿要它）。
+      en: 'Task 19 removed every mention of the Delta comparison and the ''inconsistent'' receipt; the 4th mock round and the reserved mock have not been run on the new version (independent check, needed for dark green).'
     - zh: 选哪些例子——由团队决定 `[建议，待确认]`。
       en: Which examples — decided by the team `[suggestion, to be confirmed]`.
     - zh: 是否"先分类再抽取"——由实验 E6 的结果决定，团队执行（02 §9.4）。
@@ -1425,21 +1516,40 @@ cards:
   criteria:
     target: light_green
     method:
-      zh: 见下方完成标准
-      en: see done-when below
+      zh: 任务 19 回归：新版读数板块（skill_layout routed，必要时 single）加注入筛查，跑开发集全量和 mock 第三轮；`scratch/eval/t19_eval.py` 按任务 17 的口径算（送人工 = 今天的系统在存档读法上的结果）；基线是任务 17 的存档运行 `devFullV12-5d09`、`mockR3V12-f0d3`，用同一脚本复算，和任务 17 报告一致
+      en: 'Task 19 regression: the new reading module (skill_layout routed, single if needed) plus the injection screening, run on the full dev split and mock round 3; scored by `scratch/eval/t19_eval.py` as in task 17 (sent = today''s system on the stored reading); baseline = task 17''s stored runs `devFullV12-5d09`, `mockR3V12-f0d3`, rescored by the same script and equal to the task-17 report'
     data:
-      zh: 开发集全量的真实模型运行
-      en: real-model run on the full dev split
+      zh: 开发集全量（908 条说明，其中人工标注 101 条）；mock 第三轮（564 条说明、568 个事件）。都是样本内
+      en: full dev split (908 explanations, 101 of them annotated); mock round 3 (564 explanations, 568 events). Both in sample
     threshold:
-      zh: 未设定，开始检验前写入
-      en: not set; to be written before the check runs
-    threshold_preset: false
+      zh: 2026-11-15 在任何回归运行之前写定（任务 19 第 3 节）。(1) 人工标注 Recall ≥ 93.9%（任务 17：31 / 33）。(2) mock 第三轮，按 mock 答案（A）和按我们的标准（B）两种口径，每个特征组的 Recall 都不低于任务 17：A 口径 税 100%（14/14）、余额已付已开票 100%（28/28）、历史 100%（68/68）、无特征组 86.2%（137/159）、注入写法像客户数据 67.5%（27/40）、注入故意拼错拆字 70.0%（14/20）；B 口径 税 100%（20/20）、余额已付已开票 100%（32/32）、单价数量 100%（8/8）、历史 100%（83/83）、无特征组 91.6%（206/225）、注入两组同 A；没有阳性的组（费率更正、贷记；A 口径的单价数量）不评。(3) 开发集全量送人工的说明 ≤ 233 条（任务 17 的 213 条 + 20）。(4) 注入筛查在开发集 908 条里命中 ≤ 5 条；超过就把它的标识降为只提示（info），其余门槛按降级后的结果算。(5) routed 不过就试 single；两个都不过，开关保持 single 并写明原因
+      en: 'Written on 2026-11-15 before any regression run (task 19 section 3). (1) Annotation Recall >= 93.9% (task 17: 31 / 33). (2) Mock round 3, under both the mock answers (A) and our standard (B), every feature group''s Recall at least task 17''s: A tax 100% (14/14), balance/paid/billed 100% (28/28), history 100% (68/68), no group 86.2% (137/159), injection written like ordinary data 67.5% (27/40), injection deliberately disguised 70.0% (14/20); B tax 100% (20/20), balance/paid/billed 100% (32/32), unit rate 100% (8/8), history 100% (83/83), no group 91.6% (206/225), the two injection groups as under A; groups without positives (rate correction, credit; unit rate under A) are not scored. (3) Full dev split: explanations sent to a person <= 233 (task 17''s 213 + 20). (4) Injection screening hits <= 5 of the 908 dev explanations; above that its flag becomes info, and the other gates are computed after the downgrade. (5) If routed fails, try single; if both fail, the switch stays single with the reasons written'
+    threshold_preset: true
   needs_b04:
     value: 'yes'
     note:
       zh: 要在真实模型运行中被使用过。
       en: It must be used in a real-model run.
-  test_report: *id001
+  test_report:
+    zh: docs/deliverables/T19-reading-module/01-report.zh.md
+    en: docs/deliverables/T19-reading-module/01-report.zh.md
+  deliverable_dir: docs/deliverables/T19-reading-module/
+  summary:
+    claim:
+      zh: 读数板块改成核心 + 专题说明加注入筛查之后，漏报没有变多，送人工多 12 条，在事先写定的限度内。
+      en: After the reading module became a core plus topic notes with injection screening, misses did not rise and 12 more explanations go to a person, within the pre-written limit.
+    tested:
+      zh: 开发集全量和 mock 第三轮各跑一遍新版本，和任务 17 的存档运行用同一脚本比；mock 按特征组和两种口径分开报。
+      en: One run of the new version on the full dev split and on mock round 3, scored against task 17's stored runs by the same script; mock reported per feature group under both readings.
+    data:
+      zh: 开发集 908 条说明（含人工标注 101 条）；mock 第三轮 564 条说明、568 个事件。都是样本内。
+      en: 908 dev explanations (101 annotated); mock round 3, 564 explanations, 568 events. Both in sample.
+    result_vs_threshold:
+      zh: 标注 Recall 93.9% ≥ 93.9%；mock 各组 Recall 都不低于任务 17（A 总 91.7% → 94.2%，B 94.7% → 96.7%）；开发集送人工 225 ≤ 233；筛查开发集命中 0 ≤ 5。门槛写在本卡（提交 db8f121）。
+      en: Annotation Recall 93.9% >= 93.9%; no mock group lower than task 17 (A 91.7% -> 94.2%, B 94.7% -> 96.7%); 225 <= 233 dev explanations sent; 0 <= 5 screening hits on dev. Gates written on this card beforehand (commit db8f121).
+    limits:
+      zh: 样本内；第四轮 mock 和预留 mock 还没跑；多出的 12 条都是模型对空格合并重量的自报疑问。
+      en: In sample; the 4th mock round and the reserved mock are not run yet; the 12 extra are all the model's doubts about space-merged weights.
 - id: B06
   column: W5
   tier: must
@@ -1453,8 +1563,8 @@ cards:
   color: yellow
   evidence_level: none
   status_line:
-    zh: 任务 09：六个工具（去掉 reconcile，补 find_similar_examples、lookup_charge_code、calculate），说明写给模型读，有单元测试。任务 10：没有改动；开发集全量运行里各工具的调用次数还没有统计，所以保持黄
-    en: 'Task 09: six tools (reconcile removed; find_similar_examples, lookup_charge_code, calculate added), descriptions written for the model, unit tests in place. Task 10: no change; per-tool call counts on the full dev run have not been compiled, so the card stays yellow'
+    zh: '任务 19：读数工具 4 个（`submit_line_items`、`lookup_charge_code`、`calculate`、`report_uncertainty`），加注入筛查的 `submit_screen_result` 共 5 个；`lookup_tax_rule`、`find_similar_examples` 已删（税表进专题说明，相似示例由代码挑），`reconcile` 早已去掉。说明写给模型读，有单元测试。开发集全量运行里各工具的调用次数还没有统计，所以保持黄'
+    en: 'Task 19: four reading tools (`submit_line_items`, `lookup_charge_code`, `calculate`, `report_uncertainty`) plus the screening tool `submit_screen_result`, five in all; `lookup_tax_rule` and `find_similar_examples` removed (the tax table is in a topic note, similar examples are chosen by code); `reconcile` was removed earlier. Descriptions are written for the model; unit tests exist. Tool call counts on the full dev run are not yet tallied, so yellow'
   what_is:
     lead:
       zh: 模型能用的五个工具：`submit_line_items`（唯一出口）、`reconcile`（试算）、`lookup_tax_rule`（查税率）、`find_similar_examples`（找相似例子）、`report_uncertainty`（报告没把握）。
@@ -1535,8 +1645,8 @@ cards:
   color: yellow
   evidence_level: none
   status_line:
-    zh: 37 个代码的 `x12_ref` 全空；LUMPER / SORTATION / DWELL 归类未定
-    en: '`x12_ref` empty for all 37 codes; LUMPER / SORTATION / DWELL placement undecided'
+    zh: 任务 14：代码表换算 `config/charge_map.yaml`：37 个内部代码对到客户清单的 40 个名称，输出客户名称、全部 EDI 候选、内部代码三列；purchased transportation、费率和重量更正挂在 Freight / FUEL SURCHARGE 下面作子项。`taxonomy.yaml` 和提示词本段没改（第二段对比）
+    en: "Task 14: code mapping `config/charge_map.yaml`: our 37 codes onto 40 names of the client's list, output with the client name, all candidate EDI codes and the internal code; purchased transportation and the rate and weight corrections are sub-items under Freight / FUEL SURCHARGE. `taxonomy.yaml` and the prompt are unchanged in this stage (compared in stage 2)"
   what_is:
     lead:
       zh: 费用代码表：每个代码的类别、定义、常见写法，以及对应的 X12 210 L1 / SAC 代码。模型给数字和 line item 选费用代码只能从这里选。
@@ -1617,8 +1727,8 @@ cards:
   color: yellow
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：一次运行跑完开发集全量 953 条，带预算账本。运行记录了规则、代码表、税表、SKILL.md、例子的版本和模型设置，但没有记代码版本和所用的脱敏方式，版本记录不完整，所以保持黄
-    en: 'Task 10: one run covered the full dev split, 953 records, with the budget ledger. The run records the versions of the rules, code table, tax table, SKILL.md and examples plus the model settings, but not the code version or the redaction engine used, so the version record is incomplete and the card stays yellow'
+    zh: '任务 10：一次运行跑完开发集全量，带预算账本。任务 20：每次运行在 `run_info.json` 的 `run_record` 里记下代码版本（git 提交号、工作区有没有未提交改动）、脱敏方式、skill 布局、skill / 规则 / 代码表 / 例子的版本、注入筛查开关和模型名；库里 `pipeline_run.code_version` 记短提交号；新增离线运行（`python -m freight_lineitems.offline`，用存档读法代替模型）。新的运行记录还没有在一次开发集全量运行上用过，所以仍是黄'
+    en: 'Task 10: one run covers the full dev split, with the budget ledger. Task 20: every run records in `run_info.json` `run_record` the code version (git commit and whether the tree had uncommitted changes), the redaction method, the skill layout, the skill / rules / taxonomy / example versions, the screening switch and the model; `pipeline_run.code_version` in SQLite holds the short commit; new offline run (`python -m freight_lineitems.offline`, stored readings in place of the model). The new record has not yet been used on a full dev run, so it stays yellow'
   what_is:
     lead:
       zh: 对一批记录跑完整流水线的运行器：按版本记录模型、prompt、规则、目录、代码表，结果可重跑、可对比。
@@ -1694,8 +1804,8 @@ cards:
   color: light_green
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：中英两版标注指南、三个标注包、导入脚本和一致率脚本都已做好，14 个测试通过。标注包已用最终的脱敏方式重新生成：每包 45 条（公共 15 条，共 105 条不同记录，只从开发集抽），数字个数 88 / 88 / 89，每包 5 条首次不一致的记录。指南还没有人试标过
-    en: 'Task 10: the annotation guide in two languages, three packs, the import script and the agreement script are done; 14 tests pass. The packs were rebuilt with the final redaction engine: 45 records per pack (15 in common, 105 distinct records, drawn from the dev split only), 88 / 88 / 89 numbers, 5 first-attempt-mismatch records per pack. Nobody has tried the guide yet'
+    zh: '任务 10：中英两版标注指南、三个标注包、导入脚本和一致率脚本都已做好，14 个测试通过；每包 45 条（公共 15 条，共 105 条不同记录，只从开发集抽）。任务 14：三个包都已交回并定稿（101 条说明，公共 15 条三人都标），一致率和定稿结果见 V1、H3'
+    en: 'Task 10: guide in two languages, three packs, import and agreement scripts, 14 tests pass; 45 records per pack (15 common, 105 distinct records, dev split only). Task 14: all three packs returned and finalised (101 explanations, the 15 common ones annotated by all three); agreement and results in V1 and H3'
   summary:
     claim:
       zh: 标注指南和三个标注包可以直接发给组员；包只从开发集抽。
@@ -1710,8 +1820,8 @@ cards:
       zh: 953 条里 937 条可抽；三个包各 45 条，公共 15 条，共 105 条不同记录；数字个数 88 / 88 / 89；每包 5 条首次不一致的记录（来源含开发集全量运行）。没有数字门槛。
       en: 937 of 953 records can be drawn; three packs of 45, 15 in common, 105 distinct records; 88 / 88 / 89 numbers; 5 first-attempt-mismatch records per pack (sources include the full dev run). No numeric threshold.
     limits:
-      zh: 指南没有人试标过；任意两个包合起来是 75 条不同记录、15 条双人标，三个包都交回才超过计划的 100 条；“按真实频率”的那一半受“同一种模板最多 2 条”限制，不能当作按频率的无偏样本（待决 P-25）。
-      en: nobody has tried the guide; any two packs give 75 distinct records with 15 double-annotated, so all three must come back to exceed the plan's 100; the "by real frequency" half is capped at 2 records per template and cannot be treated as an unbiased frequency sample (pending item P-25).
+      zh: '任意两个包合起来是 75 条不同记录、15 条双人标；“按真实频率”的那一半受“同一种模板最多 2 条”限制，不能当作按频率的无偏样本（待决 P-25）。'
+      en: 'Any two packs together hold 75 distinct records and 15 double-annotated; the ''real frequency'' half is limited to two records per template, so it is not an unbiased frequency sample (pending P-25).'
   what_is:
     lead:
       zh: 给组员的标注材料：指南说明每个数字是什么、算不算这次主张、费用大类；标注包是带下拉菜单的表格。
@@ -1773,11 +1883,11 @@ cards:
     en: Labelled set ~200
   kind: evaluation
   weight: 1
-  color: red
+  color: yellow
   evidence_level: none
   status_line:
-    zh: 标注还没有开始。任务 10 备好了三个标注包和指南（见 H1 卡）。按 11 月 5 日计划先标 100 条、其中 20 条双人标（H2a）；再标到 200 条（H2b）是 Optional
-    en: Annotation has not started. Task 10 prepared three annotation packs and the guide (see card H1). Per the 2026-11-05 plan the first step is 100 records, 20 of them double-annotated (H2a); going to 200 (H2b) is Optional
+    zh: 任务 14：三包交回并按 R-1 到 R-7 定稿：101 条说明、198 个数字（三人重叠 15 条），修正日志在 git 忽略目录。计划要约 200 条，不再新增标注（用户 11-15）
+    en: 'Task 14: three packs returned and finalised by R-1 to R-7: 101 explanations, 198 numbers (15 by all three), correction log in a git-ignored folder. The plan aimed at about 200; no further annotation (owner, 11-15)'
   what_is:
     lead:
       zh: 从开发集抽约 200 条事件，人工标出标准答案（每个数字的 kind、status、费用代码，line item 的原因和依据，记录级"拆分能否直接用"），作为所有评估的基准。
@@ -1853,11 +1963,11 @@ cards:
     en: Reading-accuracy evaluation
   kind: evaluation
   weight: 1
-  color: red
-  evidence_level: none
+  color: dark_green
+  evidence_level: human_review
   status_line:
-    zh: 未开始：要等人工标注（V1 卡，计划 H2a）。指标脚本已经能读标注的导入格式（见 V5 卡），只用假标注自检过；门槛还没有写
-    en: 'Not started: it waits for the human annotation (card V1, plan H2a). The metric script already reads the annotation import format (see card V5) but was self-tested with fake annotations only; no threshold is written yet'
+    zh: '任务 14：选定版本（v1.2）对定稿标注，主指标 82 / 82 = 100%，门槛 ≥ 85%（事先写定），达标。任务 20：在当前版本（任务 19 的 `routed` 布局 + 注入筛查，存档读法 devFullT19routed-055d）上重算，同样 82 / 82 = 100%。可评分的多是简单记录（57 / 82 只有一个金额），19 条“说不清”不评分'
+    en: 'Task 14: the chosen version (v1.2) against the finalised annotations, main metric 82 / 82 = 100%, threshold >= 85% (written in advance): met. Task 20: recomputed on the current version (task 19 `routed` layout plus screening, stored readings devFullT19routed-055d): again 82 / 82 = 100%. The scored records are mostly simple (57 / 82 have one amount); 19 with an Unclear cell are not scored'
   what_is:
     lead:
       zh: 拿模型的读法和人工标注逐个数字比较：是不是金额、计入还是不计入、费用大类、主张金额合计。
@@ -1893,20 +2003,105 @@ cards:
   criteria:
     target: dark_green
     method:
-      zh: 逐数字比对四项指标；标注人之间的一致率并排报告
-      en: the four metrics compared number by number; inter-annotator agreement reported alongside
+      zh: '`scratch/eval/eval_annotations.py --run <选定版本的全量运行>`：逐条说明比计入金额之和；分层照 T12 开发计划 3.1；读错的有没有送人工'
+      en: '`scratch/eval/eval_annotations.py --run <full run of the chosen version>`: per explanation, the counted signed sum; strata as in T12 dev plan 3.1; whether misreadings went to a person'
     data:
-      zh: H2a 标注集（人工审核）
-      en: the H2a annotation set (human review)
+      zh: 定稿标注（`scratch/annotation/finalize.py`，101 条说明，R-1 到 R-7）；选定版本的开发集全量运行（人工审核）
+      en: the finalised annotations (`scratch/annotation/finalize.py`, 101 explanations, R-1 to R-7); the full dev run of the chosen version (human review)
     threshold:
-      zh: 未设定，必须在看标注结果之前写入
-      en: not set; must be written before the annotations are looked at
-    threshold_preset: false
+      zh: 主指标：可评分的说明里，计入金额之和与人工标注完全相等的比例 ≥ 85%（全部定稿标注合在一起算；“说不清”、为空、三人分歧和 A5 那类 BALANCE DUE 形态不评分）。2026-11-15 在第一次用定稿标注跑评估之前写入
+      en: 'main metric: among scorable explanations, the share whose counted signed sum equals the human sum >= 85% (all finalised annotations pooled; Unclear, empty, contested and A5-form BALANCE DUE records are not scored). Written on 2026-11-15 before the evaluation was first run on the finalised annotations'
+    threshold_preset: true
   needs_b04:
     value: 'yes'
     note:
       zh: 要用真实模型运行的读法；B04 已接上。
       en: It uses readings from a real-model run; B04 is connected.
+  test_report: *id003
+  deliverable_dir: docs/deliverables/T14-milestone-build/
+  summary:
+    claim:
+      zh: 可评分的说明里，计入金额之和全部与人工一致。
+      en: Every scorable explanation's counted sum equals the human sum.
+    tested:
+      zh: 逐条说明比计入金额之和，按 T12 开发计划 3.1 分层；把 10 条标注改错能被查出来。
+      en: Per explanation, the counted sum; strata of T12 dev plan 3.1; 10 corrupted labels are all caught.
+    data:
+      zh: 三位组员的定稿标注，101 条开发集说明（32 条在调优样本 A 里）。
+      en: Finalised annotations of three team members, 101 dev explanations (32 in tuning sample A).
+    result_vs_threshold:
+      zh: 82 / 82 = 100%，门槛 ≥ 85%，事先写在本卡（提交 8a39040）。
+      en: 82 / 82 = 100%, threshold >= 85%, written on this card beforehand (commit 8a39040).
+    limits:
+      zh: 只覆盖简单记录；难记录多因“说不清”不评分（19 条里 5 条系统直接放过、没有任何标识）；全部来自开发集。
+      en: Covers mostly simple records; hard ones are mostly unscored (Unclear; 5 of those 19 passed with no flag at all); all from the dev split.
+- id: V7
+  column: W6
+  tier: optional
+  plan_tasks: []
+  name:
+    zh: 混淆矩阵：该送人的有没有送到
+    en: 'Confusion matrix: are the records that need a person sent to one'
+  kind: evaluation
+  weight: 0
+  color: yellow
+  evidence_level: human_review
+  status_line:
+    zh: '任务 17 的四项修改后、任务 19 版本上（任务 20 重算）：人工标注 Recall 93.9%（31/33）、FOR 3.6%（2/55），按 D-97 纠正 2 条标签后 100%（31/31）、0%（0/55）；mock 第三轮口径 A Recall 94.2%、FOR 8.5%，口径 B 96.7%、6.8%。mock 仍未达到 95% 和 2%；全部样本内，要等第四轮 mock 验证。任务 20 第四轮 mock（事先写定）：第三轮部分 Recall 95.4%（A）/ 96.6%（B），FOR 6.8% 没达到；第四轮新增 122 个事件（独立检验）Recall 100%（6/6，区间 61 到 100）、FOR 0%（0/37），阳性太少；新增部分误报 79 / 116，多为取代提醒（P-52）。任务 20b（看过结果后定义，合成数据，不改颜色）：放行但票货总额错 0 / 561，总额对不上的 48 票全部送人工；注入按文字分组：普通英文 20/20、各类别自己的拼错 10/10、跨类别重复的 5 个模板 18/30（12 个漏报出自两个模板，金额都没被改动）'
+    en: 'After the four task-17 fixes, on the task-19 version (recomputed in task 20): annotations Recall 93.9% (31/33), FOR 3.6% (2/55); after the two labels corrected by D-97, 100% (31/31) and 0% (0/55); mock round 3 reading A Recall 94.2%, FOR 8.5%, reading B 96.7%, 6.8%. The mock is still below 95% and 2%; all in sample; the 4th mock round is needed. Task 20 mock round 4 (pre-registered): round-3 part Recall 95.4% (A) / 96.6% (B), FOR 6.8% not met; the 122 round-4 new events (independent) Recall 100% (6/6, interval 61-100), FOR 0% (0/37), too few positives; 79 / 116 false alarms on the new part, mostly replacement reminders (P-52). Task 20b (defined after the results, synthetic, no colour change): passed but shipment total wrong 0 / 561, all 48 shipments with a different total were sent; injections by written text: plain English 20/20, each category''s own misspellings 10/10, the 5 templates repeated across categories 18/30 (the 12 misses come from two templates; no amount was changed)'
+  what_is:
+    lead:
+      zh: 按“需要人看”算 TP、FP、FN、TN，人工标注和 mock 第三轮各一套。
+      en: TP, FP, FN, TN on 'needs a person', one set on the human annotations and one on mock round 3.
+  status_detail:
+    lead:
+      zh: 见状态行。
+      en: see the status line.
+  deliverable_note:
+    lead:
+      zh: 见状态行。
+      en: see the status line.
+  start_conditions:
+    lead:
+      zh: 无。
+      en: none.
+  approach:
+    lead:
+      zh: '`scratch/eval/confusion.py`，不调模型。'
+      en: '`scratch/eval/confusion.py`, no model calls.'
+  depends:
+    lead:
+      zh: 前置：H3、mock 第三轮运行。
+      en: 'depends on: H3, the mock round-3 run.'
+  open_items:
+    lead:
+      zh: 无。
+      en: none.
+  completion_text:
+    lead:
+      zh: 两套数据的主矩阵和子矩阵，对照事先写的目标。
+      en: main and sub-matrices on both data sets, against the targets written in advance.
+  criteria:
+    target: light_green
+    method:
+      zh: 主矩阵和子矩阵，Wilson 区间
+      en: main and sub-matrices, Wilson intervals
+    data:
+      zh: 人工标注（严格版）；mock 第三轮；任务 20：第四轮公开 mock，第三轮部分（568 个事件，存档读法，样本内）和第四轮新增（122 个事件，新跑，独立检验）分开报，口径 A、B 分开，另报注入两组、票货新总额、加权的“接近真实”Recall（写法类别、优先顺序、权重、Kish 有效样本量见 `docs/deliverables/T20-mvp/02-r4-preregistration.zh.md`，在任何结果之前提交）
+      en: 'human annotations (strict version); mock round 3; task 20: public mock round 4, the round-3 part (568 events, stored readings, in sample) and the round-4 new part (122 events, new run, independent) reported apart, readings A and B apart, plus the two injection groups, shipment new totals and a weighted "close to real" Recall (wording classes, priority order, weights, Kish effective n in `docs/deliverables/T20-mvp/02-r4-preregistration.zh.md`, committed before any result)'
+    threshold:
+      zh: Recall ≥ 95%、FOR ≤ 2%（硬指标）；Precision ≥ 60%（软指标）。2026-11-15 在计算之前写入；第四轮 mock 用同样的门槛，每组每种口径照实报
+      en: Recall >= 95%, FOR <= 2% (hard); Precision >= 60% (soft). Written on 2026-11-15 before computing; mock round 4 uses the same thresholds, reported per group and per reading
+    threshold_preset: true
+  needs_b04:
+    value: 'no'
+    note:
+      zh: 用已保存的读法。
+      en: Uses stored readings.
+  deliverable_dir: docs/deliverables/T15-confusion-matrix/
+  test_report:
+    zh: docs/deliverables/T15-confusion-matrix/03-report.zh.md
+    en: docs/deliverables/T15-confusion-matrix/03-report.en.md
 - id: V5
   column: W7
   tier: must
@@ -1920,8 +2115,8 @@ cards:
   color: light_green
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：指标定义、脚本和报告模板都有（计划任务 V1）；在调优第 2 轮的公开 mock 运行上跑通，主张金额正确 329 / 360，与调优记录一致。对照人工标注的部分只用假标注自检过
-    en: 'Task 10: metric definitions, script and report template are in place (plan task V1); it ran on the public-mock run of tuning round 2, claim total correct 329 / 360, matching the tuning log. The comparison with human annotation was self-tested with fake annotations only'
+    zh: 任务 10：指标定义、脚本和报告模板都有（计划任务 V1）；在调优第 2 轮的公开 mock 运行上跑通，主张金额正确 329 / 360，与调优记录一致。对照人工标注的部分只用假标注自检过。任务 14：加了评估一、评估二、mock 第三轮三个脚本（`scratch/eval/`）
+    en: 'Task 10: metric definitions, script and report template are in place (plan task V1); it ran on the public-mock run of tuning round 2, claim total correct 329 / 360, matching the tuning log. The comparison with human annotation was self-tested with fake annotations only. Task 14: added the scripts for evaluation one, evaluation two and the third mock round (`scratch/eval/`)'
   summary:
     claim:
       zh: 指标脚本能在公开 mock 上算出主张金额正确数和三种建议的分布，并能读标注的导入格式。
@@ -1989,6 +2184,88 @@ cards:
       en: The script itself does not call the model; it reads the output of existing runs.
   deliverable_dir: docs/eval/
   test_report: *id001
+- id: V6
+  column: W7
+  tier: must
+  plan_tasks:
+  - V6
+  name:
+    zh: 与 Excel 基线的对比
+    en: Comparison with the Excel baseline
+  kind: evaluation
+  weight: 1
+  color: light_green
+  evidence_level: in_sample
+  status_line:
+    zh: '任务 14（v1.2 版本的读法）：两种基线下 722 / 720 票货与系统默认变化额相等；分歧按事先写的类别归类，未归类 8.8% 和 5.4%，门槛 ≤ 15%（试跑之后写的）。没有在任务 19 版本上重算'
+    en: 'Task 14 (readings of the v1.2 version): under the two baselines 722 / 720 shipments equal the system''s default change; disagreements sorted into pre-written classes, unclassified 8.8% and 5.4%, threshold <= 15% (written after a trial). Not recomputed on the task-19 version'
+  what_is:
+    lead:
+      zh: 系统的默认变化额和客户现在的 Excel 算法比，开发集全部票货。
+      en: the system's default change against the client's current spreadsheet method, all dev shipments.
+  status_detail:
+    lead:
+      zh: 未开始（任务 14 第三段）：两种基线（Delta 按说明相加；Invoice Dups Removed 减 Shipment Amount），分歧按事先写定的类别由代码归类
+      en: 'Not started (task 14 stage 3): two baselines (Delta summed over explanations; Invoice Dups Removed minus Shipment Amount), disagreements classified by code into categories written in advance'
+  deliverable_note:
+    lead:
+      zh: 见状态行。
+      en: see the status line.
+  start_conditions:
+    lead:
+      zh: 无。
+      en: none.
+  approach:
+    lead:
+      zh: '`scratch/eval/excel_baseline.py`。'
+      en: '`scratch/eval/excel_baseline.py`.'
+  depends:
+    lead:
+      zh: 见总览图。
+      en: see the overview.
+  open_items:
+    lead:
+      zh: 无。
+      en: none.
+  completion_text:
+    lead:
+      zh: 开发集全部票货分歧归类，未归类的比例不超过事先写定的门槛。
+      en: all dev shipments' disagreements classified; the unclassified share is within a threshold written in advance.
+  criteria:
+    target: light_green
+    method:
+      zh: '`scratch/eval/excel_baseline.py --run <选定版本的全量运行>`：两种基线，分歧按脚本开头写定的 C1 到 C9 归类'
+      en: '`scratch/eval/excel_baseline.py --run <full run of the chosen version>`: two baselines, disagreements classified into C1-C9 as written at the top of the script'
+    data:
+      zh: 开发集全部票货
+      en: all dev shipments
+    threshold:
+      zh: 每种基线，未归类（C0）占不一致票货的比例 ≤ 15%。注意：这个数是在留存的调优前读法上试跑过脚本之后写的（试跑：7.7% 和 5.5%），所以不算事先写定
+      en: 'for each baseline, unclassified (C0) <= 15% of the disagreeing shipments. Note: written after a dry run of the script on the stored pre-tuning reading (dry run: 7.7% and 5.5%), so not set in advance'
+    threshold_preset: false
+  needs_b04:
+    value: 'yes'
+    note:
+      zh: 要用选定版本的全量读法。
+      en: It uses the full run of the chosen version.
+  test_report: *id003
+  deliverable_dir: docs/deliverables/T14-milestone-build/
+  summary:
+    claim:
+      zh: 与 Excel 基线的分歧都能归到写定的类别里，未归类的少。
+      en: Disagreements with the Excel baselines fall into written categories; few are unclassified.
+    tested:
+      zh: 813 票货，两种基线，代码归类。
+      en: 813 shipments, two baselines, classification by code.
+    data:
+      zh: 开发集全量，选定版本的读法。
+      en: Full dev split, readings of the chosen version.
+    result_vs_threshold:
+      zh: 未归类 8.8% / 5.4%，门槛 15%；门槛不算事先写定。
+      en: Unclassified 8.8% / 5.4%, threshold 15%; threshold not preset.
+    limits:
+      zh: 样本内；基线本身是客户的估算，不是真值。
+      en: In-sample; the baseline is the client's estimate, not ground truth.
 - id: V2
   column: W7
   tier: must
@@ -2231,6 +2508,7 @@ cards:
   tier: must
   plan_tasks:
   - U2
+  - U3
   name:
     zh: 审核界面最小可用版
     en: Review interface, minimum version
@@ -2239,8 +2517,8 @@ cards:
   color: light_green
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：自建，只用标准库，只在本机运行。按发票列出颜色和按严重程度计数的标识，点开看到争议、模型说明和标识，四个按钮把决定和理由追加到 `reviewer_decision` 表。19 个测试通过；在开发集全量运行库上只读启动，列出 953 笔争议、813 张发票。还没有人扮审核员走过一遍
-    en: 'Task 10: self-built, standard library only, local only. It lists invoices with colour and flags counted by severity; opening one shows the disputes, the model''s explanation and the flags; four buttons append the decision and reason to the `reviewer_decision` table. 19 tests pass; started read-only on the full dev run database it lists 953 disputes and 813 invoices. Nobody has walked through it as a reviewer yet'
+    zh: '任务 10：自建，只用标准库，只在本机运行。按发票列出颜色和按严重程度计数的标识，点开看到争议、模型说明和标识，四个按钮把决定和理由追加到 `reviewer_decision` 表；在开发集全量运行库上只读启动过。任务 20：“批准”按钮改名为 `ACCEPT_READING`（界面“认可这份读法”，P-24 已定），加了把 `reviewer_decision` 导出成 CSV 的选项（`--export-decisions`）。任务 20b：发票表头改为直接读主流程存下的票货结果（`shipment_result.result`，和 `shipments.jsonl` 同一份）：票货建议和颜色、默认新总额和变化、另一读法总额、写明的应付数和 gap、票货提醒；删掉页面自己相加的合计；页面文字全部改成英文（审核决定的取值不变）；27 个测试通过，含照第四轮 mock SHP-R4-PT-00 合成的取代票货。还没有人扮审核员走过一遍。任务 23（审计 F-02）：列表的提醒计数、“有提醒”筛选和默认排序算上票货级提醒；加了只有票货级提醒的回归测试（旧代码在这个用例上漏掉，和审计复现一致）'
+    en: 'Task 10: built in-house, standard library only, local only. Lists invoices with their colour and flag counts by severity; opening one shows the disputes, the model''s notes and the flags; four buttons append the decision and reason to the `reviewer_decision` table; opened read-only on the full dev run database. Task 20: the APPROVE button is renamed `ACCEPT_READING` (P-24 decided), and `--export-decisions` writes `reviewer_decision` to CSV. Task 20b: the invoice header reads the shipment result the main flow stored (`shipment_result.result`, the same as `shipments.jsonl`): shipment recommendation and colour, default new total and change, other-reading totals, stated amount due and gap, shipment reminders; the page''s own sum is removed; all page text is English (stored decision values unchanged); 27 tests pass, including a synthetic replacement shipment shaped like mock SHP-R4-PT-00. Nobody has walked through it as a reviewer yet. Task 23 (audit F-02): the list''s reminder counts, the has-reminders filter and the default sort include shipment-level reminders; regression test with a shipment whose only reminder is at shipment level (the old code missed it, as the audit showed)'
   summary:
     claim:
       zh: 审核界面做到了计划 U2 完成标准的四项，并能打开开发集全量的运行库。
@@ -2283,8 +2561,8 @@ cards:
       en: 'depends on: U1, B10, B09. Needed by: F3.'
   open_items:
     lead:
-      zh: 批量操作、之前批次的上下文、距离、草稿编辑属于 U4（Optional）；四个按钮是否对应 OTM 的实际操作，等 Jake（J10、J11）；其中一个按钮叫“批准”（APPROVE），记录的是审核员自己的决定，但字面上接近项目边界禁止的字段，要不要改名由我决定（待决 P-24）。
-      en: 'bulk actions, earlier-batch context, distance and draft editing belong to U4 (Optional); whether the four buttons match the real OTM actions waits for Jake (J10, J11); one button is called APPROVE: it records the reviewer''s own decision, but the word is close to the fields the project boundary forbids, and whether to rename it is decided by me (pending item P-24).'
+      zh: '批量操作、之前批次的上下文、距离、草稿编辑属于 U4（Optional）；四个按钮是否对应 OTM 的实际操作，等 Jake（J10、J11）。按票货查看的视图和界面重做是下一步（任务 20 第 6 节）。'
+      en: 'bulk actions, earlier-batch context, distance and draft editing belong to U4 (Optional); whether the four buttons match the real OTM actions waits for Jake (J10, J11). A by-shipment view and the redesign are next (task 20 section 6).'
   completion_text:
     lead:
       zh: 按发票列出颜色和按严重程度计数的标识，可按“有没有提醒”筛选；点开看到争议、模型说明、标识；争议一层四个按钮记录决定和理由；读我们的库（计划 U2）。
@@ -2321,8 +2599,8 @@ cards:
   color: yellow
   evidence_level: in_sample
   status_line:
-    zh: 任务 10：`skill/freight-dispute-line-items/`（SKILL.md v1.2、说明、5 条合成例子）、`docs/architecture.md`、根目录 README 都已写好，10 个测试校验合成例子。运行说明还没有由作者以外的人照着做过，课程对文件夹结构的要求也没有对照过，所以是黄
-    en: 'Task 10: `skill/freight-dispute-line-items/` (SKILL.md v1.2, a README, 5 synthetic examples), `docs/architecture.md` and the root README are written; 10 tests validate the synthetic examples. Nobody other than the author has followed the run instructions, and the folder has not been checked against the course''s structure requirement, so the card is yellow'
+    zh: '任务 19、20：`skill/freight-dispute-line-items/`（核心 SKILL.md、`reference/` 5 个专题说明、5 条合成例子、README）、`skill/screening-for-instructions/`、`docs/architecture.md`、两份输出接口说明、根目录 README（任务 20 加了离线冒烟运行和“怎么扩展”）。任务 20 在干净检出上只按 README 的步骤跑通了测试和整条主流程。课程对文件夹结构的要求还没有对照过，所以是黄'
+    en: 'Tasks 19, 20: `skill/freight-dispute-line-items/` (core SKILL.md, five topic notes in `reference/`, five synthetic examples, README), `skill/screening-for-instructions/`, `docs/architecture.md`, the two output contracts and the root README (task 20 added the offline smoke run and ''Extend the system''). Task 20 ran the tests and the whole main flow from a clean checkout following only the README. The course''s folder requirement has not been checked, so yellow'
   what_is:
     lead:
       zh: 课程要求的 skill 文件夹，以及让别人能看懂、能照着跑的说明。
@@ -2384,11 +2662,11 @@ cards:
     en: Question list for Jake
   kind: delivery
   weight: 1
-  color: yellow
-  evidence_level: none
+  color: light_green
+  evidence_level: in_sample
   status_line:
-    zh: 任务 10：原来的 14 个问题压成 10 个，写在 `docs/client/jake_questions.md`，英文部分可以整段发。**一个都还没有发**，也没有任何答复
-    en: 'Task 10: the original 14 questions were condensed to 10 in `docs/client/jake_questions.md`; the English part can be sent as is. **None has been sent** and there is no answer yet'
+    zh: 任务 14：客户 11-13 回答了改写后的 9 个问题；跟踪表第 5 节逐题写了转述的答复、对应仓库哪一题、因此改了什么（英文在 `QUESTIONS_FOR_JAKE.md`）
+    en: 'Task 14: the client answered the nine reworded questions on 11-13; section 5 of the tracker gives each paraphrased answer, the matching repository question and what changed (English in `QUESTIONS_FOR_JAKE.md`)'
   what_is:
     lead:
       zh: 向客户确认的问题：问题、答复、回填位置的唯一记录。
@@ -2438,6 +2716,26 @@ cards:
     note:
       zh: 不依赖模型。
       en: Does not depend on the model.
+  deliverable_dir: docs/client/
+  test_report:
+    zh: docs/deliverables/T14-milestone-build/01-stage1-report.zh.md
+    en: docs/deliverables/T14-milestone-build/01-stage1-report.en.md
+  summary:
+    claim:
+      zh: 9 个问题都有答复和“因此改了什么”。
+      en: All nine questions have an answer and 'what changed'.
+    tested:
+      zh: 逐题核对答复与改动的对应（人工核对的文档，不是数据检验）。
+      en: Each answer checked against the change it caused (a document check, not a data test).
+    data:
+      zh: 客户 2026-11-13 的答复（原文在 git 忽略目录）。
+      en: The client's answers of 2026-11-13 (original in a git-ignored folder).
+    result_vs_threshold:
+      zh: 完成标准“9 个问题都有答复和改动”满足。门槛来自任务 14 的完成标准。
+      en: Done-when 'every question has an answer and a change' is met; the criterion comes from task 14.
+    limits:
+      zh: 仓库里原来的 10 题与实际发出的 9 题编号不同，第 5 节写了对应；Q3、Q7 没有问。
+      en: The repository's ten questions and the nine actually sent are numbered differently; section 5 maps them; Q3 and Q7 were not asked.
 - id: F1
   column: W9
   tier: must
@@ -2548,8 +2846,8 @@ cards:
   color: yellow
   evidence_level: in_sample
   status_line:
-    zh: Optional（计划任务 R1c），不占 Must 分母。任务 09、任务 10 都没做：跨批次和票货内历史不在这两段的范围；边界用例里 10 条历史期望列为缺口
-    en: 'Optional (plan task R1c), not in the Must denominator. Not done in task 09 or task 10: cross-batch and within-shipment history were out of scope for both legs; 10 history expectations among the boundary cases are listed as a gap'
+    zh: 'Optional（计划任务 R1c），不占 Must 分母。任务 14：票货内的部分移到 B11；本卡只留跨批次历史，没做。任务 20：留了扩展口 `rollup.PriorHistory`（有、查过没有、未提供三态，默认“未提供”）'
+    en: 'Optional (plan task R1c), not in the Must denominator. Task 14: the within-shipment part moved to B11; this card keeps cross-batch history only, not built. Task 20: an extension point `rollup.PriorHistory` exists (found / checked, none / not provided; default not provided)'
   summary:
     claim:
       zh: 预判模式（只用代码能算的金额）在 908 条上跑通，6 种历史诊断计数与 02 一致；模型后那一遍只在走例跑过。
@@ -2650,8 +2948,8 @@ cards:
   color: red
   evidence_level: none
   status_line:
-    zh: Optional，不占 Must 分母：11 月 5 日计划只把护栏开和关（原 E5）留在 Must，已移到 V2 卡；盲解析与给 Delta（V3b）、给不给历史和独立第二次解析（V3c）降为可选，其余旧实验不在计划里。未开始
-    en: 'Optional, not in the Must denominator: the 2026-11-05 plan keeps only guardrails on vs off (formerly E5) in Must, now on card V2; blind parse vs giving Delta (V3b) and history / independent second parse (V3c) are optional, and the other old experiments are not in the plan. Not started'
+    zh: Optional，不占 Must 分母：11 月 5 日计划只把护栏开和关（原 E5）留在 Must，已移到 V2 卡；盲解析与给 Delta（V3b）、给不给历史和独立第二次解析（V3c）降为可选，其余旧实验不在计划里。未开始。任务 14：V3b（盲解析对给 Delta）作废：Delta 不再是事实
+    en: 'Optional, not in the Must denominator: the 2026-11-05 plan keeps only guardrails on vs off (formerly E5) in Must, now on card V2; blind parse vs giving Delta (V3b) and history / independent second parse (V3c) are optional, and the other old experiments are not in the plan. Not started. Task 14: V3b (blind parse vs given Delta) is void: Delta is no longer a fact'
   what_is:
     lead:
       zh: 02 §9.4 的对照实验：E1 本方案 vs B0 vs B1；E2 有无 `reconcile`；E3 有无 `find_similar_examples` 和留一承运商；E4 有无第 5.5 步；E5 护栏开关；E6 先分类再抽取；E7 给不给 Reason Code；E8 同一模型跑三次的一致性。（E9 双模型留作以后，02 §9.4。）

@@ -4,13 +4,14 @@
 CMU Intro to AI client project (Team 16) for PPG. Convert the free-text explanations carriers give for freight invoice adjustments into structured line items, with internal-consistency checks and red flags for human reviewers.
 
 ## Scope (hard boundaries)
-- In scope: parsing text, normalizing charge types to a taxonomy, numeric reconciliation against Delta, consistency flags.
+- In scope: parsing text, normalizing charge types to a taxonomy, internal-consistency checks, rolling line items up to the shipment (SAP BOL) level, consistency flags.
 - Out of scope: deciding whether a charge should be paid. Never add approve, deny, or payment-recommendation logic or output fields.
 - No carrier-specific rules in code (no `if carrier == ...`). Domain knowledge must apply across all carriers. Carrier phrasing lives in example data, not in code.
 
 ## Data
 - Raw data: data/raw/AutoPay_Dispute_Data_20220815.xlsx. Confidential. Everything under data/ is git-ignored; never commit data or write real rows into tracked files.
-- Key columns: `Descritipion` (sic, the free text), `Delta` (= Invoice Amount - Shipment Amount), `Carrier`, `SHIPMENT_GID`.
+- Key columns: `Descritipion` (sic, the free text), `Shipment Amount` (the original amount), `Carrier`, `SHIPMENT_GID` (one per SAP BOL).
+- `Delta`, `Invoice Amount` and `Invoice Dups Removed` are the client's own spreadsheet estimates. They are read and stored only as a baseline for evaluation; no runtime step compares a reading with them, and they never reach the model.
 - Dev/test split lives in data/processed/. Do not read, sample, or inspect the test split during development unless explicitly instructed.
 - Redact personal data (names, emails) before any text is sent to an LLM.
 
@@ -26,6 +27,8 @@ CMU Intro to AI client project (Team 16) for PPG. Convert the free-text explanat
 - Every tool has unit tests built from synthetic examples.
 - Commands: `uv run pytest`, `uv add <package>`.
 - Keep changes small and explain what changed and why.
+
+- At the end of every task, copy its reports into `CC-response/` (local, git-ignored) and update `00-索引.md`.
 
 ## 收尾检查
 每个任务结束前都执行：

@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import unicodedata
 
 from freight_lineitems.config import RULES
 
@@ -77,10 +78,15 @@ def _presidio():
     return _ANALYZER
 
 
+def redaction_engine() -> str:
+    """The name-redaction method in force: rules.yaml `redaction.engine`, or FL_REDACTION_ENGINE for one run."""
+    return os.environ.get("FL_REDACTION_ENGINE") or RULES["redaction"]["engine"]
+
+
 def person_spans(text: str) -> list[tuple[int, int]]:
     cfg = RULES["redaction"]
     spans: list[tuple[int, int]] = []
-    engine = os.environ.get("FL_REDACTION_ENGINE") or cfg["engine"]   # the env var selects a variant for one run
+    engine = redaction_engine()   # the env var selects a variant for one run
     if engine not in ("presidio", "email_only"):
         from freight_lineitems import redaction_variants
         spans.extend(redaction_variants.spans(engine, text) if text else [])
@@ -165,9 +171,71 @@ def _probe(text: str) -> str:
     return re.sub(r"(?<=[A-Z])[10](?=[A-Z])", lambda m: {"1": "L", "0": "O"}[m.group(0)], t)
 
 
+_LEET = str.maketrans({"0": "O", "1": "I", "3": "E", "4": "A", "5": "S", "7": "T", "8": "B", "@": "A", "$": "S", "|": "I", "!": "I"})
+_CONFUSABLE = str.maketrans({"А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "C", "Т": "T",
+                             "Х": "X", "Α": "A", "Β": "B", "Ε": "E", "Ζ": "Z", "Η": "H", "Ι": "I", "Κ": "K", "Μ": "M", "Ν": "N",
+                             "Ο": "O", "Ρ": "P", "Τ": "T", "Υ": "Y", "Χ": "X", "І": "I", "Ј": "J", "Ѕ": "S"})
+
+
+def _edits(a: str, b: str) -> int:
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def fuzzy_injection_hits(text: str) -> list[str]:
+    """Task 17 fix 4: injection wording in disguise, on the original text (before redaction). Undo look-alike digits
+    and confusable letters, rejoin words split by spaces, then match a verb and an object of rules.yaml
+    `injection_fuzzy` by edit distance. Returns 'fuzzy:VERB>OBJECT' or 'fuzzy:PHRASE' for each hit."""
+    cfg = RULES.get("injection_fuzzy")
+    if not cfg or not text:
+        return []
+    t = unicodedata.normalize("NFKC", text).upper().translate(_CONFUSABLE)
+    raw = [w.translate(_LEET) for w in re.findall(r"[A-Z0-9@$|!]+", t)]
+    raw = [re.sub(r"[^A-Z]", "", w) for w in raw]
+    raw = [w for w in raw if w]
+
+    def near(w: str, vocab) -> str | None:
+        if len(w) < cfg["min_token_len"]:
+            return next((v for v in vocab if w == v), None)
+        for v in vocab:
+            lim = cfg["max_edits_short"] if len(v) <= 5 else cfg["max_edits_long"]
+            if abs(len(w) - len(v)) <= lim and _edits(w, v) <= lim:
+                return v
+        return None
+
+    verbs, objects = list(cfg["verbs"]), list(cfg["objects"])
+    tokens: list[tuple[int, str]] = []          # (position, word) including joins of 2 and 3 neighbours
+    for i in range(len(raw)):
+        for k in (1, 2, 3):
+            if i + k <= len(raw):
+                tokens.append((i, "".join(raw[i:i + k])))
+    hits = []
+    for i, w in tokens:
+        v = near(w, verbs)
+        if not v:
+            continue
+        for j, o in tokens:
+            if i < j <= i + cfg["window_tokens"]:
+                ob = near(o, objects)
+                if ob:
+                    hits.append(f"fuzzy:{v}>{ob}")
+                    break
+    joined = " ".join(raw)
+    for ph in cfg.get("phrases", {}):
+        if re.search(rf"(?<![A-Z]){ph}(?![A-Z])", joined):
+            hits.append(f"fuzzy:{ph}")
+    return sorted(set(hits))
+
+
 def injection_hits(text: str) -> list[str]:
     probe = _probe(text) if RULES["injection"].get("normalize_before_match") else text
     hits = [p.pattern for p in _INJ if p.search(text) or p.search(probe)]
+    hits += fuzzy_injection_hits(text)                 # task 17 fix 4
     if len(text) > RULES["injection"]["max_length"]:
         hits.append("max_length")
     if any(ord(c) < 32 for c in text):

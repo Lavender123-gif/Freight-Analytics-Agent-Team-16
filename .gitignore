@@ -16,6 +16,8 @@ data/
 # Local project-status page (kept locally, not shared)
 /agent/
 /00-索引.md
+# Reader area: copies of each round's reports (task 14 follow-up); local only
+/CC-response/
 /01-项目状态.html
 
 .DS_Store

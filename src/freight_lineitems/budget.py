@@ -20,7 +20,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LEDGER = ROOT / "docs" / "autorun" / "budget_ledger.jsonl"
 RESERVATIONS = ROOT / "data" / "interim" / "autorun" / "budget_reservations.json"   # git-ignored; runs in flight
-CAP_USD = 110.0   # task 10 section 0: cumulative cap raised from 50 (leg 1 included)
+import os  # noqa: E402
+
+# Task 10 raised the cumulative cap to 110 (leg 1 included). Task 14 stopped all development model calls at 105 and kept
+# the last 5 for the final test-set run. Task 19 (user, 2026-11-15: "预算上限提到 145 美元，我同意"): cap 145, development
+# stop line 140; the owner sets FL_BUDGET_CAP_USD=145 for the final test-set run (V4).
+CAP_USD = float(os.environ.get("FL_BUDGET_CAP_USD", "140.0"))
 
 # USD per million tokens. Source: claude-api skill model table (cached 2026-11-03); cache write 5m = 1.25x input,
 # 1h = 2x input. Unknown models raise instead of being priced at zero (no silent errors).

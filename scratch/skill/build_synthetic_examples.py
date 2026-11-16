@@ -29,6 +29,11 @@ from freight_lineitems.records import InputRecord
 from freight_lineitems.schemas import Submission
 
 
+# task 19 addendum: the amount each text presents as owed now in total, or none
+STATED_AMOUNT_DUE = {"SYN-2": {"number_id": "#4", "evidence_phrase": "= TOTAL $215.00"},
+                     "SYN-3": {"number_id": "#3", "evidence_phrase": "IS STILL OWED"}}
+
+
 def N(i, kind, status, codes=(), ev="", excl=None, other=None, credit=False):
     return {"id": i, "kind": kind, "status": status, "is_credit": credit, "charge_codes": list(codes),
             "other_phrase": other, "evidence_phrase": ev, "exclusion_phrase": excl}
@@ -108,7 +113,11 @@ def build() -> list[dict]:
         p = prepare(rec)
         assert p["redacted"] == text, f"{sid}: redaction or normalisation changed a synthetic text: {p['redacted']!r}"
         assert p["parse"].coverage_ok and not p["parse"].unrecognized, f"{sid}: unrecognized regions"
-        reading = {"response_type": "FIRST", "reason": None, **reading}
+        # task 19: the two description fields (concepts.earlier_claim_mention, concepts.stated_amount_due)
+        reading = {"response_type": "FIRST", "reason": None, **reading,
+                   "earlier_claim_quote": None,
+                   "stated_amount_due_id": STATED_AMOUNT_DUE.get(sid, {}).get("number_id"),
+                   "stated_amount_due_evidence": STATED_AMOUNT_DUE.get(sid, {}).get("evidence_phrase")}
         errs, _diags, claim = check_submission(p["ctx"], Submission.model_validate(reading))
         assert not errs, f"{sid}: repair errors {[(e.code, e.path, e.evidence) for e in errs]}"
         assert claim is not None and claim.signed_sum == Decimal(expected), f"{sid}: counted {claim.signed_sum}, expected {expected}"

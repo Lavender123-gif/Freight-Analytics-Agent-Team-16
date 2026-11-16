@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>运费争议审核</title>
+<title>Freight adjustment review</title>
 <style>
 :root{--pass:#2e7d32;--human:#9a6b00;--ret:#c62828;--line:#d5d5d5;--muted:#666}
 *{box-sizing:border-box}
-body{font-family:-apple-system,"PingFang SC",Helvetica,Arial,sans-serif;max-width:1180px;margin:auto;padding:14px 16px 60px;color:#1f1f1f;font-size:14px;line-height:1.45}
+body{font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:1180px;margin:auto;padding:14px 16px 60px;color:#1f1f1f;font-size:14px;line-height:1.45}
 h1{font-size:20px;margin:4px 0}
 .note{color:var(--muted);font-size:12.5px;margin:2px 0 10px}
 .bar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:2px solid #999;margin-bottom:8px}
@@ -41,26 +41,28 @@ li.cleared .fl-main{text-decoration:line-through;color:#888}
 .linkbtn{font-size:12px;padding:0 6px;margin-left:6px;cursor:pointer}
 .err{color:var(--ret);font-weight:600}.ok{color:var(--pass)}
 .current{font-weight:600}
+.shipment{border:1px solid var(--line);border-left:5px solid var(--line);border-radius:4px;padding:6px 10px;margin:6px 0;background:#fbfbfb}
+.shipment.PASSED_CHECKS-b{border-left-color:var(--pass)}.shipment.HUMAN_REVIEW-b{border-left-color:var(--human)}.shipment.RETURN_SUGGESTED-b{border-left-color:var(--ret)}
+.shipment .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:2px 18px;margin:4px 0}
+.shipment b{font-weight:600}
 </style>
 </head>
 <body>
-<h1>运费争议审核</h1>
-<p class="note" id="runline">正在读取…</p>
-<p class="note">颜色和标识由规则根据解析与一致性检查算出，只说明"这笔记录读得是否干净、有什么需要留意"，不代表这笔费用该不该付。
-下面的按钮只记录审核员本人的决定：不改 OTM，不通知任何人，不发送任何东西。原文为脱敏后的文字。</p>
+<h1>Freight adjustment review</h1>
+<p class="note" id="runline">Loading…</p>
+<p class="note">Colours and flags are computed by rules from the parsing and consistency checks. They only say whether a record was read cleanly and what needs a look; they do not say whether a charge should be paid.
+The colour and totals in each invoice header are the stored shipment result of the run; the page computes none of its own.
+The buttons only record the reviewer's own decision: nothing in OTM changes, nobody is notified, nothing is sent. Text is shown redacted.</p>
 <div class="bar">
-  <label>提醒 <select id="f-rem"><option value="all">全部发票</option><option value="yes">有提醒（需留意或可退回）</option><option value="no">没有提醒</option></select></label>
-  <label>排序 <select id="f-sort"><option value="reminders">提醒多的在前</option><option value="invoice">按发票编号</option></select></label>
+  <label>Reminders <select id="f-rem"><option value="all">All invoices</option><option value="yes">With reminders (attention or return suggested)</option><option value="no">Without reminders</option></select></label>
+  <label>Sort <select id="f-sort"><option value="reminders">Most reminders first</option><option value="invoice">By invoice id</option></select></label>
   <span id="listcount" class="muted"></span>
 </div>
 <div id="list"></div>
 <script>
 "use strict";
-const REC = {PASSED_CHECKS: "解析通过检查", HUMAN_REVIEW: "建议人工审核", RETURN_SUGGESTED: "建议退回承运商"};
-const SEV = {ATTENTION: "需留意", RETURN: "可退回", INFO: "提示"};
-const ACT = {APPROVE: "批准", RETURN_TO_CARRIER: "退回承运商", CLEAR_FLAG: "清除标识", HOLD: "暂缓"};
-const FIRST = {MATCH: "首次一致", MISMATCH: "首次不一致", NO_ANCHOR: "无锚点（Delta 为 0）"};
-const STMT = {INSIST_REASON: "坚持原读法的理由", REVISION_REASON: "修改读法的理由", UNCERTAINTY: "模型报告的疑问"};
+// display labels come from the server (review_ui.LABELS); stored values are never changed
+let REC = {}, SEV = {}, ACT = {}, STMT = {};
 let RUN = {actions: [], read_only: true};
 const drafts = {};           // dispute_id -> reason text being typed, kept across re-renders
 const openState = {};        // dispute_id -> whether the reviewer left it open
@@ -87,84 +89,105 @@ async function api(path, body) {
 const show = v => (v === null || v === undefined || v === "") ? "—" : String(v);
 function counts(c) {
   return ["RETURN", "ATTENTION", "INFO"].map(s => h("span", {class: "cnt" + (c[s] ? "" : " zero")},
-    h("span", {class: "tri-" + s}, s === "INFO" ? "△ " : "▲ "), `${c[s] || 0} 个${SEV[s]}`));
+    h("span", {class: "tri-" + s}, s === "INFO" ? "△ " : "▲ "), `${c[s] || 0} ${SEV[s] || s}`));
 }
 function table(head, rows) {
   return h("table", null, h("tr", null, head.map(x => h("th", null, x))), rows.map(r => h("tr", null, r.map(x => h("td", null, show(x))))));
 }
 function readingBlock(rd) {
-  const items = table(["#", "金额", "费用代码", "原文费用名", "承运商依据类型（未核实）"],
-    rd.line_items.map((li, i) => [i + 1, li.amount === null ? "（无金额）" : li.amount + (li.is_credit ? " 贷记" : ""), li.charge_code || "（无代码）", li.raw_charge_label, li.carrier_stated_basis_type]));
-  const nums = table(["编号", "原文", "读成", "类型", "状态", "计入本次主张", "依据片段", "不计入的依据"],
-    rd.numbers.map(n => [n.token_id, n.raw, n.digits_read || n.value, n.kind, n.status + (n.is_credit ? " 贷记" : ""), n.counted_in_claim ? "是" : "否", n.evidence_phrase, n.exclusion_phrase]));
-  return [h("h4", null, `费用明细（${rd.line_items.length} 条）`), rd.line_items.length ? items : h("p", {class: "muted"}, "模型没有给出费用明细"),
-          h("h4", null, `数字表读法（${rd.numbers.length} 个数字）`), rd.numbers.length ? nums : h("p", {class: "muted"}, "没有数字读法")];
+  const items = table(["#", "Amount", "Charge code", "Charge name as written", "Carrier's stated basis type (not verified)"],
+    rd.line_items.map((li, i) => [i + 1, li.amount === null ? "(no amount)" : li.amount + (li.is_credit ? " credit" : ""), li.charge_code || "(no code)", li.raw_charge_label, li.carrier_stated_basis_type]));
+  const nums = table(["Id", "As written", "Read as", "Kind", "Status", "Counted in this claim", "Evidence phrase", "Reason not counted"],
+    rd.numbers.map(n => [n.token_id, n.raw, n.digits_read || n.value, n.kind, n.status + (n.is_credit ? " credit" : ""), n.counted_in_claim ? "yes" : "no", n.evidence_phrase, n.exclusion_phrase]));
+  return [h("h4", null, `Line items (${rd.line_items.length})`), rd.line_items.length ? items : h("p", {class: "muted"}, "The model gave no line items"),
+          h("h4", null, `Number table reading (${rd.numbers.length} numbers)`), rd.numbers.length ? nums : h("p", {class: "muted"}, "No number readings")];
 }
 function decisionLine(d) {
-  return `${d.decided_at} · ${d.reviewer_id} · ${ACT[d.action] || d.action}${d.flag_id ? "（" + d.flag_id.split(":").pop() + "）" : ""}${d.reason ? " · 理由：" + d.reason : ""}`;
+  return `${d.decided_at} · ${d.reviewer_id} · ${ACT[d.action] || d.action}${d.flag_id ? " (" + d.flag_id.split(":").pop() + ")" : ""}${d.reason ? " · reason: " + d.reason : ""}`;
 }
 function disputeBlock(d, inv, reload) {
   const msg = h("span", {class: "small"});
-  const reason = h("textarea", {placeholder: "理由（清除标识时必填；其他决定可不填）", oninput: e => { drafts[d.dispute_id] = e.target.value; }});
+  const reason = h("textarea", {placeholder: "Reason (required to clear a flag; optional otherwise)", oninput: e => { drafts[d.dispute_id] = e.target.value; }});
   reason.value = drafts[d.dispute_id] || "";
   async function send(action, flagId) {
-    msg.className = "small"; msg.textContent = "正在记录…";
+    msg.className = "small"; msg.textContent = "Recording…";
     try {
       await api("/api/decision", {dispute_id: d.dispute_id, action, reason: reason.value, flag_id: flagId || null});
       delete drafts[d.dispute_id];
       openState[d.dispute_id] = true;
       await reload();
-    } catch (err) { msg.className = "small err"; msg.textContent = "没有记录：" + err.message; }
+    } catch (err) { msg.className = "small err"; msg.textContent = "Not recorded: " + err.message; }
   }
   const flags = d.flags.map(f => h("li", {class: f.cleared ? "cleared" : ""},
     h("span", {class: "fl-main"}, h("span", {class: "tri-" + f.severity}, f.severity === "INFO" ? "△ " : "▲ "), `[${SEV[f.severity] || f.severity}] `, h("code", null, f.code),
-      f.points_to_dispute_id ? ` → 指向 ${f.points_to_dispute_id}` : "", f.n_later_copies ? `（后面还有 ${f.n_later_copies} 笔相同）` : "",
-      f.origin === "MODEL_REPORTED" ? "（来自模型报告）" : ""),
-    f.cleared ? h("span", {class: "ok small"}, " 已清除（见下方记录）") : (!RUN.read_only && h("button", {class: "linkbtn", title: "需要先在下面填写理由", onclick: () => send("CLEAR_FLAG", f.flag_id)}, "清除此标识")),
+      f.points_to_dispute_id ? ` → points to ${f.points_to_dispute_id}` : "", f.n_later_copies ? ` (${f.n_later_copies} identical later copies)` : "",
+      f.origin === "MODEL_REPORTED" ? " (reported by the model)" : ""),
+    f.cleared ? h("span", {class: "ok small"}, " cleared (see the record below)") : (!RUN.read_only && h("button", {class: "linkbtn", title: "Write the reason below first", onclick: () => send("CLEAR_FLAG", f.flag_id)}, ACT.CLEAR_FLAG || "CLEAR_FLAG")),
     h("span", {class: "ev"}, JSON.stringify(f.evidence).slice(0, 500))));
-  const attempts = d.attempts.map(a => h("li", null, `第 ${a.attempt_no} 次（${show(a.response_type)}）：与 Delta ${show(a.delta_check)}，模型读数合计 ${show(a.claimed_total)}`,
-    a.feedback_given ? `；收到的反馈：${a.feedback_given}` : "", a.failed_checks.length ? `；退回的检查错误：${a.failed_checks.join(", ")}` : ""));
-  const stmts = d.statements.map(s => h("li", null, `${STMT[s.type] || s.type}${s.attempt_no ? "（第 " + s.attempt_no + " 次）" : ""}：${s.text}`));
+  const attempts = d.attempts.map(a => h("li", null, `Attempt ${a.attempt_no} (${show(a.response_type)}): reading total ${show(a.claimed_total)}`,
+    a.failed_checks.length ? `; checks that sent it back: ${a.failed_checks.join(", ")}` : ""));
+  const stmts = d.statements.map(s => h("li", null, `${STMT[s.type] || s.type}${s.attempt_no ? " (attempt " + s.attempt_no + ")" : ""}: ${s.text}`));
   const cur = d.current_decision;
   const det = h("details", {class: `dispute ${d.recommendation}-b`, open: d.dispute_id in openState ? openState[d.dispute_id] : d.has_reminders,
       ontoggle: e => { openState[d.dispute_id] = e.target.open; }},
     h("summary", null, h("span", {class: "chip " + d.recommendation}, REC[d.recommendation] || d.recommendation), h("b", null, d.dispute_id),
-      d.first_attempt_inconsistent ? h("span", {class: "badge warn"}, "首次不一致") : h("span", {class: "badge"}, FIRST[d.first_attempt_check] || "没有可比的读法"),
-      h("span", {class: "badge"}, "最终：" + show(d.delta_consistency)),
-      h("span", {class: "small"}, `Delta ${show(d.delta)} ${show(d.currency)} · 模型读数合计 ${show(d.claimed_total)}`),
+      h("span", {class: "small"}, `Reading total ${show(d.claimed_total)} ${show(d.currency)}`),
       counts(Object.fromEntries(["ATTENTION", "RETURN", "INFO"].map(s => [s, d.flags.filter(f => f.severity === s).length]))),
-      cur ? h("span", {class: "badge current"}, "已记录：" + (ACT[cur.action] || cur.action)) : h("span", {class: "muted small"}, "未记录决定")),
-    h("p", {class: "small muted"}, `PK ${show(d.pk)} · 行号 ${show(d.row_number)} · 时间 ${show(d.event_time)} · Reason Code ${show(d.reason_code)} · 解析状态 ${show(d.parse_status)} · 币种依据 ${show(d.currency_basis)}`),
-    h("div", {class: "text"}, d.text_redacted || "（空文本）"),
+      cur ? h("span", {class: "badge current"}, "Recorded: " + (ACT[cur.action] || cur.action)) : h("span", {class: "muted small"}, "No decision recorded")),
+    h("p", {class: "small muted"}, `PK ${show(d.pk)} · row ${show(d.row_number)} · time ${show(d.event_time)} · Reason Code ${show(d.reason_code)} · parse status ${show(d.parse_status)} · currency basis ${show(d.currency_basis)}`),
+    h("div", {class: "text"}, d.text_redacted || "(empty text)"),
     readingBlock(d.reading),
-    d.first_reading && h("details", null, h("summary", null, "第一次尝试的读法（与最终不同的一次，决定 3.2）"), readingBlock(d.first_reading)),
-    h("h4", null, "模型的说明"), stmts.length ? h("ul", null, stmts) : h("p", {class: "muted"}, "模型没有写说明或疑问"),
-    h("h4", null, `尝试（${d.attempts.length} 次，全部保留）`), attempts.length ? h("ul", null, attempts) : h("p", {class: "muted"}, "模型没有运行或没有提交"),
-    h("h4", null, `标识（${d.flags.length} 条，按严重程度排序）`), flags.length ? h("ul", null, flags) : h("p", {class: "muted"}, "无"),
-    d.return_draft && h("details", null, h("summary", null, "退回草稿（由规则生成，仅供审核员使用，系统不发送）"),
-      h("ul", null, (d.return_draft.issues || []).map(x => h("li", null, "问题：" + x)), (d.return_draft.requested_changes || []).map(x => h("li", null, "请承运商补充或更正：" + x)))),
-    h("div", {class: "decide"}, h("b", null, "审核员的决定"), h("span", {class: "muted small"}, `（只做记录；审核员 ${RUN.reviewer_id}）`),
-      RUN.read_only ? h("p", {class: "muted"}, "只读模式：不记录决定") : [reason,
+    d.first_reading && h("details", null, h("summary", null, "Reading of the first attempt (differs from the final one; decision 3.2)"), readingBlock(d.first_reading)),
+    h("h4", null, "The model's statements"), stmts.length ? h("ul", null, stmts) : h("p", {class: "muted"}, "The model wrote no statement or doubt"),
+    h("h4", null, `Attempts (${d.attempts.length}, all kept)`), attempts.length ? h("ul", null, attempts) : h("p", {class: "muted"}, "The model did not run or did not submit"),
+    h("h4", null, `Flags (${d.flags.length}, by severity)`), flags.length ? h("ul", null, flags) : h("p", {class: "muted"}, "None"),
+    d.return_draft && h("details", null, h("summary", null, "Return draft (made by rules, for the reviewer only; the system sends nothing)"),
+      h("ul", null, (d.return_draft.issues || []).map(x => h("li", null, "Issue: " + x)), (d.return_draft.requested_changes || []).map(x => h("li", null, "Ask the carrier to add or correct: " + x)))),
+    h("div", {class: "decide"}, h("b", null, "Reviewer's decision"), h("span", {class: "muted small"}, ` (recorded only; reviewer ${RUN.reviewer_id})`),
+      RUN.read_only ? h("p", {class: "muted"}, "Read-only mode: decisions are not recorded") : [reason,
         h("div", null, RUN.actions.filter(a => a !== "CLEAR_FLAG").map(a => h("button", {onclick: () => send(a)}, ACT[a] || a)),
-          h("span", {class: "muted small"}, "清除标识：填好理由后点对应标识旁的按钮 "), msg)],
-      h("h4", null, `决定记录（${d.decisions.length} 条，只追加，不覆盖）`),
-      d.decisions.length ? h("ul", null, d.decisions.map((x, i) => h("li", {class: x === cur || (cur && x.decision_id === cur.decision_id) ? "current" : ""}, decisionLine(x)))) : h("p", {class: "muted small"}, "还没有记录")));
+          h("span", {class: "muted small"}, "To clear a flag: write the reason, then use the button next to that flag "), msg)],
+      h("h4", null, `Decision record (${d.decisions.length}, append-only)`),
+      d.decisions.length ? h("ul", null, d.decisions.map((x, i) => h("li", {class: x === cur || (cur && x.decision_id === cur.decision_id) ? "current" : ""}, decisionLine(x)))) : h("p", {class: "muted small"}, "Nothing recorded yet")));
   return det;
 }
+// the stored shipment result (pipeline.finish_batch), shown as it is: no sums or recommendations computed here
+function shipmentBlock(sh) {
+  if (sh.missing) return h("div", {class: "shipment"}, h("b", null, "Shipment " + show(sh.shipment_key)),
+    h("p", {class: "muted"}, "No shipment result is stored for this shipment in this run (runs made before task 20)."));
+  const kv = (k, v) => h("div", null, h("b", null, k + " "), show(v));
+  const others = sh.other_readings || [];
+  const flags = sh.flags || [];
+  return h("div", {class: `shipment ${sh.recommendation}-b`, "data-shipment": sh.shipment_key},
+    h("div", null, h("span", {class: "chip " + sh.recommendation}, REC[sh.recommendation] || sh.recommendation),
+      " ", h("b", null, "Shipment " + show(sh.shipment_key)), h("span", {class: "muted small"}, ` · SAP BOL ${show(sh.sap_bol)} · ${sh.explanation_ids.length} explanation(s) · ${show(sh.schema_version)}`)),
+    h("div", {class: "kv"},
+      kv("Original amount", sh.original_amount), kv("New total (default reading)", sh.new_total),
+      kv("Change from original amount", sh.default_change),
+      kv("Stated amount due", sh.stated_amount_due), kv("Gap (stated amount due - line total)", sh.gap),
+      sh.gap_note ? kv("Gap note", sh.gap_note) : null,
+      sh.complete === false ? kv("Complete", "no: an explanation has no usable reading") : null),
+    others.length ? [h("h4", null, `Other readings (${others.length})`),
+      table(["Event", "Reminder", "Change", "New total under that reading"], others.map(o => [o.event, o.flag, o.change, o.new_total]))]
+      : h("p", {class: "muted small"}, "No other reading"),
+    h("h4", null, `Shipment reminders (${flags.length})`),
+    flags.length ? h("ul", null, flags.map(f => h("li", null, h("span", {class: "tri-" + f.severity}, f.severity === "INFO" ? "△ " : "▲ "),
+      `[${SEV[f.severity] || f.severity}] `, h("code", null, f.code), h("span", {class: "ev"}, JSON.stringify(f.evidence).slice(0, 500)))))
+      : h("p", {class: "muted small"}, "None"));
+}
 function invoiceBody(inv, reload) {
-  const s = inv.shipment || {}, r = inv.reconciliation;
+  const s = inv.shipment || {};
   const place = (c, st, co) => [c, st, co].filter(Boolean).join(", ") || "—";
   const dist = s.planned_distance || s.straight_line_km;
   return h("div", {class: "inv-body"},
     h("div", {class: "overview"},
-      h("div", null, h("b", null, "票货 "), show(s.shipment_gid)), h("div", null, h("b", null, "承运商 "), show(inv.carrier_id)),
-      h("div", null, h("b", null, "承运商发票号 "), show(inv.carrier_invoice_no)), h("div", null, h("b", null, "提单号 "), show(s.sap_bol)),
-      h("div", null, h("b", null, "起点 "), place(s.origin_city, s.origin_state, s.origin_country)),
-      h("div", null, h("b", null, "终点 "), place(s.destination_city, s.destination_state, s.destination_country)),
-      h("div", null, h("b", null, "距离 "), dist ? String(dist) : "本版没有"), h("div", null, h("b", null, "运费 "), show(s.shipment_amount)),
-      h("div", null, h("b", null, "对账 "), `模型读数合计 ${show(r.sum_model_claimed)} / Delta 合计 ${show(r.sum_delta)}`,
-        r.n_without_reading ? `（${r.n_without_reading} 笔没有读数）` : ""),
-      h("div", null, h("b", null, "之前批次 "), "本版没有")),
+      h("div", null, h("b", null, "Shipment "), show(s.shipment_gid)), h("div", null, h("b", null, "Carrier "), show(inv.carrier_id)),
+      h("div", null, h("b", null, "Carrier invoice no. "), show(inv.carrier_invoice_no)), h("div", null, h("b", null, "SAP BOL "), show(s.sap_bol)),
+      h("div", null, h("b", null, "Origin "), place(s.origin_city, s.origin_state, s.origin_country)),
+      h("div", null, h("b", null, "Destination "), place(s.destination_city, s.destination_state, s.destination_country)),
+      h("div", null, h("b", null, "Distance "), dist ? String(dist) : "not in this version"),
+      h("div", null, h("b", null, "Earlier batches "), "not in this version")),
+    (inv.shipments || []).map(shipmentBlock),
     inv.disputes.map(d => disputeBlock(d, inv, reload)));
 }
 function invoiceRow(inv) {
@@ -172,11 +195,15 @@ function invoiceRow(inv) {
   let body = null;
   const head = h("button", {class: "inv-head", onclick: () => toggle()});
   function paintHead(x) {
-    head.replaceChildren(...[h("span", {class: "chip " + x.recommendation}, REC[x.recommendation] || x.recommendation),
-      h("b", null, "发票 " + show(x.carrier_invoice_no)), h("span", {class: "muted small"}, `承运商 ${show(x.carrier_id)} · 票货 ${show(x.shipment_gid)}`),
-      h("span", {class: "grow"}), counts(x.flag_counts), h("span", {class: "small"}, `${x.n_disputes} 笔争议`),
-      h("span", {class: "small " + (x.n_disputes_decided === x.n_disputes ? "ok" : "muted")}, `已记录决定 ${x.n_disputes_decided}/${x.n_disputes}`),
-      x.n_flags_cleared ? h("span", {class: "small ok"}, `已清除标识 ${x.n_flags_cleared}`) : null].flat().filter(Boolean));
+    const ships = (x.shipments || []).filter(s => !s.missing);
+    head.replaceChildren(...[x.recommendation ? h("span", {class: "chip " + x.recommendation}, REC[x.recommendation] || x.recommendation)
+        : h("span", {class: "badge"}, "No shipment result"),
+      h("b", null, "Invoice " + show(x.carrier_invoice_no)), h("span", {class: "muted small"}, `Carrier ${show(x.carrier_id)} · Shipment ${show(x.shipment_gid)}`),
+      ships.map(s => h("span", {class: "small"}, `New total ${show(s.new_total)} (change ${show(s.default_change)})` +
+        ((s.other_readings || []).length ? ` · other reading total ${s.other_readings.map(o => show(o.new_total)).join(", ")}` : ""))),
+      h("span", {class: "grow"}), counts(x.flag_counts), h("span", {class: "small"}, `${x.n_disputes} dispute(s)`),
+      h("span", {class: "small " + (x.n_disputes_decided === x.n_disputes ? "ok" : "muted")}, `Decisions recorded ${x.n_disputes_decided}/${x.n_disputes}`),
+      x.n_flags_cleared ? h("span", {class: "small ok"}, `Flags cleared ${x.n_flags_cleared}`) : null].flat().filter(Boolean));
   }
   async function load() {
     const detail = await api("/api/invoice?id=" + encodeURIComponent(inv.carrier_invoice_id));
@@ -191,7 +218,7 @@ function invoiceRow(inv) {
   }
   async function toggle() {
     if (body) { body.remove(); body = null; return; }
-    try { await load(); } catch (err) { box.append(h("p", {class: "err"}, "读取失败：" + err.message)); }
+    try { await load(); } catch (err) { box.append(h("p", {class: "err"}, "Could not load: " + err.message)); }
   }
   paintHead(inv);
   box.append(head);
@@ -201,7 +228,7 @@ function invoiceRow(inv) {
 async function refreshList() {
   const rem = document.getElementById("f-rem").value, sort = document.getElementById("f-sort").value;
   const rows = await api(`/api/invoices?reminders=${rem}&sort=${sort}`);
-  document.getElementById("listcount").textContent = `显示 ${rows.length} 张发票`;
+  document.getElementById("listcount").textContent = `${rows.length} invoice(s) shown`;
   document.getElementById("list").replaceChildren(...rows.map(invoiceRow));
   const m = location.hash.match(/^#inv=(.+)$/);          // deep link: #inv=<carrier_invoice_id>
   if (m) { const el = document.getElementById("inv-" + decodeURIComponent(m[1])); if (el) { await el.openInvoice(); el.scrollIntoView(); } }
@@ -209,14 +236,16 @@ async function refreshList() {
 (async () => {
   try {
     RUN = await api("/api/run");
-    const rc = RUN.recommendations, fc = RUN.flag_counts;
-    document.getElementById("runline").textContent = `运行 ${RUN.run_id} · ${RUN.n_disputes} 笔争议：` +
-      Object.keys(REC).map(k => `${REC[k]} ${rc[k] || 0}`).join("，") + " · 标识：" + Object.keys(SEV).map(k => `${SEV[k]} ${fc[k] || 0}`).join("，") +
-      ` · 审核员 ${RUN.reviewer_id}` + (RUN.read_only ? " · 只读模式" : "");
+    ({recommendation: REC, severity: SEV, action: ACT, statement: STMT} = RUN.labels);
+    const rc = RUN.recommendations, fc = RUN.flag_counts, sc = RUN.shipment_recommendations || {};
+    document.getElementById("runline").textContent = `Run ${RUN.run_id} · shipments: ` +
+      Object.keys(REC).map(k => `${REC[k]} ${sc[k] || 0}`).join(", ") + ` · ${RUN.n_disputes} disputes: ` +
+      Object.keys(REC).map(k => `${REC[k]} ${rc[k] || 0}`).join(", ") + " · flags: " + Object.keys(SEV).map(k => `${SEV[k]} ${fc[k] || 0}`).join(", ") +
+      ` · reviewer ${RUN.reviewer_id}` + (RUN.read_only ? " · read-only" : "");
     document.getElementById("f-rem").addEventListener("change", refreshList);
     document.getElementById("f-sort").addEventListener("change", refreshList);
     await refreshList();
-  } catch (err) { document.getElementById("runline").textContent = "读取失败：" + err.message; }
+  } catch (err) { document.getElementById("runline").textContent = "Could not load: " + err.message; }
 })();
 </script>
 </body>

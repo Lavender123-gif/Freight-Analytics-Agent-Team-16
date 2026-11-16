@@ -1,12 +1,12 @@
 """The agent loop (L1) and the submission controller (P3 blind parsing).
 
-One record = one Session. The model sees the blind input (no Delta) and calls tools. `submit_line_items` runs the
-mandatory checks; if they pass, `DeltaJudge` compares the counted amounts with Delta and tells the model only
-'consistent' or 'inconsistent' (decision 3.2). The model may insist or revise; every attempt is kept, the first
-included, and nothing is overwritten.
+One record = one Session. The model sees the blind input and calls tools. `submit_line_items` runs the mandatory
+checks; a submission that passes them ends the session. A submission that fails them is returned to the model with
+the errors, at most `agent.max_repair_rounds` times. Every attempt is kept, the first included, and nothing is
+overwritten.
 
-`DeltaJudge` is the only object in the model-facing path that holds Delta. It never returns Delta, a difference,
-a direction, or a hint about which amount to change.
+The model is never told how its reading compares with any amount from the Excel row (task 14, C1: the Excel
+amount columns are the client's own estimates and are used only as a baseline in evaluation).
 """
 
 from __future__ import annotations
@@ -14,86 +14,34 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass, field
-from decimal import Decimal
 
 import anthropic
 from pydantic import ValidationError
 
 from freight_lineitems.budget import UsageBook
-from freight_lineitems.checks import ClaimCalc, Ctx, attempt_changes, check_submission, diag, reading_key
+from freight_lineitems.checks import Ctx, attempt_changes, check_submission, diag, reading_key
 from freight_lineitems.config import RULES
 from freight_lineitems.schemas import Diagnostic, LLMInput, RepairError, Submission
 from freight_lineitems import tools as T
 
 AG = RULES["agent"]
-TOL = Decimal(str(RULES["tolerances"]["amount_abs"]))
-TAX_TOL = Decimal(str(RULES["tolerances"]["tax_abs"]))
-
-INCONSISTENT_MESSAGE = (
-    "Inconsistent: the amounts you counted as part of this claim do not agree with the invoice adjustment on record. "
-    "This does not mean your reading is wrong; the recorded adjustment may itself be wrong. Re-read the text. If your "
-    "reading stands, resubmit it unchanged with response_type INSISTED and say why in reason. If you misread something, "
-    "resubmit with response_type REVISED and say in reason what you misread. Do not change a reading only to make the "
-    "amounts agree.")
-
-
-@dataclass
-class DeltaJudge:
-    """Holds Delta. Returns MATCH / MISMATCH / NO_ANCHOR and nothing else."""
-    delta: Decimal
-
-    def judge(self, claim: ClaimCalc) -> str:
-        if self.delta == 0:
-            return "NO_ANCHOR"
-        if abs(claim.signed_sum - self.delta) <= TOL:
-            return "MATCH"
-        if claim.expected_tax is not None and abs(claim.signed_sum + claim.expected_tax - self.delta) <= TAX_TOL:
-            return "MATCH"
-        return "MISMATCH"
-
-    def explain_mismatch(self, claim: ClaimCalc, numbers: list | None = None) -> list[Diagnostic]:
-        """Reviewer-only explanations (decision 3.4; user requirement c). Never returned to the model: this runs only
-        after the session has ended, and its output goes to the reviewer view."""
-        out = []
-        gap = self.delta - claim.signed_sum
-        if numbers and gap != 0:
-            from itertools import combinations
-            pool = [(n.id, n.raw, n.value) for n in numbers]
-            hits = []
-            for k in range(1, RULES["number_features"]["difference_explanation"]["max_terms"] + 1):
-                for combo in combinations(pool, k):
-                    if abs(sum(v for _, _, v in combo) - abs(gap)) <= TOL:
-                        hits.append([{"id": i, "raw": r} for i, r, _ in combo])
-                if hits:
-                    break      # report the smallest combinations only
-            if hits:
-                out.append(diag("CLAIM.DELTA.DIFFERENCE_MATCHES_AMOUNTS", "claim", {
-                    "difference": str(gap), "direction": "Delta larger than counted amounts" if gap > 0
-                    else "Delta smaller than counted amounts", "matching_amounts": hits[:5]}, "4"))
-        for tid, tv in claim.totals.items():
-            if abs(claim.signed_sum + tv - self.delta) <= TOL:
-                out.append(diag("CLAIM.DELTA.TOTAL_COUNTED_TWICE_PATTERN", "claim",
-                                {"total_id": tid, "note": "Delta equals the counted items plus their stated total"}, "4"))
-        return out
 
 
 @dataclass
 class Session:
     ctx: Ctx
-    judge: DeltaJudge
     llm_input: LLMInput
     attempts: list[dict] = field(default_factory=list)
     uncertainty: list[Diagnostic] = field(default_factory=list)
     refused_reports: list[dict] = field(default_factory=list)   # over the limit; still shown to the reviewer (audit L2)
     repair_rounds: int = 0
-    feedback_rounds: int = 0
-    final: dict | None = None    # {"status", "delta_consistency", "attempt_no"}
+    final: dict | None = None    # {"status", "attempt_no"}
 
     # ---------------------------------------------------------------- submit_line_items
     def submit(self, payload: dict) -> dict:
         n = len(self.attempts) + 1
-        att = {"attempt_no": n, "raw_submission": payload, "repair_errors": [], "delta_check": None,
-               "feedback_given": None, "response_type": payload.get("response_type"), "record_diagnostics": [],
+        att = {"attempt_no": n, "raw_submission": payload, "repair_errors": [], "checks_passed": False,
+               "response_type": payload.get("response_type"), "record_diagnostics": [],
                "claim": None}
         self.attempts.append(att)
         try:
@@ -112,16 +60,8 @@ class Session:
                             "expected_tax": str(claim.expected_tax) if claim.expected_tax is not None else None}
         if errs:
             return self._repair(att, errs)
-        verdict = self.judge.judge(claim)
-        att["delta_check"] = verdict
+        att["checks_passed"] = True
         att["_sub"], att["_claim"], att["_rec"] = sub, claim, rec
-        if verdict in ("MATCH", "NO_ANCHOR"):
-            return self._finish("PASSED_CHECKS", att)
-        if self.feedback_rounds < AG["max_delta_feedback_rounds"] and sub.response_type != "INSISTED":
-            self.feedback_rounds += 1
-            att["feedback_given"] = INCONSISTENT_MESSAGE
-            return {"accepted": False, "result": "inconsistent", "message": INCONSISTENT_MESSAGE,
-                    "resubmissions_left": AG["max_delta_feedback_rounds"] - self.feedback_rounds + 1}
         return self._finish("PASSED_CHECKS", att)
 
     def _protocol_errors(self, sub: Submission, n: int) -> list[RepairError]:
@@ -154,17 +94,7 @@ class Session:
                 "resubmissions_left": AG["max_repair_rounds"] - self.repair_rounds + 1}
 
     def _finish(self, status: str, att: dict) -> dict:
-        valid = [a for a in self.attempts if a.get("delta_check")]
-        first_valid = valid[0] if valid else None
-        if status == "FAILED_CHECKS":
-            dc = "NOT_EVALUATED"
-        elif att["delta_check"] == "NO_ANCHOR":
-            dc = "NO_ANCHOR"
-        elif att["delta_check"] == "MATCH":
-            dc = "MATCH_FIRST" if first_valid is att else "MATCH_AFTER_REVISION"
-        else:
-            dc = "MISMATCH_MODEL_INSISTED" if att["response_type"] == "INSISTED" else "MISMATCH_RETRIES_EXHAUSTED"
-        self.final = {"status": status, "delta_consistency": dc, "attempt_no": att["attempt_no"]}
+        self.final = {"status": status, "attempt_no": att["attempt_no"]}
         if status == "PASSED_CHECKS":
             return {"accepted": True}
         return {"accepted": False, "final": True,
@@ -193,18 +123,7 @@ class Session:
             out.append(diag("RUN.SUBMIT.FAILED_CHECKS", "run", {"attempts": len(self.attempts),
                             "last_errors": [{"code": e["code"], "path": e["path"]} for e in last["repair_errors"]]}, "4"))
             return out
-        valid = [a for a in self.attempts if a.get("delta_check")]
-        if valid and valid[0]["delta_check"] == "MISMATCH":
-            out.append(diag("CLAIM.DELTA.FIRST_MISMATCH", "claim", {"first_attempt_no": valid[0]["attempt_no"]}, "4"))
-        dc = self.final["delta_consistency"]
-        if dc == "MATCH_AFTER_REVISION":
-            out.append(diag("CLAIM.DELTA.MATCH_AFTER_REVISION", "claim", {"reason": last["_sub"].reason}, "4"))
-        elif dc == "MISMATCH_MODEL_INSISTED":
-            out.append(diag("CLAIM.DELTA.MISMATCH_INSISTED", "claim", {"reason": last["_sub"].reason}, "4"))
-        elif dc == "MISMATCH_RETRIES_EXHAUSTED":
-            out.append(diag("CLAIM.DELTA.MISMATCH_UNRESOLVED", "claim", {"reason": last["_sub"].reason}, "4"))
-        if dc.startswith("MISMATCH"):
-            out += self.judge.explain_mismatch(last["_claim"], self.ctx.parse.numbers)
+        valid = [a for a in self.attempts if a.get("checks_passed")]
         if len(valid) > 1:
             ch = attempt_changes(valid[0]["_sub"], last["_sub"])
             if ch:
@@ -220,9 +139,12 @@ def _block_dump(b) -> dict:
 
 
 def run_agent(session: Session, system_prompt: str, client: anthropic.Anthropic, req_kw: dict, book: UsageBook,
-              examples: list[dict], exclude_record_ids: set[str], shipment_key: str | None) -> dict:
-    """Drive one record. Returns the transcript (every request's new messages and every response, with usage)."""
-    user_text = ("Here is one dispute record. Read it and submit your reading with submit_line_items.\n\n"
+              examples: list[dict], exclude_record_ids: set[str], shipment_key: str | None, preamble: str = "") -> dict:
+    """Drive one record. Returns the transcript (every request's new messages and every response, with usage).
+    `preamble` is what code chose for this record in the routed layout (topic notes, similar examples); it goes
+    before the record in the first user message. `examples`, `exclude_record_ids` and `shipment_key` are no longer
+    read by any tool (task 19 removed find_similar_examples); they stay in the signature for existing callers."""
+    user_text = ("Here is one dispute record. Read it and submit your reading with submit_line_items.\n\n" + preamble +
                  "<dispute_record>\n" + session.llm_input.model_dump_json(indent=1) + "\n</dispute_record>")
     messages: list[dict] = [{"role": "user", "content": [{"type": "text", "text": user_text}]}]
     system = [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}]
@@ -287,12 +209,8 @@ def dispatch(session: Session, name: str, args: dict, examples: list[dict], excl
         return session.submit(args)
     if name == "lookup_charge_code":
         return T.lookup_charge_code(args.get("phrase", ""))
-    if name == "lookup_tax_rule":
-        return T.lookup_tax_rule(args.get("province", ""), args.get("date", ""))
     if name == "calculate":
         return T.calculate(args.get("expression", ""))
-    if name == "find_similar_examples":
-        return T.find_similar_examples(args.get("query", ""), args.get("k", 2), examples, exclude_record_ids, shipment_key)
     if name == "report_uncertainty":
         return session.report_uncertainty(args.get("target_path", ""), args.get("reason_type", "other"), args.get("note", ""))
     return {"error": f"unknown tool {name}"}

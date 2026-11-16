@@ -12,12 +12,12 @@ flowchart LR
   subgraph code["Processing (code)"]
     read["0-1 Read<br/>keep · redact · inject"]
     nums["2 Number parse<br/>find · number · cover"]
-    llminput["Model input<br/>no Delta"]
+    llminput["Model input<br/>no Delta · notes"]
     tool["4-5 Checks<br/>math · padding · basis"]
-    history["5.5 Duplicates<br/>row · invoice · shipment"]
+    history["5.5 Copies · roll-up<br/>orders · replace · total"]
   end
   subgraph llm["Understanding (LLM)"]
-    understand["3 Blind parse<br/>agent loop · no Delta"]
+    understand["3 Read + screen<br/>core + notes · 2 skills"]
   end
   subgraph rules["Flags & recommendation (code)"]
     flags["6a Flags<br/>rules · evidence · → first"]
@@ -25,11 +25,11 @@ flowchart LR
     decide["6b Recommendation<br/>passed · human · return suggested"]
   end
   subgraph assets["Knowledge assets & data"]
-    skill["SKILL.md<br/>procedure · examples"]
+    skill["SKILL.md + notes<br/>generated concepts"]
     taxonomy["Code table<br/>codes · aliases · labels"]
-    taxrules["Tools · tax<br/>calc · tax · cases"]
+    taxrules["Tools · tax<br/>lookup · calc · tax note"]
     store["7 Parse store<br/>facts ≠ judgments"]
-    rulesyaml["rules.yaml<br/>dups · flags · plain text"]
+    rulesyaml["rules.yaml<br/>dups · flags · concepts"]
     catalog["Diagnostics<br/>fixed wording"]
   end
   subgraph reviewer["Reviewer"]
@@ -42,7 +42,7 @@ flowchart LR
   skill -->|"procedure"| understand
   taxonomy -->|"codes + aliases"| understand
   understand -->|"readings · claim · math"| tool
-  tool -.->|"mismatch: keep or revise"| understand
+  tool -.->|"failed check: fix and resubmit"| understand
   taxrules -->|"tax rates"| tool
   tool -->|"attempts + status"| history
   store -.->|"earlier parses"| history
@@ -59,8 +59,8 @@ flowchart LR
   classDef yellow fill:#fff6d1,stroke:#b8860b,color:#4d3800
   classDef red fill:#fbe1e0,stroke:#c62828,color:#4a1010
   classDef plain fill:#ffffff,stroke:#8a94a6,color:#1f2937
-  class read,nums,llminput,understand,draft,store,catalog,review green
-  class tool,history,flags,decide,skill,taxonomy,taxrules,rulesyaml yellow
+  class read,nums,history,draft,review green
+  class llminput,tool,understand,flags,decide,skill,taxonomy,taxrules,store,rulesyaml,catalog yellow
   class submit,pushback plain
 ```
 
@@ -78,9 +78,9 @@ Boxes are grouped by who does the work. Solid arrows are the forward flow; dashe
 | 0-1 Read | Processing (code) | Code reads each row, keeps it unchanged, redacts names, emails and phone numbers, and marks text that looks like an instruction to the model. | B01 |
 | 2 Number parse | Processing (code) | Code finds every number and date in the text, gives each an ID, and checks that every digit is covered. | B02 |
 | Model input | Processing (code) | Code builds the model input from the redacted text and the number table; Delta, carrier and Reason Code are left out. | B04 |
-| 3 Blind parse | Understanding (LLM) | The model reads the text without seeing Delta and says what each numbered amount is (charge type, claimed or not, supporting words); it can only answer through `submit_line_items`. | B04 |
-| 4-5 Checks | Processing (code) | Code checks each submission: every number is accounted for, stated arithmetic holds, quoted words are in the text, and the claimed total is compared with Delta; on a mismatch the model is told once and may keep or revise its reading. | B07 |
-| 5.5 Duplicates | Processing (code) | Code looks for the same dispute or the same charge appearing again, by row and by invoice (the shipment and cross-batch levels are optional and not built). | B09 · B08 |
+| 3 Read + screen | Understanding (LLM) | The model reads the text without seeing Delta and says what each numbered amount is (charge type, claimed or not, supporting words); it can only answer through `submit_line_items`. A second, separate model call screens the text for words aimed at an AI system and only adds a flag (task 19). | B04 |
+| 4-5 Checks | Processing (code) | Code checks each submission: every number is accounted for, stated arithmetic holds and quoted words are in the text; a failed check goes back to the model for repair. Nothing is compared with the client's Delta column (task 14). | B07 |
+| 5.5 Copies · roll-up | Processing (code) | Code merges copies of one explanation on several orders (read once, order count kept), then rolls each shipment up: a later explanation of the same charge replaces the earlier one, different charges add up, tax stays on its own line, and every possible duplicate carries the total under the other reading (cross-batch history is optional and not built). | B11 · B08 |
 | 6a Flags | Flags & recommendation (code) | Code turns all diagnostics into flags with one of three severities set in `config/rules.yaml`. | B09 |
 | 6b Recommendation | Flags & recommendation (code) | Code derives one of three recommendations from the flags (passed checks, human review, return suggested); every record goes to a reviewer whatever the recommendation. | B09 |
 | Review UI (end) | Reviewer | The reviewer opens each dispute in a local screen, sees the parse, flags and recommendation, and records a decision with a reason; the screen changes nothing outside our own store. | U2 |
@@ -96,11 +96,11 @@ Boxes are grouped by who does the work. Solid arrows are the forward flow; dashe
 
 | Asset | Lane | What it is | Card |
 |---|---|---|---|
-| SKILL.md | Knowledge assets & data | The procedure and worked examples the model follows (`skill/freight-dispute-line-items/SKILL.md`; the examples in the repository are synthetic). | B05 |
+| SKILL.md + notes | Knowledge assets & data | The procedure the model follows: a core `SKILL.md` plus topic notes in `reference/` that code picks by the text's features; every business concept is generated from `config/rules.yaml` `concepts` (the examples in the repository are synthetic). | B05 |
 | Code table | Knowledge assets & data | The table of charge codes with their names and known phrasings (`config/taxonomy.yaml`). | C3 |
-| Tools · tax | Knowledge assets & data | The tools the model may call and the tax-rate table used by the checks (`config/tax_rules.yaml`). | B06 |
-| 7 Parse store | Knowledge assets & data | Each run is saved to SQLite and JSON with the parse (facts) kept apart from flags and recommendations (judgments); the downstream export contains only readings that passed the checks. | B10 |
-| rules.yaml | Knowledge assets & data | The settings that decide flag severity, duplicate rules and the recommendation order (`config/rules.yaml`). | C2 |
+| Tools · tax | Knowledge assets & data | The tools the model may call (charge-code lookup, calculator, uncertainty report) and the tax-rate table used by the checks and shown in the tax topic note (`config/tax_rules.yaml`). | B06 |
+| 7 Parse store | Knowledge assets & data | Each run is saved to SQLite and JSON with the parse (facts) kept apart from flags and recommendations (judgments); the downstream export contains only readings that passed the checks; the per-shipment table in the client's format is written by the roll-up replay. | B10 |
+| rules.yaml | Knowledge assets & data | The settings that decide flag severity, the roll-up thresholds and the recommendation order (`config/rules.yaml`). | C2 |
 | Diagnostics | Knowledge assets & data | Fixed explanatory wording for every diagnostic code, shown to the reviewer and used in return drafts. | C1 |
 
 ## Source

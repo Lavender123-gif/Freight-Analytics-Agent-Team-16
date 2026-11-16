@@ -1,0 +1,408 @@
+{
+ "0": {
+  "response_type": "FIRST",
+  "reason": null,
+  "numbers": [
+   {
+    "id": "#1",
+    "kind": "CHARGE_AMOUNT",
+    "status": "CLAIMED",
+    "is_credit": false,
+    "charge_codes": [
+     "ACCESSORIAL.INSIDE_DELIVERY"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "INSIDE DELIVERY CHARGE OF $85.00",
+    "exclusion_phrase": null
+   }
+  ],
+  "line_items": [
+   {
+    "amount_ref": "#1",
+    "charge_codes": [],
+    "raw_charge_label": "INSIDE DELIVERY CHARGE",
+    "carrier_stated_reason": "WAS NOT INCLUDED ON THE ORIGINAL INVOICE",
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   }
+  ],
+  "relations": [],
+  "unrecognized_reads": [],
+  "earlier_claim_quote": null,
+  "stated_amount_due_id": null,
+  "stated_amount_due_evidence": null
+ },
+ "1": {
+  "response_type": "FIRST",
+  "reason": null,
+  "numbers": [
+   {
+    "id": "#1",
+    "kind": "CHARGE_AMOUNT",
+    "status": "CLAIMED",
+    "is_credit": false,
+    "charge_codes": [
+     "ACCESSORIAL.LUMPER"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "LUMPER $120.00",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#2",
+    "kind": "CHARGE_AMOUNT",
+    "status": "CLAIMED",
+    "is_credit": false,
+    "charge_codes": [
+     "ACCESSORIAL.APPOINTMENT"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "APPOINTMENT $35.00",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#3",
+    "kind": "CHARGE_AMOUNT",
+    "status": "CLAIMED",
+    "is_credit": false,
+    "charge_codes": [
+     "ACCESSORIAL.RESIDENTIAL"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "RESIDENTIAL $60.00",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#4",
+    "kind": "TOTAL",
+    "status": "NONE",
+    "is_credit": false,
+    "charge_codes": [],
+    "other_phrase": null,
+    "evidence_phrase": "= TOTAL $215.00",
+    "exclusion_phrase": null
+   }
+  ],
+  "line_items": [
+   {
+    "amount_ref": "#1",
+    "charge_codes": [],
+    "raw_charge_label": "LUMPER",
+    "carrier_stated_reason": null,
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   },
+   {
+    "amount_ref": "#2",
+    "charge_codes": [],
+    "raw_charge_label": "APPOINTMENT",
+    "carrier_stated_reason": null,
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   },
+   {
+    "amount_ref": "#3",
+    "charge_codes": [],
+    "raw_charge_label": "RESIDENTIAL",
+    "carrier_stated_reason": null,
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   }
+  ],
+  "relations": [
+   {
+    "relation_type": "SUM",
+    "operand_ids": [
+     "#1",
+     "#2",
+     "#3"
+    ],
+    "result_id": "#4"
+   }
+  ],
+  "unrecognized_reads": [],
+  "earlier_claim_quote": null,
+  "stated_amount_due_id": "#4",
+  "stated_amount_due_evidence": "= TOTAL $215.00"
+ },
+ "2": {
+  "response_type": "FIRST",
+  "reason": null,
+  "numbers": [
+   {
+    "id": "#1",
+    "kind": "UNSPECIFIED_AMOUNT",
+    "status": "BILLED",
+    "is_credit": false,
+    "charge_codes": [],
+    "other_phrase": null,
+    "evidence_phrase": "ORIGINAL INVOICE BILLED $940.00",
+    "exclusion_phrase": "BILLED"
+   },
+   {
+    "id": "#2",
+    "kind": "UNSPECIFIED_AMOUNT",
+    "status": "PAID",
+    "is_credit": false,
+    "charge_codes": [],
+    "other_phrase": null,
+    "evidence_phrase": "PAYMENT RECEIVED $865.00 WAS PAID",
+    "exclusion_phrase": "WAS PAID"
+   },
+   {
+    "id": "#3",
+    "kind": "CHARGE_AMOUNT",
+    "status": "UNPAID",
+    "is_credit": false,
+    "charge_codes": [
+     "DETENTION_STORAGE.DRIVER_DETENTION"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "$75.00 IS STILL OWED FOR DRIVER DETENTION",
+    "exclusion_phrase": null
+   }
+  ],
+  "line_items": [
+   {
+    "amount_ref": "#3",
+    "charge_codes": [],
+    "raw_charge_label": "DRIVER DETENTION",
+    "carrier_stated_reason": "IS STILL OWED",
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   }
+  ],
+  "relations": [],
+  "unrecognized_reads": [],
+  "earlier_claim_quote": null,
+  "stated_amount_due_id": "#3",
+  "stated_amount_due_evidence": "IS STILL OWED"
+ },
+ "4": {
+  "response_type": "FIRST",
+  "reason": null,
+  "numbers": [
+   {
+    "id": "#1",
+    "kind": "QUANTITY",
+    "status": "NONE",
+    "is_credit": false,
+    "charge_codes": [],
+    "other_phrase": null,
+    "evidence_phrase": "3 DAYS",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#2",
+    "kind": "RATE",
+    "status": "NONE",
+    "is_credit": false,
+    "charge_codes": [],
+    "other_phrase": null,
+    "evidence_phrase": "AT $40.00 PER DAY",
+    "exclusion_phrase": "PER DAY"
+   },
+   {
+    "id": "#3",
+    "kind": "CHARGE_AMOUNT",
+    "status": "CLAIMED",
+    "is_credit": false,
+    "charge_codes": [
+     "DETENTION_STORAGE.EQUIPMENT_DETENTION"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "EQUIPMENT DETENTION 3 DAYS AT $40.00 PER DAY = $120.00",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#4",
+    "kind": "QUANTITY",
+    "status": "NONE",
+    "is_credit": false,
+    "charge_codes": [],
+    "other_phrase": null,
+    "evidence_phrase": "18,500 LBS",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#5",
+    "kind": "QUANTITY",
+    "status": "NONE",
+    "is_credit": false,
+    "charge_codes": [],
+    "other_phrase": null,
+    "evidence_phrase": "22 PALLETS",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#6",
+    "kind": "REFERENCE",
+    "status": "NONE",
+    "is_credit": false,
+    "charge_codes": [],
+    "other_phrase": null,
+    "evidence_phrase": "PICKUP NUMBER 4471902",
+    "exclusion_phrase": null
+   }
+  ],
+  "line_items": [
+   {
+    "amount_ref": "#3",
+    "charge_codes": [],
+    "raw_charge_label": "EQUIPMENT DETENTION",
+    "carrier_stated_reason": "TRAILER WAS HELD",
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   }
+  ],
+  "relations": [
+   {
+    "relation_type": "PRODUCT",
+    "operand_ids": [
+     "#1",
+     "#2"
+    ],
+    "result_id": "#3"
+   }
+  ],
+  "unrecognized_reads": [],
+  "earlier_claim_quote": null,
+  "stated_amount_due_id": null,
+  "stated_amount_due_evidence": null
+ },
+ "5": {
+  "response_type": "FIRST",
+  "reason": null,
+  "numbers": [
+   {
+    "id": "#1",
+    "kind": "CHARGE_AMOUNT",
+    "status": "CLAIMED",
+    "is_credit": false,
+    "charge_codes": [
+     "ACCESSORIAL.REDELIVERY"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "REDELIVERY CHARGE $95.00",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#2",
+    "kind": "CHARGE_AMOUNT",
+    "status": "CLAIMED",
+    "is_credit": true,
+    "charge_codes": [
+     "FUEL.SURCHARGE"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "LESS CREDIT OF $20.00 FOR FUEL SURCHARGE",
+    "exclusion_phrase": null
+   }
+  ],
+  "line_items": [
+   {
+    "amount_ref": "#1",
+    "charge_codes": [],
+    "raw_charge_label": "REDELIVERY CHARGE",
+    "carrier_stated_reason": null,
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   },
+   {
+    "amount_ref": "#2",
+    "charge_codes": [],
+    "raw_charge_label": "FUEL SURCHARGE",
+    "carrier_stated_reason": "BILLED TWICE",
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   },
+   {
+    "amount_ref": null,
+    "charge_codes": [
+     "TAX.GST"
+    ],
+    "raw_charge_label": "GST",
+    "carrier_stated_reason": null,
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   }
+  ],
+  "relations": [],
+  "unrecognized_reads": [],
+  "earlier_claim_quote": null,
+  "stated_amount_due_id": null,
+  "stated_amount_due_evidence": null
+ },
+ "6": {
+  "response_type": "FIRST",
+  "reason": null,
+  "numbers": [
+   {
+    "id": "#1",
+    "kind": "CHARGE_AMOUNT",
+    "status": "CLAIMED",
+    "is_credit": false,
+    "charge_codes": [
+     "RATE_CORRECTION.FUEL_TIER"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "BALANCE DUE IS $36.40",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#2",
+    "kind": "TAX_AMOUNT",
+    "status": "CLAIMED",
+    "is_credit": false,
+    "charge_codes": [
+     "TAX.GST"
+    ],
+    "other_phrase": null,
+    "evidence_phrase": "GST $1.82",
+    "exclusion_phrase": null
+   },
+   {
+    "id": "#3",
+    "kind": "TOTAL",
+    "status": "NONE",
+    "is_credit": false,
+    "charge_codes": [],
+    "other_phrase": null,
+    "evidence_phrase": "= $38.22",
+    "exclusion_phrase": null
+   }
+  ],
+  "line_items": [
+   {
+    "amount_ref": "#1",
+    "charge_codes": [],
+    "raw_charge_label": "TL FUEL SURCHARGE",
+    "carrier_stated_reason": null,
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   },
+   {
+    "amount_ref": "#2",
+    "charge_codes": [],
+    "raw_charge_label": "GST",
+    "carrier_stated_reason": null,
+    "carrier_stated_basis_type": "NONE",
+    "carrier_stated_basis": null
+   }
+  ],
+  "relations": [
+   {
+    "relation_type": "SUM",
+    "operand_ids": [
+     "#1",
+     "#2"
+    ],
+    "result_id": "#3"
+   }
+  ],
+  "unrecognized_reads": [],
+  "earlier_claim_quote": null,
+  "stated_amount_due_id": "#3",
+  "stated_amount_due_evidence": "BALANCE DUE IS $36.40 + GST $1.82 = $38.22"
+ }
+}

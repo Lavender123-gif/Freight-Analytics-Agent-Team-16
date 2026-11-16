@@ -1,20 +1,30 @@
-"""R1b: row-level and invoice-level duplicate flags (decision 5.3); mock-style positive and negative cases."""
+"""Order copies merged into explanations (task 14 / T12-02, proposal C4). Synthetic rows only.
+
+Three cases: one PK per copy (normal: several orders on one truck, order count only, no flag), a repeated PK and an
+empty PK (SHIP.COPY.SAME_OR_NO_PK). Delta is not part of the key; Event Date is."""
+
+from datetime import datetime
 
 from freight_lineitems import duplicates
 from freight_lineitems.pipeline import assemble, prepare
+from freight_lineitems.records import group_explanations
 
 from helpers import record
 
 
-def fake_result(rec, items):
-    """A PASSED_CHECKS result whose reading counts the given (code, amount_id) items."""
+def fake_result(rec):
     out = assemble(prepare(rec), None)
     out["facts"]["parse_status"] = "PASSED_CHECKS"
-    nums = [{"id": f"#{i+1}", "kind": "CHARGE_AMOUNT", "status": "CLAIMED", "is_credit": False, "charge_codes": [c],
-             "other_phrase": None, "evidence_phrase": "x", "exclusion_phrase": None} for i, c in enumerate(items)]
-    lis = [{"amount_ref": f"#{i+1}", "charge_codes": []} for i, _ in enumerate(items)]
-    out["facts"]["reading"] = {"numbers": nums, "line_items": lis, "unrecognized_reads": []}
     out["judgment"] = {"flags": [], "recommendation": "PASSED_CHECKS", "diagnostics": []}   # no model run in this test
+    return out
+
+
+def rows(pks, text="DETENTION $50.00", deltas=None):
+    out = []
+    for i, pk in enumerate(pks):
+        r = record(text, (deltas or ["50"] * len(pks))[i], rid=f"dev#r{i + 1}", pk=pk)
+        r.row_number = i + 1
+        out.append(r)
     return out
 
 
@@ -22,73 +32,78 @@ def codes(res):
     return {f["code"] for f in res["judgment"]["flags"]}
 
 
-def test_row_copies_first_hint_later_flagged_and_pointing_back():
-    a = record("DETENTION $50.00", "50", rid="dev#r1", pk="P1")
-    b = record("DETENTION $50.00", "50", rid="dev#r2", pk="P2"); b.row_number = 2
-    c = record("DETENTION $50.00", "50", rid="dev#r3", pk="P3"); c.row_number = 3
-    res = duplicates.apply([a, b, c], [fake_result(x, ["DETENTION_STORAGE.DRIVER_DETENTION"]) for x in (a, b, c)])
-    first, second, third = res
-    assert "DUP.ROW.HAS_LATER_COPIES" in codes(first) and "DUP.ROW.COPY" not in codes(first)
-    assert first["judgment"]["recommendation"] == "PASSED_CHECKS"           # the hint does not change colour
-    for r in (second, third):
-        f = next(f for f in r["judgment"]["flags"] if f["code"] == "DUP.ROW.COPY")
-        assert f["points_to"] == "dev#r1" and r["judgment"]["recommendation"] == "HUMAN_REVIEW"
-    # ROW copies are not counted again at INVOICE level
-    assert not any("DUP.INVOICE.SAME_CHARGE" in codes(r) for r in res)
+def test_one_pk_per_copy_is_one_explanation_with_an_order_count_and_no_flag():
+    recs = rows(["P1", "P2", "P3"])
+    groups = group_explanations(recs)
+    assert len(groups) == 1 and [r.record_id for r in groups[0]] == ["dev#r1", "dev#r2", "dev#r3"]
+    (res,) = duplicates.apply(recs, [fake_result(recs[0])])
+    assert res["facts"]["n_rows"] == 3 and res["facts"]["n_orders"] == 3
+    assert [s["pk"] for s in res["facts"]["source_rows"]] == ["P1", "P2", "P3"]
+    assert codes(res) == set() and res["judgment"]["recommendation"] == "PASSED_CHECKS"
 
 
-def test_row_negative_one_feature_differs():
-    a = record("DETENTION $50.00", "50", rid="dev#r1")
-    b = record("DETENTION $50.00", "55", rid="dev#r2"); b.row_number = 2     # same text, different Delta
-    res = duplicates.apply([a, b], [fake_result(x, ["DETENTION_STORAGE.DRIVER_DETENTION"]) for x in (a, b)])
-    assert not any(c.startswith("DUP.ROW") for r in res for c in codes(r))
+def test_repeated_pk_is_flagged():
+    recs = rows(["P1", "P1"])
+    (res,) = duplicates.apply(recs, [fake_result(recs[0])])
+    f = next(f for f in res["judgment"]["flags"] if f["code"] == "SHIP.COPY.SAME_OR_NO_PK")
+    assert f["evidence"][0]["rows_repeating_a_pk"] == ["dev#r2"] and res["judgment"]["recommendation"] == "HUMAN_REVIEW"
+    assert res["facts"]["n_orders"] == 1
 
 
-def test_invoice_same_charge_later_dispute_flagged_first_not():
-    a = record("LIFTGATE $15.00", "15", rid="dev#r1")
-    b = record("LIFTGATE AGAIN $15.00", "15", rid="dev#r2"); b.row_number = 2
-    res = duplicates.apply([a, b], [fake_result(a, ["ACCESSORIAL.LIFTGATE"]), fake_result(b, ["ACCESSORIAL.LIFTGATE"])])
-    assert "DUP.INVOICE.SAME_CHARGE" not in codes(res[0])
-    f = next(f for f in res[1]["judgment"]["flags"] if f["code"] == "DUP.INVOICE.SAME_CHARGE")
-    assert f["points_to"] == "dev#r1"
+def test_empty_pk_is_flagged():
+    recs = rows(["P1", None])
+    (res,) = duplicates.apply(recs, [fake_result(recs[0])])
+    f = next(f for f in res["judgment"]["flags"] if f["code"] == "SHIP.COPY.SAME_OR_NO_PK")
+    assert f["evidence"][0]["rows_without_pk"] == ["dev#r2"]
 
 
-def test_invoice_negative_other_invoice_or_other_code_or_tax():
-    a = record("LIFTGATE $15.00", "15", rid="dev#r1", invoice="I1")
-    b = record("LIFTGATE $15.00 AGAIN", "15", rid="dev#r2", invoice="I2"); b.row_number = 2
-    res = duplicates.apply([a, b], [fake_result(a, ["ACCESSORIAL.LIFTGATE"]), fake_result(b, ["ACCESSORIAL.LIFTGATE"])])
-    assert not any("DUP.INVOICE.SAME_CHARGE" in codes(r) for r in res)
-    a = record("LIFTGATE $15.00 + GST", "15", rid="dev#r1")
-    b = record("INSIDE DELIVERY $13.00 + GST", "13", rid="dev#r2"); b.row_number = 2
-    res = duplicates.apply([a, b], [fake_result(a, ["ACCESSORIAL.LIFTGATE", "TAX.GST"]),
-                                    fake_result(b, ["ACCESSORIAL.INSIDE_DELIVERY", "TAX.GST"])])
-    assert not any("DUP.INVOICE.SAME_CHARGE" in codes(r) for r in res)
+def test_single_row_without_pk_is_not_a_copy():
+    recs = rows([None])
+    (res,) = duplicates.apply(recs, [fake_result(recs[0])])
+    assert codes(res) == set() and res["facts"]["n_orders"] == 0
 
 
-def test_same_charge_twice_within_one_dispute():
-    a = record("LIFTGATE $15.00 LIFTGATE $15.00", "30", rid="dev#r1")
-    res = duplicates.apply([a], [fake_result(a, ["ACCESSORIAL.LIFTGATE", "ACCESSORIAL.LIFTGATE"])])
-    f = next(f for f in res[0]["judgment"]["flags"] if f["code"] == "DUP.INVOICE.SAME_CHARGE")
-    assert f["evidence"][0]["same_dispute"] is True
+def test_delta_is_not_part_of_the_key_but_event_date_and_text_are():
+    recs = rows(["P1", "P2"], deltas=["50", "55"])            # same text, different Delta: one explanation (C4)
+    assert len(group_explanations(recs)) == 1
+    later = rows(["P1", "P2"])
+    later[1].event_date = datetime(2022, 3, 9, 10, 0)          # same text on another day: two explanations
+    assert len(group_explanations(later)) == 2
+    other = rows(["P1", "P2"])
+    other[1].text_raw = "DETENTION $55.00"
+    assert len(group_explanations(other)) == 2
+    spaced = rows(["P1", "P2"])
+    spaced[1].text_raw = "DETENTION   $50.00 "                 # normalised text: spacing does not split
+    assert len(group_explanations(spaced)) == 1
+    assert duplicates.content_key(recs[0]) == duplicates.content_key(recs[1])
 
 
-def test_different_other_charges_are_not_duplicates_and_unchecked_readings_are_marked():
-    """Audit M5."""
-    a = record("YARD ESCORT $50", "50", rid="dev#r1")
-    b = record("GATE PASS $50", "50", rid="dev#r2"); b.row_number = 2
-    ra, rb = fake_result(a, ["OTHER"]), fake_result(b, ["OTHER"])
-    ra["facts"]["reading"]["numbers"][0]["other_phrase"] = "YARD ESCORT"
-    rb["facts"]["reading"]["numbers"][0]["other_phrase"] = "GATE PASS"
-    res = duplicates.apply([a, b], [ra, rb])
-    assert not any("DUP.INVOICE.SAME_CHARGE" in codes(r) for r in res)
-    c = record("LIFTGATE $15", "15", rid="dev#r3"); c.row_number = 3
-    rc = fake_result(c, ["ACCESSORIAL.LIFTGATE"]); rc["facts"]["parse_status"] = "FAILED_CHECKS"
-    res = duplicates.apply([c], [rc])
-    assert "DUP.INVOICE.NOT_CHECKED" in codes(res[0])
+def test_different_shipments_never_merge():
+    a, b = rows(["P1", "P2"])
+    b.shipment_key = "S2"
+    assert len(group_explanations([a, b])) == 2
 
 
-def test_missing_event_date_does_not_crash():
-    """Audit M2."""
-    a = record("LIFTGATE $15.00", "15", rid="dev#r1")
-    b = record("LIFTGATE AGAIN $15.00", "15", rid="dev#r2"); b.row_number = 2; b.event_date = None
-    duplicates.apply([a, b], [fake_result(a, ["ACCESSORIAL.LIFTGATE"]), fake_result(b, ["ACCESSORIAL.LIFTGATE"])])
+def test_mock_r3_loader_maps_order_id_to_pk(tmp_path, monkeypatch):
+    import json
+    from freight_lineitems import records
+    p = tmp_path / "m.jsonl"
+    base = {"shipment_id": "S", "event_date": "2026-01-03T19:00:00Z", "shipment_amount": 10.0, "origin_state": "TX",
+            "destination_state": "NM", "reason_code": "X", "carrier": "C", "text": "FEE $5.00", "delta": 5.0, "invoice_amount": 15.0}
+    p.write_text("\n".join(json.dumps(base | {"row_id": f"R{i}", "order_id": o, "active": act}) for i, (o, act) in
+                           enumerate([("O1", True), ("O2", True), ("O3", False)])))
+    monkeypatch.setattr(records, "assert_readable", lambda x: x)
+    rs = records.load_mock_r3(p)
+    assert [r.pk for r in rs] == ["O1", "O2"] and len(group_explanations(rs)) == 1
+
+
+def test_pk_normalised_before_comparing_p35():
+    assert duplicates.normalize_pk(" ord-00123 ") == duplicates.normalize_pk("ORD-123") == "ORD-123"
+    assert duplicates.normalize_pk("PO 0077") == "PO77" and duplicates.normalize_pk("000") == "0"
+    assert duplicates.normalize_pk(None) == "" and duplicates.normalize_pk("  ") == ""
+    recs = rows(["AB-0042", "ab-42"])
+    (res,) = duplicates.apply(recs, [fake_result(recs[0])])
+    assert "SHIP.COPY.SAME_OR_NO_PK" in codes(res) and res["facts"]["n_orders"] == 1
+    distinct = rows(["AB-0042", "AB-0043"])
+    (res,) = duplicates.apply(distinct, [fake_result(distinct[0])])
+    assert codes(res) == set() and res["facts"]["n_orders"] == 2

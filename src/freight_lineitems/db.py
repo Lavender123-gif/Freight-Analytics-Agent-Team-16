@@ -3,10 +3,12 @@
 - Tables are created from the YAML (column names and types), so the schema file stays the single definition.
 - `write_run` stores one pipeline run: source rows as read (raw layer), our facts, every attempt (process layer),
   flags and assessments (judgment layer). Nothing is updated in place; a new run adds rows.
-- `export_facts` is the downstream export: only disputes whose parse passed the mandatory checks, agrees with Delta
-  (MATCH_FIRST / MATCH_AFTER_REVISION) AND carries no attention or return flag (recommendation PASSED_CHECKS).
-  Anything a reviewer still has to look at (copies, injection suspects, inconsistencies, no anchor) stays in the
-  review view until a reviewer clears it (decisions 3.9, 5.4; user decision 11-10; audit H2).
+- `export_facts` is the downstream export: only disputes whose parse passed the mandatory checks AND carry no
+  attention or return flag (recommendation PASSED_CHECKS). Anything a reviewer still has to look at (copies,
+  injection suspects, inconsistencies) stays in the review view until a reviewer clears it (decisions 3.9, 5.4;
+  audit H2). Task 14 C1: agreement with the Excel Delta column is no longer a condition (Delta is not a fact).
+- Delta, Invoice Amount and Invoice Dups Removed are stored as read, as the client's Excel baseline for evaluation
+  only (task 14 C2); `parse_run.delta_consistency` and `parse_attempt.delta_check` are no longer written.
 - `export_review` is the reviewer's view: every dispute, every attempt, every flag.
 The database lives under data/ (git-ignored).
 """
@@ -24,13 +26,13 @@ from pathlib import Path
 import yaml
 
 from freight_lineitems.checks import region_value
+from freight_lineitems.claim import is_counted
 from freight_lineitems.config import CONFIG_DIR, ROOT, versions
 from freight_lineitems.duplicates import content_key
 from freight_lineitems.textprep import normalize
 
 SCHEMA_PATH = CONFIG_DIR / "schema_v1.yaml"
 DB_PATH = ROOT / "data" / "interim" / "freight.sqlite"
-DOWNSTREAM_OK = ("MATCH_FIRST", "MATCH_AFTER_REVISION")
 SHARED_TABLES = {"import_batch", "shipment", "carrier_invoice", "bill_record"}
 SQL_TYPES = {"TEXT": "TEXT", "INTEGER": "INTEGER", "DECIMAL": "TEXT", "BOOLEAN": "INTEGER", "TIMESTAMP": "TEXT",
              "DATE": "TEXT", "JSON": "TEXT"}
@@ -105,16 +107,21 @@ def write_run(con, run_id: str, source_name: str, records: list, results: list[d
          "code_version": _git(), "taxonomy_version": v["taxonomy"], "rules_version": v["rules"],
          "diagnostics_catalog_version": v["rules"], "prompt_version": v["skill_sha"], "model_id": model_settings.get("model"),
          "experiment_arm": "MAIN", "max_repair_rounds": rules_cfg["agent"]["max_repair_rounds"],
-         "max_delta_feedback_rounds": rules_cfg["agent"]["max_delta_feedback_rounds"], "model_settings": model_settings})
+         "max_delta_feedback_rounds": None, "model_settings": model_settings})
     res = {r["record_id"]: r for r in results}
+    # task 14 / T12-02: one result per explanation; the other rows of the explanation are order copies of it
+    rep_of = {s["record_id"]: r["record_id"] for r in results for s in r["facts"].get("source_rows", [])}
     ranks: dict[str, int] = {}
     for r in sorted(records, key=lambda r: r.row_number):
         k = content_key(r)
         ranks[r.record_id] = ranks.get(k, 0) + 1
         ranks[k] = ranks[r.record_id]
+    copies = []
     for r in records:
         out = res.get(r.record_id)
         if out is None:
+            if r.record_id in rep_of:
+                copies.append(r)
             continue
         f, j, p = out["facts"], out["judgment"], out["process"]
         srid = f"{batch_id}:{r.row_number}"
@@ -137,7 +144,9 @@ def write_run(con, run_id: str, source_name: str, records: list, results: list[d
         _ins(con, "dispute", {"dispute_id": did, "first_source_row_id": srid, "shipment_gid": r.shipment_key,
              "carrier_invoice_id": r.invoice_key, "pk": r.pk, "event_time": str(r.event_date),
              "description_sha256": f["text_sha256"], "description_redacted": f["text_redacted"],
-             "n_redactions": None, "invoice_amount": str(r.invoice_amount), "delta": str(r.delta),
+             "n_redactions": None, "invoice_amount": _str(r.invoice_amount), "delta": _str(r.delta),
+             "invoice_dups_removed": _str(r.invoice_dups_removed), "n_rows": f.get("n_rows", 1),
+             "n_orders": f.get("n_orders", 1 if r.pk else 0),
              "currency": f["currency"], "currency_basis": f["currency_basis"], "reason_code": r.reason_code,
              "content_key": content_key(r), "copy_rank": ranks[did], "created_in_batch_id": batch_id,
              "row_number": r.row_number})
@@ -156,7 +165,7 @@ def write_run(con, run_id: str, source_name: str, records: list, results: list[d
         attempts = p.get("attempts", [])
         fin = (p.get("final") or {}).get("attempt_no")
         _ins(con, "parse_run", {"parse_run_id": prid, "run_id": run_id, "dispute_id": did, "status": f["parse_status"],
-             "delta_consistency": f["delta_consistency"], "n_attempts": len(attempts),
+             "delta_consistency": None, "n_attempts": len(attempts),
              "first_attempt_id": f"{prid}:1" if attempts else None,
              "final_attempt_id": f"{prid}:{fin}" if fin else None, "reused_from_parse_run_id": None})
         text = f["text_redacted"]
@@ -166,9 +175,9 @@ def write_run(con, run_id: str, source_name: str, records: list, results: list[d
             sub = a["raw_submission"] or {}
             _ins(con, "parse_attempt", {"attempt_id": aid, "parse_run_id": prid, "attempt_no": a["attempt_no"],
                  "llm_input": p["transcript"]["first_user_message"] if a["attempt_no"] == 1 else None,
-                 "feedback_given": a.get("feedback_given"), "raw_submission": sub,
+                 "feedback_given": None, "raw_submission": sub,
                  "response_type": a.get("response_type"), "claimed_total": a["claim"]["signed_sum"] if a.get("claim") else None,
-                 "counted_sum": a["claim"]["signed_sum"] if a.get("claim") else None, "delta_check": a.get("delta_check"),
+                 "counted_sum": a["claim"]["signed_sum"] if a.get("claim") else None, "delta_check": None,
                  "failed_checks": [e["code"] for e in a["repair_errors"]], "model_id": model_settings.get("model"),
                  "started_at": now, "usage": [c["usage"] for c in calls] if a["attempt_no"] == 1 else [],
                  "reason": sub.get("reason"), "repair_errors": a["repair_errors"]})
@@ -180,7 +189,7 @@ def write_run(con, run_id: str, source_name: str, records: list, results: list[d
                                                      for x in sub.get("unrecognized_reads", [])]
             for jn in judged:
                 _ins(con, "number_reading", {"attempt_id": aid, "token_id": jn["id"], "digits_read": jn.get("digits_read"),
-                     "kind": jn["kind"], "status": jn["status"], "counted_in_claim": jn["status"] in ("CLAIMED", "UNPAID"),
+                     "kind": jn["kind"], "status": jn["status"], "counted_in_claim": is_counted(jn["kind"], jn["status"]),
                      "evidence_span": _span(text, jn.get("evidence_phrase")), "exclusion_reason_span": _span(text, jn.get("exclusion_phrase")),
                      "is_credit": jn.get("is_credit"), "evidence_phrase": jn.get("evidence_phrase"),
                      "exclusion_phrase": jn.get("exclusion_phrase")})
@@ -206,7 +215,7 @@ def write_run(con, run_id: str, source_name: str, records: list, results: list[d
                      "computed_value": None, "holds": None})
         for k, fl in enumerate(j["flags"]):
             _ins(con, "flag", {"flag_id": f"{prid}:f{k}", "run_id": run_id, "code": fl["code"],
-                 "level": "ROW" if fl["code"].startswith("DUP.ROW") else "INVOICE" if fl["code"].startswith("DUP.INVOICE")
+                 "level": "ROW" if fl["code"].startswith("SHIP.COPY") else "SHIPMENT" if fl["code"].startswith("SHIP.ROLLUP")
                  else "PARSE", "target_type": "DISPUTE", "target_id": did, "dispute_id": did,
                  "severity": fl["severity"].upper(), "origin": fl["origin"], "points_to_dispute_id": fl.get("points_to"),
                  "points_to_line_item_id": None,
@@ -215,23 +224,75 @@ def write_run(con, run_id: str, source_name: str, records: list, results: list[d
         _ins(con, "dispute_assessment", {"run_id": run_id, "dispute_id": did, "recommendation": j["recommendation"],
              "decisive_flag_ids": j["decisive_flags"], "history_status": "HISTORY_NOT_AVAILABLE",
              "return_draft": j.get("return_draft")})
+    for r in copies:           # an order copy keeps its own raw row and links to the explanation's dispute
+        srid = f"{batch_id}:{r.row_number}"
+        rf = hashlib.sha256(json.dumps({k: v for k, v in r.raw.items() if k not in ("Dispute Status", "Invoice Dups Removed")},
+                                       sort_keys=True, default=str).encode()).hexdigest()[:16]
+        _ins(con, "source_row", {"source_row_id": srid, "batch_id": batch_id, "row_number": r.row_number,
+             "raw_columns": r.raw, "row_fingerprint": rf})
+        if r.pk:
+            _ins(con, "bill_record", {"pk": r.pk, "invoice_bill_id": r.raw.get("Invoice/Bill ID"), "pk_date": None,
+                 "carrier_invoice_id": r.invoice_key, "shipment_gid": r.shipment_key})
+        _ins(con, "dispute_source_row", {"dispute_id": rep_of[r.record_id], "source_row_id": srid, "link_type": "ORDER_COPY"})
     con.commit()
 
 
+def write_shipments(con, run_id: str, ships: list[dict]) -> None:
+    """Store the shipment results of one run (task 20): one shipment_result row per shipment, one shipment_line row
+    per line. `ships` are rollup results with client names (pipeline.finish_batch)."""
+    for sh in ships:
+        _ins(con, "shipment_result", {
+            "run_id": run_id, "shipment_gid": sh["shipment_key"], "schema_version": sh.get("schema_version"),
+            "sap_bol": sh.get("sap_bol"), "original_amount": sh["original_amount"], "default_change": sh["default_change"],
+            "new_total": sh["new_total"], "other_readings": sh["other_readings"], "items_total": sh.get("items_total"),
+            "stated_amount_due": sh.get("stated_amount_due"), "gap": sh.get("gap"), "complete": int(sh["complete"]),
+            "prior_history_status": (sh.get("prior_history") or {}).get("status"),
+            "relation_undecided": int(bool(sh.get("relation_undecided"))), "recommendation": sh["recommendation"],
+            "result": sh})
+        for ln in sh["lines"]:
+            _ins(con, "shipment_line", {
+                "run_id": run_id, "line_id": ln["line_id"], "shipment_gid": sh["shipment_key"],
+                "dispute_id": ln["explanation"], "number_id": ln["number_id"], "amount": ln["amount"],
+                "internal_codes": ln["codes"], "client_name": ln.get("client_name"), "is_tax": int(ln["is_tax"]),
+                "status": ln["status"], "replaced_by": ln["replaced_by"], "added_by_code": int(ln["added_by_code"])})
+    con.commit()
+
+
+def export_reviewer_decisions(con, path: Path | None = None) -> str:
+    """Reviewer feedback as CSV (task 20 section 2.5): every row of `reviewer_decision`, oldest first, the columns of
+    schema_v1.yaml in that order. Returns the CSV text; also writes it to `path` when given. Field meanings:
+    docs/shipment_output_contract.md section 6."""
+    import csv
+    import io
+    cols = _cols("reviewer_decision")
+    order = "decided_at, decision_id" if "decided_at" in cols else "decision_id"
+    rows = con.execute(f'SELECT {", ".join(chr(34) + c + chr(34) for c in cols)} FROM reviewer_decision ORDER BY {order}').fetchall()
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator="\n")
+    w.writerow(cols)
+    w.writerows(["" if v is None else v for v in r] for r in rows)
+    if path is not None:
+        Path(path).write_text(buf.getvalue())
+    return buf.getvalue()
+
+
+def _str(x) -> str | None:
+    return None if x is None else str(x)
+
+
 def export_facts(con, run_id: str) -> list[dict]:
-    """Downstream export (fact layer only): consistent, passed disputes; their final line items with currency."""
-    q = """SELECT d.dispute_id, d.shipment_gid, d.carrier_invoice_id, d.currency, d.currency_basis, pr.final_attempt_id,
-                  pr.delta_consistency
+    """Downstream export (fact layer only): passed disputes with no flag a person must look at; their final line
+    items with currency."""
+    q = """SELECT d.dispute_id, d.shipment_gid, d.carrier_invoice_id, d.currency, d.currency_basis, pr.final_attempt_id
            FROM parse_run pr JOIN dispute d ON d.dispute_id = pr.dispute_id
            JOIN dispute_assessment a ON a.dispute_id = pr.dispute_id AND a.run_id = pr.run_id
-           WHERE pr.run_id = ? AND pr.status = 'PASSED_CHECKS' AND pr.delta_consistency IN (?, ?)
-             AND a.recommendation = 'PASSED_CHECKS'"""
+           WHERE pr.run_id = ? AND pr.status = 'PASSED_CHECKS' AND a.recommendation = 'PASSED_CHECKS'"""
     out = []
-    for row in con.execute(q, (run_id, *DOWNSTREAM_OK)).fetchall():
+    for row in con.execute(q, (run_id,)).fetchall():
         items = con.execute("""SELECT line_item_id, amount, is_credit, charge_code, combined_group, raw_charge_label,
                                carrier_stated_basis_type FROM line_item WHERE attempt_id = ?""", (row[5],)).fetchall()
         out.append({"dispute_id": row[0], "shipment_gid": row[1], "carrier_invoice_id": row[2], "currency": row[3],
-                    "currency_basis": row[4], "delta_consistency": row[6],
+                    "currency_basis": row[4],
                     "line_items": [dict(zip(["line_item_id", "amount", "is_credit", "charge_code", "combined_group",
                                              "raw_charge_label", "carrier_stated_basis_type"], it)) for it in items]})
     return out
@@ -239,7 +300,7 @@ def export_facts(con, run_id: str) -> list[dict]:
 
 def export_review(con, run_id: str) -> list[dict]:
     """Reviewer view: every dispute with its assessment and flags (attempts are in parse_attempt)."""
-    q = """SELECT d.dispute_id, d.carrier_invoice_id, d.description_redacted, pr.status, pr.delta_consistency,
+    q = """SELECT d.dispute_id, d.carrier_invoice_id, d.description_redacted, pr.status,
                   a.recommendation FROM dispute d JOIN parse_run pr ON pr.dispute_id = d.dispute_id
                   JOIN dispute_assessment a ON a.dispute_id = d.dispute_id AND a.run_id = pr.run_id WHERE pr.run_id = ?"""
     out = []
@@ -247,7 +308,7 @@ def export_review(con, run_id: str) -> list[dict]:
         fl = con.execute("SELECT code, severity, points_to_dispute_id FROM flag WHERE run_id = ? AND dispute_id = ?",
                          (run_id, r[0])).fetchall()
         out.append({"dispute_id": r[0], "carrier_invoice_id": r[1], "text_redacted": r[2], "parse_status": r[3],
-                    "delta_consistency": r[4], "recommendation": r[5],
+                    "recommendation": r[4],
                     "flags": [{"code": c, "severity": s, "points_to": p} for c, s, p in fl]})
     return out
 

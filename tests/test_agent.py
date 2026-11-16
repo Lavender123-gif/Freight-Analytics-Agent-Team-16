@@ -1,7 +1,8 @@
 """P3 blind parsing and L1 agent loop, with a scripted fake client (no API calls).
 
-Checks: Delta never reaches the model (schema, prompt, tools, every request actually built); the model is told only
-'inconsistent'; it may insist or revise; every attempt is kept, the first included."""
+Checks: Delta never reaches the model (schema, prompt, tools, every request actually built); a submission that passes
+the mandatory checks ends the session whatever the Excel columns say (task 14 C1: no comparison with Delta, no
+'inconsistent' feedback); a failed check is returned for repair; every attempt is kept, the first included."""
 
 import json
 from decimal import Decimal
@@ -9,7 +10,8 @@ from decimal import Decimal
 import anthropic
 
 from freight_lineitems import budget
-from freight_lineitems.agent import INCONSISTENT_MESSAGE, DeltaJudge, Session, run_agent
+from freight_lineitems import agent as agent_module
+from freight_lineitems.agent import Session, run_agent
 from freight_lineitems.pipeline import assemble, prepare, render_examples
 from freight_lineitems.schemas import LLMInput
 from freight_lineitems.tools import TOOLS
@@ -43,7 +45,7 @@ class FakeClient:
 def run(text, delta, script):
     rec = record(text, delta)
     prep = prepare(rec)
-    sess = Session(ctx=prep["ctx"], judge=DeltaJudge(rec.delta), llm_input=prep["llm_input"])
+    sess = Session(ctx=prep["ctx"], llm_input=prep["llm_input"])
     fc = FakeClient(script)
     tr = run_agent(sess, "SYSTEM", fc, {"model": "claude-sonnet-5-5", "max_tokens": 100}, budget.UsageBook(), [], set(), None)
     return prep, sess, tr, fc
@@ -63,50 +65,53 @@ def test_skill_and_tools_never_mention_delta():
 
 
 def test_delta_value_never_appears_in_any_request():
-    _, sess, tr, fc = run("DRIVER DETENTION CHG $41.20", "987.65", [("submit_line_items", GOOD), ("submit_line_items", dict(GOOD, response_type="INSISTED", reason="text says 41.20"))])
+    _, sess, tr, fc = run("DRIVER DETENTION CHG $41.20", "987.65", [("submit_line_items", GOOD)])
     blob = json.dumps(fc.requests)
     assert "987.65" not in blob and "987" not in blob.replace("987.65", "")
-    assert sess.final["delta_consistency"] == "MISMATCH_MODEL_INSISTED"
+    assert sess.final == {"status": "PASSED_CHECKS", "attempt_no": 1}
 
 
-def test_match_first_passes():
-    _, sess, _, fc = run("DRIVER DETENTION CHG $41.20", "41.20", [("submit_line_items", GOOD)])
-    assert sess.final == {"status": "PASSED_CHECKS", "delta_consistency": "MATCH_FIRST", "attempt_no": 1}
-    assert len(fc.requests) == 1
+def test_passing_checks_ends_the_session_whatever_delta_says():
+    """Task 14 C1: a reading that differs from the Excel Delta is accepted; nothing is fed back to the model."""
+    for delta in ("41.20", "50.00", "0"):
+        _, sess, tr, fc = run("DRIVER DETENTION CHG $41.20", delta, [("submit_line_items", GOOD), ("submit_line_items", GOOD)])
+        assert sess.final == {"status": "PASSED_CHECKS", "attempt_no": 1}
+        assert len(fc.requests) == 1
+        assert json.loads(tr["calls"][0]["tool_results"][0]["content"]) == {"accepted": True}
+        assert "inconsistent" not in json.dumps([c.get("tool_results") for c in tr["calls"]]).lower()
 
 
-def test_inconsistent_feedback_is_only_the_fixed_message():
-    _, sess, tr, _ = run("DRIVER DETENTION CHG $41.20", "50.00", [("submit_line_items", GOOD)])
-    res = json.loads(tr["calls"][0]["tool_results"][0]["content"])
-    assert res == {"accepted": False, "result": "inconsistent", "message": INCONSISTENT_MESSAGE, "resubmissions_left": 1}
-    assert sess.attempts[0]["feedback_given"] == INCONSISTENT_MESSAGE
+def test_no_delta_machinery_left():
+    from freight_lineitems.config import RULES
+    assert not hasattr(agent_module, "DeltaJudge") and not hasattr(agent_module, "INCONSISTENT_MESSAGE")
+    assert not [c for c in RULES["flags"] if c.startswith("CLAIM.DELTA.") or c.startswith("REC.FIELD.DELTA_")]
+    assert "max_delta_feedback_rounds" not in RULES["agent"]
 
 
-def test_revision_after_feedback_keeps_first_attempt_and_flags_changes():
+def test_revision_after_a_failed_check_keeps_the_first_attempt():
     text = "FEE $10.00 AND FEE $12.00"
-    first = S([N("#1", ev="FEE"), N("#2", ev="FEE")], [L("#1"), L("#2")])
-    second = S([N("#1", ev="FEE"), N("#2", status="PAID", ev="FEE", excl="FEE")], [L("#1")], rtype="REVISED", reason="#2 is history")
-    prep, sess, tr, _ = run(text, "10.00", [("submit_line_items", first), ("submit_line_items", second)])
-    assert sess.final["delta_consistency"] == "MATCH_AFTER_REVISION"
-    assert [a["delta_check"] for a in sess.attempts] == ["MISMATCH", "MATCH"]
-    assert sess.attempts[0]["raw_submission"] == first          # first attempt kept, not overwritten
+    bad = S([N("#1", ev="NOT IN TEXT"), N("#2", ev="FEE")], [L("#1"), L("#2")])
+    good = S([N("#1", ev="FEE"), N("#2", ev="FEE")], [L("#1"), L("#2")], rtype="REVISED", reason="evidence fixed")
+    prep, sess, tr, _ = run(text, "10.00", [("submit_line_items", bad), ("submit_line_items", good)])
+    assert sess.final == {"status": "PASSED_CHECKS", "attempt_no": 2}
+    assert sess.attempts[0]["raw_submission"] == bad and not sess.attempts[0]["checks_passed"]
     out = assemble(prep, {"session": sess, "transcript": tr})
-    codes = {f["code"] for f in out["judgment"]["flags"]}
-    assert {"CLAIM.DELTA.FIRST_MISMATCH", "CLAIM.DELTA.MATCH_AFTER_REVISION", "CLAIM.ATTEMPT.STATUS_CHANGED"} <= codes
-    assert out["judgment"]["recommendation"] == "HUMAN_REVIEW"
-    assert out["facts"]["first_check"] == "MISMATCH"
+    assert not [f for f in out["judgment"]["flags"] if f["code"].startswith("CLAIM.DELTA")]
+    assert "delta_consistency" not in out["facts"] and "first_check" not in out["facts"]
 
 
 def test_insisted_must_be_unchanged_and_reason_required():
     text = "FEE $10.00 AND FEE $12.00"
     first = S([N("#1", ev="FEE"), N("#2", ev="FEE")], [L("#1"), L("#2")])
     changed = S([N("#1", ev="FEE"), N("#2", status="PAID", ev="FEE", excl="FEE")], [L("#1")], rtype="INSISTED", reason="x")
-    _, sess, tr, _ = run(text, "10.00", [("submit_line_items", first), ("submit_line_items", changed)])
+    bad = S([N("#1", ev="NOT IN TEXT"), N("#2", ev="FEE")], [L("#1"), L("#2")])
+    first_changed = dict(changed, numbers=[N("#1", ev="FEE"), N("#2", ev="FEE")], line_items=[L("#1"), L("#2")])
+    _, sess, tr, _ = run(text, "10.00", [("submit_line_items", bad), ("submit_line_items", first_changed)])
     res = json.loads(tr["calls"][1]["tool_results"][0]["content"])
     assert res["result"] == "checks_failed" and res["errors"][0]["code"] == "RUN.SUBMIT.INSISTED_BUT_CHANGED"
-    _, sess, tr, _ = run(text, "10.00", [("submit_line_items", first), ("submit_line_items", dict(first, response_type="INSISTED"))])
+    _, sess, tr, _ = run(text, "10.00", [("submit_line_items", bad), ("submit_line_items", dict(bad, response_type="INSISTED"))])
     res = json.loads(tr["calls"][1]["tool_results"][0]["content"])
-    assert res["errors"][0]["code"] == "RUN.SUBMIT.REASON_MISSING"
+    assert "RUN.SUBMIT.REASON_MISSING" in {e["code"] for e in res["errors"]}
 
 
 def test_repairs_exhausted_fail_explicitly():
@@ -125,9 +130,12 @@ def test_no_submission_is_flagged_not_dropped():
     assert len(fc.requests) == 2      # one nudge, then stop
 
 
-def test_zero_delta_has_no_anchor_and_empty_text_still_reaches_the_model():
-    _, sess, _, fc = run("", "0", [("submit_line_items", S([], []))])
-    assert len(fc.requests) == 1 and sess.final["delta_consistency"] == "NO_ANCHOR"
+def test_empty_text_still_reaches_the_model_and_zero_delta_is_not_a_flag():
+    prep, sess, tr, fc = run("", "0", [("submit_line_items", S([], []))])
+    assert len(fc.requests) == 1 and sess.final["status"] == "PASSED_CHECKS"
+    out = assemble(prep, {"session": sess, "transcript": tr})
+    assert out["judgment"]["recommendation"] == "RETURN_SUGGESTED"       # REC.TEXT.EMPTY decides, not Delta
+    assert not [f for f in out["judgment"]["flags"] if "DELTA" in f["code"]]
 
 
 def test_tool_calls_dispatch():
@@ -143,27 +151,6 @@ def test_tool_calls_dispatch():
 def test_render_examples_contains_no_delta():
     ex = [{"example_id": "E1", "record_id": "x", "marked_text": "FEE [#1 $5]", "reading": {"a": 1}, "note": "n"}]
     assert "delta" not in render_examples(ex).lower()
-
-
-def test_judge_with_implied_tax():
-    from freight_lineitems.checks import ClaimCalc
-    c = ClaimCalc(counted_ids=["#1"], signed_sum=Decimal("20.00"), base_sum=Decimal("20.00"), tax_items_without_amount=1,
-                  expected_tax=Decimal("2.60"), totals={})
-    assert DeltaJudge(Decimal("22.60")).judge(c) == "MATCH"
-    assert DeltaJudge(Decimal("23.60")).judge(c) == "MISMATCH"
-
-
-def test_difference_matching_amounts_goes_to_reviewer_only():
-    """User requirement c: the gap equals one amount in the text; shown to the reviewer, never to the model."""
-    text = "LINE HAUL $2000 CHASSIS $100 STORAGE $60"
-    s = S([N("#1", codes=["LINEHAUL.BASE"], ev="LINE HAUL"), N("#2", codes=["DRAYAGE.CHASSIS"], ev="CHASSIS"),
-           N("#3", codes=["DETENTION_STORAGE.TERMINAL_STORAGE"], ev="STORAGE")], [L("#1"), L("#2"), L("#3")])
-    prep, sess, tr, fc = run(text, "2100.00", [("submit_line_items", s), ("submit_line_items", dict(s, response_type="INSISTED", reason="all listed"))])
-    out = assemble(prep, {"session": sess, "transcript": tr})
-    f = next(f for f in out["judgment"]["flags"] if f["code"] == "CLAIM.DELTA.DIFFERENCE_MATCHES_AMOUNTS")
-    assert f["evidence"][0]["matching_amounts"][0] == [{"id": "#3", "raw": "$60"}]
-    blob = json.dumps(fc.requests) + json.dumps([c.get("tool_results") for c in tr["calls"]])
-    assert "MATCHES_AMOUNTS" not in blob and "-60" not in blob and "2100" not in blob
 
 
 def test_schema_invalid_submission_is_returned_then_fails_explicitly():
@@ -182,8 +169,8 @@ def test_exception_mid_session_keeps_attempts():
             return super().create(**kw)
     rec = record("FEE $10.00 AND FEE $12.00", "10.00")
     prep = prepare(rec)
-    sess = Session(ctx=prep["ctx"], judge=DeltaJudge(rec.delta), llm_input=prep["llm_input"])
-    first = S([N("#1", ev="FEE"), N("#2", ev="FEE")], [L("#1"), L("#2")])
+    sess = Session(ctx=prep["ctx"], llm_input=prep["llm_input"])
+    first = S([N("#1", ev="NOT IN TEXT"), N("#2", ev="FEE")], [L("#1"), L("#2")])   # fails a check: a second call follows
     tr = run_agent(sess, "S", Boom([("submit_line_items", first)]), {"model": "m", "max_tokens": 10}, budget.UsageBook(), [], set(), None)
     assert len(sess.attempts) == 1 and len(tr["calls"]) == 1
     out = assemble(prep, {"session": sess, "transcript": tr})
@@ -197,7 +184,8 @@ def test_response_type_protocol():
     assert json.loads(tr["calls"][0]["tool_results"][0]["content"])["errors"][0]["code"] == "RUN.SUBMIT.RESPONSE_TYPE_INVALID"
     text = "FEE $10.00 AND FEE $12.00"
     first = S([N("#1", ev="FEE"), N("#2", ev="FEE")], [L("#1"), L("#2")])
-    _, sess, tr, _ = run(text, "10.00", [("submit_line_items", first), ("submit_line_items", dict(first, response_type="REVISED", reason="r"))])
-    assert json.loads(tr["calls"][1]["tool_results"][0]["content"])["errors"][0]["code"] == "RUN.SUBMIT.REVISED_BUT_UNCHANGED"
-    _, sess, tr, _ = run(text, "10.00", [("submit_line_items", first), ("submit_line_items", first)])
+    bad = S([N("#1", ev="NOT IN TEXT"), N("#2", ev="FEE")], [L("#1"), L("#2")])
+    _, sess, tr, _ = run(text, "10.00", [("submit_line_items", bad), ("submit_line_items", dict(bad, response_type="REVISED", reason="r"))])
+    assert "RUN.SUBMIT.REVISED_BUT_UNCHANGED" in {e["code"] for e in json.loads(tr["calls"][1]["tool_results"][0]["content"])["errors"]}
+    _, sess, tr, _ = run(text, "10.00", [("submit_line_items", bad), ("submit_line_items", first)])
     assert json.loads(tr["calls"][1]["tool_results"][0]["content"])["errors"][0]["code"] == "RUN.SUBMIT.RESPONSE_TYPE_INVALID"

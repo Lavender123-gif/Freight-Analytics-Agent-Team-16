@@ -118,8 +118,6 @@ class Status(str, Enum):
     NONE = "NONE"
 
 
-COUNTED_STATUSES = {Status.CLAIMED, Status.UNPAID}
-
 
 class BasisType(str, Enum):
     PPG_NOTIFIED = "PPG_NOTIFIED"
@@ -174,6 +172,15 @@ class Submission(Strict):
     line_items: list[LineItem]
     relations: list[Relation]
     unrecognized_reads: list[UnrecognizedRead]
+    # task 19. Three flat nullable strings (nested objects made the strict tool grammar too large for the API).
+    # Defaults keep readings stored before these fields valid; the tool schema still requires all three
+    # (tools._strictify drops defaults and marks every property required).
+    earlier_claim_quote: str | None = Field(
+        default=None, description="Verbatim words that mention an earlier claim for this shipment, or null (skill section 3)")
+    stated_amount_due_id: str | None = Field(
+        default=None, description="Id of the number the text presents as what is owed now in total, or null (skill section 3)")
+    stated_amount_due_evidence: str | None = Field(
+        default=None, description="Verbatim words that present that number as the amount due; null when stated_amount_due_id is null")
 
 
 # --------------------------------------------------------------------------------------------- diagnostics

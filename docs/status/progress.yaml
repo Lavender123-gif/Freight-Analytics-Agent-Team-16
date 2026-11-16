@@ -17,7 +17,7 @@
 #   why        为什么是这个状态（对照计划里的完成标准）
 #
 meta:
-  updated: '2026-11-10'
+  updated: '2026-11-15'
   plan: docs/plan/2026-11-05_workload_v2.zh.md
   owner_rule: '默认取计划 5.1 的口径（写代码为主的归 CC，按人工估的归人工，依据是计划 1.2 节）。例外只有一类：计划按人工估、但完成标准要求的产出实际已由 CC 在自主运行里做出来的任务（S1、H1、U1、K1），负责方记 CC，并在 plan_mode 里保留计划原来的口径。仍归人工的是必须由人来做的事：人工标注（H2a）、测试集终测（V4，读测试集要项目负责人亲自打开开关）、和 Jake 沟通（J01）、汇报和彩排（D1、D2）。'
   status_rule: '计划里写的完成标准满足了才算“已做”；只做了一部分的记“未做”，并在 why 里写明已经有什么。第一段和第二段做完的任务都是“已做待验收”，项目负责人说验收了才改成“已验收”。'
@@ -105,7 +105,19 @@ tasks:
   owner: CC
   status: 已做待验收
   leg: 1
-  why: '两层查重已在 `src/`，公开 mock 现有的副本类事件都标出来了。完成标准里“mock 上正例全标出、反例不误标”目前只在现有 mock 上成立；M1 要补的正例和反例还没有，补了之后要再验一次。'
+  why: '两层查重已在 `src/`。任务 14 按客户的答复改了做法：订单副本合并成一条说明（只有 PK 相同或为空才打标识），发票内查重并入票货汇总的取代规则（新任务 R2）。M1 要补的正例和反例还没有。'
+- id: R2
+  name:
+    zh: 票货汇总层（客户答复后新增，T12-03）
+    en: Shipment roll-up (added after the client's answers, T12-03)
+  hours:
+  - 5
+  - 7
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: 3
+  why: 任务 14：`rollup.py` 八条规则；17 个合成用例、两个客户例子精确复现、开发集全量 813 票货每票都有默认总额（第一段报告）。
 - id: M1
   name:
     zh: '按新决定改 mock 的预期，补查重两层的正例和反例'
@@ -134,7 +146,7 @@ tasks:
   owner: CC
   status: 已做待验收
   leg: 1
-  why: '六个工具，说明写给模型读；5 条已脱敏的开发集例子在 git 忽略的文件里，仓库里另有 5 条合成例子。SKILL.md 本段调到 v1.2。'
+  why: '六个工具，说明写给模型读；5 条已脱敏的开发集例子在 git 忽略的文件里，仓库里另有 5 条合成例子。SKILL.md 本段调到 v1.2。任务 19 重组：读数 skill 改为核心 + 5 个专题说明（代码按特征挑），概念从 `rules.yaml` 的 `concepts` 生成；读数工具 4 个加筛查工具 1 个（删了查税、找示例）；新增注入筛查 skill。'
 - id: H1
   name:
     zh: '标注指南和抽样方法（标注包）'
@@ -153,7 +165,7 @@ tasks:
   plan_mode: human
   owner: 人工
   status: 未做
-  why: '标注本身还没有开始。已经有的：三个标注包、指南、导入脚本和一致率脚本（H1）。'
+  why: '三个标注包已交回（每包 45 条，合并后 105 条不同记录，三人共同标了 15 条）。完成标准要 20 条双人标，现在重叠的是 15 条（三人），所以仍记“未做”；标注定稿在任务 14 第三段做。'
 - id: H3
   name:
     zh: '模型“读得对不对”的评估'
@@ -161,8 +173,9 @@ tasks:
   hours: [3, 5]
   plan_mode: cc
   owner: CC
-  status: 未做
-  why: '要等 H2a 的标注结果。已经有的：指标脚本能直接读标注的导入格式，只用假标注自检过；门槛还没有写进卡片。'
+  status: 已做待验收
+  why: '任务 14 第三段：选定版本对定稿标注，主指标 82 / 82，门槛 ≥ 85%（事先写在 H3 卡）。见 T14 第二、三段报告第 3 节。'
+  leg: 3
 - id: V1
   name:
     zh: '评估框架和指标脚本；预留批次只用一次的规则'
@@ -183,6 +196,18 @@ tasks:
   status: 已做待验收
   leg: 2
   why: '两组结果和结论都有，门槛在跑之前写定。按事先的规则，结论是“不是每条门槛都达到”：T4（注入）没达到（标出 22 个，门槛 27 个）；T1、T2、T3、T5 达到。'
+- id: V6
+  name:
+    zh: 系统对 Excel 基线的对比（客户答复后新增，T12-15）
+    en: System vs the Excel baseline (added after the client's answers, T12-15)
+  hours:
+  - 3
+  - 4
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  why: 任务 14 第三段：两种基线，未归类 8.8% / 5.4%，门槛 15%（试跑之后写的）。见 T14 第二、三段报告第 4 节。
+  leg: 3
 - id: V4
   name:
     zh: '测试集终测，只跑一次'
@@ -221,7 +246,7 @@ tasks:
   owner: CC
   status: 已做待验收
   leg: 2
-  why: 'skill 文件夹、5 条合成例子、`docs/architecture.md`、根目录 README 都有。运行说明还没有由作者以外的人照着做过；课程对文件夹结构的要求请你对照一次。'
+  why: 'skill 文件夹、5 条合成例子、`docs/architecture.md`、根目录 README 都有。运行说明还没有由作者以外的人照着做过；课程对文件夹结构的要求请你对照一次。任务 19：skill README 改成一屏，`docs/architecture.md` 加了分工表，新增 `docs/reading_output_contract.md`。'
 - id: J01
   name:
     zh: '给 Jake 的问题：发送、跟进、回填'
@@ -229,8 +254,9 @@ tasks:
   hours: [4, 6]
   plan_mode: human
   owner: 人工
-  status: 未做
-  why: '完成标准要的是有回答并回填的跟踪表。现在只有清单：10 个问题写好了（`docs/client/jake_questions.md`），一个都还没有发。'
+  status: 已做待验收
+  why: '客户 11-13 回答了改写后的 9 个问题；任务 14 把答复转述回填进 `docs/client/jake_questions.md` 第 5 节，每题写了因此改了什么。'
+  leg: 3
 - id: D1
   name:
     zh: '中期进度汇报'
@@ -249,19 +275,46 @@ tasks:
   owner: 人工
   status: 未做
   why: '还没有开始；终测数字要等 V4。'
+- id: T20
+  name:
+    zh: 'MVP 收敛：汇总接进主流程、BALANCE DUE 和 gap、客户格式票货表、输出接口说明、扩展口、干净检出冒烟测试'
+    en: 'MVP wrap-up: roll-up in the main flow, BALANCE DUE and gap, client-format shipment table, output contracts, extension points, clean-checkout smoke test'
+  hours: [8, 12]
+  plan_mode: cc
+  owner: CC
+  status: 已做待验收
+  leg: T20
+  why: '任务 20 新增（不在 11 月 5 日计划里）。第 2 节全部做完：主流程和评估走同一个函数，重放和原评估完全一致；票货表格式按客户两个例子的合成版逐字符一致；两份接口说明；三个扩展口有接口、默认实现和测试；干净检出照 README 跑通。报告 `docs/deliverables/T20-mvp/01-report.zh.md`。任务 23 按 Codex 审计修正：贷记正负号由代码核对原文依据（F-01）；审核列表算上票货级提醒（F-02）；两份接口说明列全字段并有测试（F-03）；客户两个真实例子按客户写明的每一项比较，全部一致（F-04）；证据短语的匹配方式写明（F-05）。报告 `docs/deliverables/T23-audit-fixes/00-sync.zh.md`，标签 `mvp-v1.2`。'
+- id: X1
+  name:
+    zh: '跨批次历史和跨说明概念的实现'
+    en: 'Cross-batch history and the cross-explanation concepts'
+  hours: [8, 14]
+  plan_mode: cc
+  owner: CC
+  status: 未做
+  why: '任务 20 新增，下周做。现在只有扩展口 `rollup.PriorHistory`（默认“未提供”）和 `concepts` 里 6 个跨说明概念的定义。'
+- id: U3
+  name:
+    zh: '审核界面重做（按票货查看，接票货表）'
+    en: 'Review page redesign (by shipment, on the shipment table)'
+  hours: [6, 10]
+  plan_mode: cc
+  owner: CC
+  status: 未做
+  why: '任务 20 新增，下周做。现在的界面按发票列出；票货表已在每次运行的输出和库表里。'
 owner_actions:
-- 把问题清单发给 Jake（J01）：10 个问题已写好，英文部分可以整段发。
-- 安排两到三位组员做标注（H2a）：三个标注包已用最终的脱敏方式重新生成，每包 45 条、约 2 小时。
-- 验收第一段和第二段已做的 16 项任务：你说验收了，状态才从“已做待验收”改成“已验收”。
-- 定默认脱敏方式（P-20）：现在按事先的规则用白名单，有两个副作用（没见过的费用词会被遮住；模型报告注入的次数变少）；备选是退回公开人名表。定了之后才用最终版本重跑开发集全量（P-23，约 10 美元）。
-- 看护栏开和关的结论（P-21、P-22）：注入这一条没达到事先写的门槛（标出 22 个，门槛 27 个）；护栏的作用是让错误被看见，不是提高读对率。要不要加强注入检查、展示里怎么讲，由你定。
-- 确认看板上三处标着“建议，待确认”的分母口径：A1 到 A3 不进分母、F2 不进分母、V2 卡复用为护栏对比。
-- 定审核界面的“批准”按钮要不要改名（P-24），以及标注包“同一种模板最多 2 条”的上限要不要放宽（P-25）。
-- 定 mock 预期由谁改（M1，mock 归另一个代理维护）；中期汇报（D1）和期末展示（D2）由你和组员准备。
+- 任务 20：看 `docs/deliverables/T20-mvp/00-sync.zh.md`，定其中“需要用户定的事”。
+- 推送团队导出分支前先确认团队仓库是私有的；推送命令在任务 23 汇报里（`docs/deliverables/T23-audit-fixes/00-sync.zh.md`，导出分支已重建到 `mvp-v1.2`）。
+- 验收已做的任务：你说验收了，状态才从“已做待验收”改成“已验收”。
+- 定 mock 预期由谁改（M1）。
+- 中期汇报（D1）和期末展示（D2）由你和组员准备（任务 20 写了中期汇报稿 `docs/status/2026-11-16_midterm_report.md`）；测试集终测（V4）由你亲自打开开关。
 next_leg:
-  name: 第三段
-  assume_done: [M1, H2a, H3, J01]
-  note: 假设下一段 CC 做 M1 和 H3，人工一侧把标注（H2a）做完、Jake 的问题发出并回填（J01）。这是假设，不是承诺；H3 要等 H2a 的标注结果，J01 要等 Jake 回答。
+  name: 任务 20 之后（跨批次历史、审核界面重做）
+  assume_done:
+  - X1
+  - U3
+  note: 假设下一周做完跨批次历史和审核界面重做。这是假设，不是承诺。
 ledger:
   path: docs/autorun/budget_ledger.jsonl
   leg1_last_run_contains: frep3

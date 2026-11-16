@@ -15,7 +15,7 @@ from collections import Counter
 from freight_lineitems import budget
 from freight_lineitems.config import RUNS_DIR
 from freight_lineitems.pipeline import run_batch
-from freight_lineitems.records import load_dev, load_mock
+from freight_lineitems.records import load_dev, load_mock, load_mock_r3
 from freight_lineitems.sampling import stratified, style
 from freight_lineitems.tools import load_examples
 
@@ -31,7 +31,7 @@ def used_ids(run_ids: list[str]) -> set[str]:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("name")
-    ap.add_argument("--source", default="dev", choices=["dev", "mock"])
+    ap.add_argument("--source", default="dev", choices=["dev", "mock", "mock3", "mock4new"])
     ap.add_argument("--n", type=int, default=24)
     ap.add_argument("--seed", type=int, default=9)
     ap.add_argument("--exclude-runs", nargs="*", default=[])
@@ -42,6 +42,11 @@ def main():
 
     if a.source == "mock":
         recs = load_mock()
+    elif a.source == "mock3":
+        recs = load_mock_r3()
+    elif a.source == "mock4new":           # task 20 section 3: only the rows of the round-4 new events
+        from freight_lineitems.records import load_mock_r4
+        recs = load_mock_r4(rounds=("round_04_new",))
     else:
         dev = load_dev()
         ex = load_examples()
@@ -60,8 +65,7 @@ def main():
     print("run_id", run_id)
     print("recommendation", dict(Counter(r["judgment"]["recommendation"] for r in res)))
     print("parse_status", dict(Counter(r["facts"]["parse_status"] for r in res)))
-    print("delta_consistency", dict(Counter(r["facts"]["delta_consistency"] for r in res)))
-    print("first_check", dict(Counter(r["facts"]["first_check"] for r in res)))
+    print("explanations", len(res), "rows", sum(r["facts"].get("n_rows", 1) for r in res))
     print("spent now", f"${budget.spent_usd():.4f}")
 
 

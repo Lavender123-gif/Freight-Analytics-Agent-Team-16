@@ -13,6 +13,9 @@ from freight_lineitems.config import RULES
 from freight_lineitems.schemas import Diagnostic
 
 FLAG_RULES: dict = RULES["flags"]
+REVIEW_GROUPS: dict[str, list[str]] = RULES.get("review_groups", {})
+GROUP_OF = {c: g for g, cs in REVIEW_GROUPS.items() for c in cs}
+GROUP_RANK = {g: i for i, g in enumerate(REVIEW_GROUPS)}
 RECOMMENDATIONS = {"HUMAN_REVIEW": "建议人工审核", "RETURN_SUGGESTED": "建议退回承运商", "PASSED_CHECKS": "解析通过检查"}
 
 
@@ -33,6 +36,7 @@ def flags_from(diags: list[Diagnostic]) -> list[dict]:
             "paths": sorted({d.path for d in ds}),
             "evidence": [d.evidence for d in ds],
             "points_to": next((d.evidence.get("points_to_record_id") for d in ds if d.evidence.get("points_to_record_id")), None),
+            "review_group": GROUP_OF.get(code),
         })
     present = set(groups)
     for f in out:   # rules.yaml `subsumption`: implied by a code-decided fact on the same record -> shown as info
@@ -40,7 +44,8 @@ def flags_from(diags: list[Diagnostic]) -> list[dict]:
         if by and f["severity"] != "info":
             f["severity_before_subsumption"], f["severity"], f["subsumed_by"] = f["severity"], "info", by
     order = {"attention": 0, "return": 1, "info": 2}
-    return sorted(out, key=lambda f: (order[f["severity"]], f["code"]))
+    # task 14 C6: within a severity, internal inconsistencies first, then unclear wording, then the rest
+    return sorted(out, key=lambda f: (order[f["severity"]], GROUP_RANK.get(f["review_group"], len(GROUP_RANK)), f["code"]))
 
 
 def recommend(flags: list[dict]) -> dict:

@@ -1,8 +1,12 @@
 """U2: minimal local review interface over one run database (decision section 6, workload v2 row U2).
 
 What it is: a small web page served from this machine only (127.0.0.1). It lists the carrier invoices of one run with
-the rule-computed colour and the flag counts per severity, opens an invoice into its disputes (redacted text, the
-model's reading, the model's statements, flags, first-attempt marker), and records what the reviewer decided.
+the flag counts per severity, opens an invoice into its disputes (redacted text, the model's reading, the model's
+statements, flags, first-attempt marker), and records what the reviewer decided. Task 20b: the header of an invoice
+shows the shipment result the main flow stored (`pipeline.finish_batch` -> `shipment_result.result`, the same object
+as one line of `shipments.jsonl`): the shipment's recommendation (also the header colour), default new total and
+change from the original amount, the total under every other reading, the stated amount due and gap, and the
+shipment's own flags. The page computes no total and no recommendation of its own. All page text is English.
 
 What it is not: it never suggests whether a charge should be paid. Colours and flags come from the run (rules.yaml);
 the buttons only append the reviewer's own action to the `reviewer_decision` table defined in config/schema_v1.yaml.
@@ -22,7 +26,6 @@ import re
 import sqlite3
 import uuid
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -41,6 +44,20 @@ RECOMMENDATION_ORDER = ("HUMAN_REVIEW", "RETURN_SUGGESTED", "PASSED_CHECKS")
 REVIEWER_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,40}")
 MAX_REASON_CHARS = 2000
 MAX_BODY_BYTES = 20_000
+# display labels of the stored enum values; the stored values themselves never change (task 20b section 4)
+LABELS = {
+    "recommendation": {"PASSED_CHECKS": "Passed checks", "HUMAN_REVIEW": "Human review",
+                       "RETURN_SUGGESTED": "Return suggested"},
+    "severity": {"ATTENTION": "Attention", "RETURN": "Return suggested", "INFO": "Info"},
+    "action": {"ACCEPT_READING": "Accept reading", "RETURN_TO_CARRIER": "Return to carrier",
+               "CLEAR_FLAG": "Clear flag", "HOLD": "Hold"},
+    "statement": {"INSIST_REASON": "Reason for keeping the reading", "REVISION_REASON": "Reason for revising the reading",
+                  "UNCERTAINTY": "Doubt reported by the model"},
+}
+# shipment-result fields the header shows, copied as stored (docs/shipment_output_contract.md section 2.2)
+SHIPMENT_HEADER_FIELDS = ("shipment_key", "sap_bol", "schema_version", "recommendation", "original_amount",
+                          "new_total", "default_change", "complete", "other_readings", "stated_amount_due",
+                          "items_total", "gap", "gap_note", "relation_undecided")
 
 
 def decision_actions() -> tuple[str, ...]:
@@ -98,29 +115,56 @@ def _json(value, default=None):
     return default if out is None else out
 
 
-def _dec(value) -> Decimal | None:
-    try:
-        return None if value is None else Decimal(str(value))
-    except InvalidOperation:
+def _worst(recommendations: list[str]) -> str | None:
+    """The most pressing of several stored recommendations (decision 2.3 order); None for an empty list. Only used
+    when one invoice's disputes belong to more than one shipment: each shipment's own value is shown as stored."""
+    if not recommendations:
         return None
-
-
-def _sum(values) -> str | None:
-    """Sum of the values that are numbers; None when none is."""
-    nums = [d for d in map(_dec, values) if d is not None]
-    return str(sum(nums, Decimal(0))) if nums else None
-
-
-def _worst(recommendations: list[str]) -> str:
     return min(recommendations, key=lambda r: RECOMMENDATION_ORDER.index(r) if r in RECOMMENDATION_ORDER else -1)
+
+
+def shipment_header(con: sqlite3.Connection, run_id: str, shipment_gid: str) -> dict | None:
+    """The stored shipment result of one shipment in one run, reduced to the fields the invoice header shows.
+
+    Reads `shipment_result.result` (written by `pipeline.finish_batch` via `db.write_shipments`; the same object as
+    the shipment's line in `shipments.jsonl`) and copies the fields of SHIPMENT_HEADER_FIELDS unchanged, plus the
+    shipment's own flags (code, severity in upper case, evidence) and its explanation ids. Nothing is recomputed.
+    Returns None when the run stored no shipment result for it (a run made before task 20, or a database without
+    the `shipment_result` table)."""
+    try:
+        row = con.execute("SELECT result FROM shipment_result WHERE run_id = ? AND shipment_gid = ?",
+                          (run_id, shipment_gid)).fetchone()
+    except sqlite3.OperationalError:            # older database: no shipment_result table
+        return None
+    res = _json(row["result"]) if row else None
+    if not isinstance(res, dict):
+        return None
+    out = {k: res.get(k) for k in SHIPMENT_HEADER_FIELDS}
+    out["flags"] = [{"code": f.get("code"), "severity": str(f.get("severity", "")).upper(), "evidence": f.get("evidence")}
+                    for f in res.get("flags") or []]
+    out["explanation_ids"] = [e.get("expl_id") for e in res.get("explanations") or []]
+    return out
+
+
+def _invoice_shipments(con: sqlite3.Connection, run_id: str, shipment_gids: list[str]) -> list[dict]:
+    """One entry per distinct shipment of an invoice, in first-seen order: the stored header or a marker that none
+    is stored."""
+    out = []
+    for gid in dict.fromkeys(shipment_gids):
+        hdr = shipment_header(con, run_id, gid)
+        out.append(hdr if hdr is not None else {"shipment_key": gid, "missing": True})
+    return out
 
 
 def list_invoices(con: sqlite3.Connection, run_id: str, reminders: str = "all", sort: str = "reminders") -> list[dict]:
     """Invoice list for one run (decision 6.1).
 
-    Each entry carries the invoice colour (the most pressing recommendation among its disputes, in the order of
-    decision 2.3), the number of flags per severity, and how many disputes already have a recorded decision.
-    `reminders`: "all", "yes" (at least one ATTENTION or RETURN flag) or "no". `sort`: "reminders" (most first) or
+    Each entry carries the invoice colour, the number of flags per severity, and how many disputes already have a
+    recorded decision. `flag_counts` adds the disputes' flags and the flags of the invoice's stored shipment results
+    (task 23); `dispute_flag_counts` and `shipment_flag_counts` hold the two parts. The colour is the stored shipment recommendation (task 20b: the shipment result of
+    `pipeline.finish_batch`, not a value computed from the disputes); `recommendation` is None when the run stored
+    no shipment result, and `shipments` holds each shipment's header (`shipment_header`).
+    `reminders`: "all", "yes" (at least one ATTENTION or RETURN flag, on a dispute or a shipment) or "no". `sort`: "reminders" (most first) or
     "invoice". Raises ValueError for other values.
     """
     if reminders not in ("all", "yes", "no") or sort not in ("reminders", "invoice"):
@@ -132,14 +176,14 @@ def list_invoices(con: sqlite3.Connection, run_id: str, reminders: str = "all", 
            LEFT JOIN carrier_invoice ci ON ci.carrier_invoice_id = d.carrier_invoice_id
            WHERE pr.run_id = ? ORDER BY d.row_number, d.dispute_id"""
     by_dispute: dict[str, dict] = {}
-    recs: dict[str, list[str]] = {}
+    gids: dict[str, list[str]] = {}
     for r in con.execute(q, (run_id,)):
         inv = out.setdefault(r["carrier_invoice_id"], {
             "carrier_invoice_id": r["carrier_invoice_id"], "carrier_invoice_no": r["carrier_invoice_no"],
             "carrier_id": r["carrier_id"], "shipment_gid": r["shipment_gid"], "n_disputes": 0,
             "flag_counts": dict.fromkeys(SEVERITIES, 0), "n_flags_cleared": 0, "n_disputes_decided": 0})
         inv["n_disputes"] += 1
-        recs.setdefault(r["carrier_invoice_id"], []).append(r["recommendation"])
+        gids.setdefault(r["carrier_invoice_id"], []).append(r["shipment_gid"])
         by_dispute[r["dispute_id"]] = inv
     for r in con.execute("SELECT dispute_id, severity, COUNT(*) AS n FROM flag WHERE run_id = ? GROUP BY 1, 2", (run_id,)):
         if r["dispute_id"] in by_dispute:
@@ -155,7 +199,18 @@ def list_invoices(con: sqlite3.Connection, run_id: str, reminders: str = "all", 
             by_dispute[r["dispute_id"]]["n_disputes_decided"] += 1
     rows = []
     for key, inv in out.items():
-        inv["recommendation"] = _worst(recs[key])
+        inv["shipments"] = _invoice_shipments(con, run_id, gids[key])
+        inv["recommendation"] = _worst([s["recommendation"] for s in inv["shipments"] if not s.get("missing")])
+        # task 23 (audit F-02): shipment-level flags (shipment_result.result.flags, e.g. a later explanation replacing
+        # an earlier one) count as reminders too, in the counts, the filter and the sort
+        ship_counts = dict.fromkeys(SEVERITIES, 0)
+        for sh in inv["shipments"]:
+            for f in sh.get("flags") or []:
+                ship_counts[f["severity"]] = ship_counts.get(f["severity"], 0) + 1
+        inv["dispute_flag_counts"] = dict(inv["flag_counts"])
+        inv["shipment_flag_counts"] = ship_counts
+        inv["flag_counts"] = {k: inv["flag_counts"].get(k, 0) + ship_counts.get(k, 0)
+                              for k in dict.fromkeys([*inv["flag_counts"], *ship_counts])}
         inv["n_reminders"] = sum(inv["flag_counts"][s] for s in REMINDER_SEVERITIES)
         inv["has_reminders"] = inv["n_reminders"] > 0
         if reminders == "all" or (reminders == "yes") == inv["has_reminders"]:
@@ -198,7 +253,7 @@ def decision_history(con: sqlite3.Connection, dispute_id: str) -> list[dict]:
 def _dispute_detail(con: sqlite3.Connection, run_id: str, row: sqlite3.Row) -> dict:
     did = row["dispute_id"]
     attempts = [dict(a) | {"failed_checks": _json(a["failed_checks"], [])} for a in con.execute(
-        """SELECT attempt_id, attempt_no, response_type, delta_check, feedback_given, claimed_total, failed_checks, reason
+        """SELECT attempt_id, attempt_no, response_type, claimed_total, failed_checks, reason
            FROM parse_attempt WHERE parse_run_id = ? ORDER BY attempt_no""", (row["parse_run_id"],))]
     statements = [dict(s) for s in con.execute(
         """SELECT ms.type, ms.text, pa.attempt_no FROM model_statement ms JOIN parse_attempt pa
@@ -216,16 +271,13 @@ def _dispute_detail(con: sqlite3.Connection, run_id: str, row: sqlite3.Row) -> d
                            for e in evidence if isinstance(e, dict) and e.get("note")]
     flags.sort(key=lambda f: SEVERITIES.index(f["severity"]) if f["severity"] in SEVERITIES else len(SEVERITIES))
     final = next((a for a in attempts if a["attempt_id"] == row["final_attempt_id"]), None)
-    first = attempts[0] if attempts else None
     current = [h for h in history if h["action"] != "CLEAR_FLAG"]
     return {
         "dispute_id": did, "pk": row["pk"], "row_number": row["row_number"], "event_time": row["event_time"],
-        "text_redacted": row["description_redacted"], "delta": row["delta"], "currency": row["currency"],
+        "text_redacted": row["description_redacted"], "currency": row["currency"],
         "currency_basis": row["currency_basis"], "reason_code": row["reason_code"], "copy_rank": row["copy_rank"],
-        "parse_status": row["status"], "delta_consistency": row["delta_consistency"], "n_attempts": row["n_attempts"],
+        "parse_status": row["status"], "n_attempts": row["n_attempts"],
         "recommendation": row["recommendation"], "return_draft": _json(row["return_draft"]),
-        "first_attempt_check": first["delta_check"] if first else None,
-        "first_attempt_inconsistent": bool(first and first["delta_check"] == "MISMATCH"),
         "claimed_total": final["claimed_total"] if final else None,
         "attempts": attempts, "statements": statements, "flags": flags,
         "has_reminders": any(f["severity"] in REMINDER_SEVERITIES for f in flags),
@@ -236,10 +288,11 @@ def _dispute_detail(con: sqlite3.Connection, run_id: str, row: sqlite3.Row) -> d
 
 
 def invoice_detail(con: sqlite3.Connection, run_id: str, carrier_invoice_id: str) -> dict | None:
-    """One invoice opened (decisions 6.2 and 6.3): basic information, the reconciliation of the model's reading
-    against Delta summed over the invoice, and every dispute with its text (redacted), reading, model statements,
-    flags sorted by severity, attempts and decision history. Returns None when the invoice is not in this run."""
-    q = """SELECT d.*, pr.parse_run_id, pr.status, pr.delta_consistency, pr.n_attempts, pr.first_attempt_id,
+    """One invoice opened (decisions 6.2 and 6.3): basic information, the stored shipment result of each of its
+    shipments (`shipments`, see `shipment_header`; task 20b: the page no longer sums the readings itself), and every
+    dispute with its text (redacted), reading, model statements, flags sorted by severity, attempts and decision
+    history. Returns None when the invoice is not in this run."""
+    q = """SELECT d.*, pr.parse_run_id, pr.status, pr.n_attempts, pr.first_attempt_id,
                   pr.final_attempt_id, a.recommendation, a.return_draft
            FROM parse_run pr JOIN dispute d ON d.dispute_id = pr.dispute_id
            JOIN dispute_assessment a ON a.dispute_id = d.dispute_id AND a.run_id = pr.run_id
@@ -257,13 +310,12 @@ def invoice_detail(con: sqlite3.Connection, run_id: str, carrier_invoice_id: str
     for d in disputes:
         for f in d["flags"]:
             counts[f["severity"]] = counts.get(f["severity"], 0) + 1
+    shipments = _invoice_shipments(con, run_id, [r["shipment_gid"] for r in rows])
     return {"carrier_invoice_id": carrier_invoice_id, "carrier_invoice_no": ci["carrier_invoice_no"] if ci else None,
             "carrier_id": ci["carrier_id"] if ci else None, "shipment": dict(sh) if sh else None,
-            "recommendation": _worst([d["recommendation"] for d in disputes]), "flag_counts": counts,
-            "reconciliation": {"sum_model_claimed": _sum(d["claimed_total"] for d in disputes),
-                               "sum_delta": _sum(d["delta"] for d in disputes),
-                               "n_without_reading": sum(d["claimed_total"] is None for d in disputes)},
-            "disputes": disputes}
+            "shipments": shipments,
+            "recommendation": _worst([s["recommendation"] for s in shipments if not s.get("missing")]),
+            "flag_counts": counts, "disputes": disputes}
 
 
 def record_decision(con: sqlite3.Connection, run_id: str, dispute_id: str, action: str, reason: str | None,
@@ -306,10 +358,16 @@ def record_decision(con: sqlite3.Connection, run_id: str, dispute_id: str, actio
 
 
 def run_summary(con: sqlite3.Connection, run_id: str) -> dict:
-    """Aggregates for the page header: disputes per recommendation and flags per severity."""
+    """Aggregates for the page header: disputes per recommendation, flags per severity, stored shipment results per
+    recommendation (counted from `shipment_result`, empty for a run made before task 20), and the display labels."""
     rec = dict(con.execute("SELECT recommendation, COUNT(*) FROM dispute_assessment WHERE run_id = ? GROUP BY 1", (run_id,)).fetchall())
     sev = dict(con.execute("SELECT severity, COUNT(*) FROM flag WHERE run_id = ? GROUP BY 1", (run_id,)).fetchall())
-    return {"run_id": run_id, "n_disputes": sum(rec.values()), "recommendations": rec, "flag_counts": sev}
+    try:
+        ship = dict(con.execute("SELECT recommendation, COUNT(*) FROM shipment_result WHERE run_id = ? GROUP BY 1", (run_id,)).fetchall())
+    except sqlite3.OperationalError:
+        ship = {}
+    return {"run_id": run_id, "n_disputes": sum(rec.values()), "recommendations": rec, "flag_counts": sev,
+            "shipment_recommendations": ship, "labels": LABELS}
 
 
 class ReviewServer(ThreadingHTTPServer):
@@ -435,9 +493,16 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--reviewer", default="reviewer-1", help="internal reviewer id stored with each decision (no names)")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--read-only", action="store_true", help="open the database read-only; nothing can be recorded")
+    ap.add_argument("--export-decisions", type=Path, metavar="CSV",
+                    help="write every reviewer decision of the database to this CSV and exit (task 20)")
     args = ap.parse_args(argv)
     if not args.run and not args.db:
         ap.error("give --run <run_id> or --db <path>")
+    if args.export_decisions:
+        con = open_db(args.db or run_db_path(args.run), read_only=True)
+        n = len(db.export_reviewer_decisions(con, args.export_decisions).splitlines()) - 1
+        print(f"{n} decisions -> {args.export_decisions}")
+        return
     try:
         srv = ReviewServer(args.db or run_db_path(args.run), args.run, args.reviewer, args.port, args.read_only)
     except (ValueError, FileNotFoundError) as err:

@@ -1,0 +1,9 @@
+record_key,number_id,substring,annotators,p1_what,p1_claim,p1_category,p2_what,p2_claim,p2_category,p3_what,p3_claim,p3_category,final_what,final_claim,final_category,finalisation_rules,rejudge_class,rejudged_claim,rejudged_category,needs_person_by_standard,needs_person_reasons
+syn#r1,#1,$45.00,P1,MONEY,COUNTED,ACCESSORIAL,,,,,,,MONEY,COUNTED,ACCESSORIAL,,,,,no,
+syn#r2,#1,$80.00,P2,,,,MONEY,COUNTED,DETENTION_STORAGE,,,,MONEY,COUNTED,DETENTION_STORAGE,,,,,no,
+syn#r2,#2,$4.00,P2,,,,MONEY,COUNTED,TAX,,,,MONEY,COUNTED,TAX,,,,,no,
+syn#r3,#1,2,P3,,,,,,,QUANTITY,,,QUANTITY,NOT_MONEY,,R-2,R-QR,NOT_MONEY,,yes,G2
+syn#r3,#2,$75,P3,,,,,,,MONEY,UNCLEAR,,MONEY,UNCLEAR,,,R-QR,UNCLEAR,,yes,G2
+syn#r4,#1,$20,P1+P2+P3,MONEY,COUNTED,PENDING,MONEY,UNCLEAR,,MONEY,UNCLEAR,,MONEY,UNCLEAR,,R-5+R-6,R-A5,NOT_REFERENCE,,yes,G2
+syn#r4,#2,$20.95,P1+P2+P3,MONEY,UNCLEAR,,MONEY,UNCLEAR,,MONEY,UNCLEAR,,MONEY,UNCLEAR,,R-5,R-A5,COUNTED,PENDING,yes,G2
+syn#r5,#1,$31.50,P1,MONEY,COUNTED,NO_CHARGE_NAMED,,,,,,,MONEY,COUNTED,NO_CHARGE_NAMED,,,,,yes,G3

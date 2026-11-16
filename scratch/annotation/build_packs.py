@@ -300,7 +300,8 @@ def _put(ws, row: int, col: int, value, **style_kw):
 
 
 def write_pack(path: Path, pack_id: str, items: list[dict]) -> None:
-    """One workbook: Instructions, Examples, Glossary, Annotation (frozen header, dropdowns by data validation)."""
+    """One workbook: Instructions, Examples, Glossary, Annotation (frozen header, dropdowns by data validation).
+    Everything in it is English; the only text not written by this project is the record text itself."""
     import annot_guide as g
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -323,15 +324,15 @@ def write_pack(path: Path, pack_id: str, items: list[dict]) -> None:
     _put(ws, 3, 2, None, fill=fill_in)
     assert (PACK_ID_CELL, ANNOTATOR_CELL) == ("B2", "B3")
     r = 5
-    for lang in ("en", "zh"):
-        for title, lines in ((("The task", "任务"), g.TASK[lang]),
-                             (("What you fill in", "要填的四项"), [f"{h} {b}" for h, b in g.ITEMS[lang]]),
-                             (("Rules", "规则"), g.RULES[lang])):
-            _put(ws, r, 1, title[lang == "zh"], font=bold)
-            for line in lines:
-                _put(ws, r, 2, plain(line), alignment=wrap)
-                r += 1
+    # English only: not every annotator reads Chinese (the Chinese guide is docs/annotation/annotation_guide.zh.md)
+    for title, lines in (("The task", g.TASK["en"]),
+                         ("What you fill in", [f"{h} {b}" for h, b in g.ITEMS["en"]]),
+                         ("Rules", g.RULES["en"])):
+        _put(ws, r, 1, title, font=bold)
+        for line in lines:
+            _put(ws, r, 2, plain(line), alignment=wrap)
             r += 1
+        r += 1
     # dropdown lists live here, visible, and the data validations point at them
     lists_col, ranges = 4, {}
     _put(ws, 1, lists_col, "Dropdown options (do not edit)", font=bold)
@@ -374,12 +375,12 @@ def write_pack(path: Path, pack_id: str, items: list[dict]) -> None:
         r += 3
 
     ws = wb.create_sheet(SHEETS[2])
-    for letter, w in zip("ABC", (44, 100, 70)):
+    for letter, w in zip("AB", (44, 100)):
         ws.column_dimensions[letter].width = w
-    for c, h in enumerate(("Term", "Meaning", "中文"), 1):
+    for c, h in enumerate(("Term", "Meaning"), 1):
         _put(ws, 1, c, h, font=bold, fill=head_fill)
-    for i, (term, en, zh) in enumerate(g.GLOSSARY, 2):
-        for c, v in enumerate((plain(term), en, zh), 1):
+    for i, (term, en, _zh) in enumerate(g.GLOSSARY, 2):
+        for c, v in enumerate((plain(term), en), 1):
             _put(ws, i, c, v, alignment=wrap)
     ws.freeze_panes = "A2"
 

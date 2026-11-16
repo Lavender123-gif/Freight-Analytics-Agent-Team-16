@@ -1,6 +1,22 @@
 # Questions for Jake
 
-Ten questions on the freight adjustment data. Status on 2026-11-10: none has been sent and there is no answer yet. The tracking table (status of each question, where each answer is filled in) and the list of questions we decided not to ask are kept in Chinese in [`docs/client/jake_questions.md`](docs/client/jake_questions.md). This file is the only copy of the English questions; everything below the line can be sent as is.
+Status on 2026-11-15: answered. The client received a shorter set of nine questions (reworded from the ten below) and answered all nine on 2026-11-13. His answers are paraphrased in the next section; the original email is not in the repository. The ten questions below are kept as the record of what we planned to ask. The tracking table (in Chinese) is [`docs/client/jake_questions.md`](docs/client/jake_questions.md), section 5.
+
+## The client's answers (2026-11-13, paraphrased) and what we changed
+
+| # | Asked | Answer (paraphrased) | What changed |
+|---|---|---|---|
+| 1 | Which findings matter to reviewers | Internal inconsistencies and unclear wording, and how the claim compares with the original shipment amount. The Invoice Amount, Invoice Dups Removed and Delta columns are spreadsheet estimates ("really guesses"); the system should replace them. He gave a worked example in a table: original amount, each charge with tax on its own line, new total, change from the original | The runtime comparison with Delta and the "inconsistent" feedback are removed; the three columns are kept only as a baseline for evaluation. Those two flag groups are listed first and counted on their own. Output is the client's table per shipment; his examples are regression tests |
+| 2 | How the amount columns are produced | A first pass: shipment amount plus the amounts found next to "$" by spreadsheet formulas. Do not rely on them | As above. Our earlier finding that a stated total is counted twice is explained by that formula |
+| 3 | What creates a new PK / Bill ID | Several orders are planned onto one truck (one SAP BOL); costs arise at the shipment level but invoices go against each order. Line items should roll up to the SAP BOL / shipment. Second worked example, with the total spread over 8 orders | Copies of one explanation on several orders are merged and read once, with an order count; only copies with the same or no PK are flagged. A new shipment roll-up layer gives the total. Spreading the total over orders is not done |
+| 4 | An existing charge-code list | No dedicated list; EDI X12 codes are loose and only used in EDI. Sent a carrier's Addenda B accessorial list as an example | Our 37 codes are mapped onto that list; the output shows the client's name, all candidate EDI codes and our internal code |
+| 5 | Insights wanted | Covered by the answers above | No separate change |
+| 6 | Country column vs addresses | Go by the actual address | No change: country already comes from the origin and destination address |
+| 7 | Currency | Safe to assume all amounts are USD | Currency fixed to USD; the "currency unknown" flag is removed |
+| 8 | Tax | Break tax out as a separate line | Already a separate line. Mentioning a tax is now only a hint; naming a tax without its amount goes to a reviewer |
+| 9 | Purchased transportation | Sounds like line haul keyed in by a beginner (a guess) | Treated as a sub-item of Freight (line haul) with its own internal code |
+
+He also said he cannot provide reviewer annotations or internal guidelines.
 
 ---
 

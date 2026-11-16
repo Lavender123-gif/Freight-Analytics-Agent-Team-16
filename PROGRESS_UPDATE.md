@@ -1,101 +1,67 @@
-# Progress update since the 2026-11-05 sync (for teammates and their agents)
+# Progress update: milestone of 16 November 2026
 
-- **Baseline ("last time")**: commit `5497fd2`, 2026-11-05, "Sync work through 2026-11-05": the last commit sent to the team remote (branch `freight-lineitems`; checked against the remote on 2026-11-10, nothing newer there).
-- **This note describes**: branch `autorun-leg2` at commit `6dc2dd4` (2026-11-10), 39 commits after the baseline. It reaches the team remote as one squashed commit on branch `team-update-2026-11-10`, with real record text replaced by synthetic text in tests and the four English entry files moved to the repository root.
-- English is the main version; Chinese: [`2026-11-10_progress_update.zh.md`](docs/status/2026-11-10_progress_update.zh.md).
+Team 16, CMU Intro to AI, client project for PPG. For the course staff, the team, and later the client contact. It assumes no earlier document. Chinese version: [`docs/status/2026-11-15_milestone_report.zh.md`](docs/status/2026-11-15_milestone_report.zh.md). The previous update (10 November) is archived in [`docs/status/2026-11-10_PROGRESS_UPDATE.md`](docs/status/2026-11-10_PROGRESS_UPDATE.md).
 
-## 1. Summary
+## 1. What the system does
 
-At the baseline the model had never been connected and half the prototype conflicted with the 2026-11-04 decisions. Now the whole pipeline runs end to end in `src/`: read-in and redaction, blind parsing with the model, submission checks, flags, three recommendations, a SQLite store, two exports, and a local review screen. It has run on all 953 dev records and on the public mock. 16 of the 23 Must tasks are done and waiting for acceptance; the 7 left are mostly human work (annotation, questions to Jake, final test run, presentations). **Every result so far is in-sample: nothing is verified yet** (verified 0 of 26 cards).
+When a carrier asks PPG to pay more than the planned freight amount, it explains the adjustment in free text ("LIFTGATE $50 + GST $2.50", "BALANCE DUE …"). Reviewers read these by hand. Our system turns each explanation into structured line items (charge type, amount, tax on its own line), checks them against the text itself, adds the line items of every explanation on the same shipment into one table in the client's format (original amount, each charge, new total, change), and attaches flags that tell a reviewer where to look. It never decides whether a charge should be paid; every shipment goes to a person.
 
-## 2. What changed in the approach (against the 11-05 plan and design)
+1. Read the export; merge copies of one explanation that appear once per order on the same truck.
+2. Code finds every number in the text and gives it an ID.
+3. A language model (Claude, through the official SDK) says what each numbered amount is. It cannot write amounts, only refer to IDs, and it never sees any expected total.
+4. Code checks the reading (every number accounted for, stated arithmetic holds, quoted words exist) and returns failures to the model for repair.
+5. Code rolls each shipment up into the client's table and maps our charge codes to the client's charge list.
+6. Rules turn findings into flags and one of three recommendations: passed checks, human review, or return suggested. A local review screen records the reviewer's decision.
 
-| Change | Why |
-|---|---|
-| "Suggest return" is now only for empty text and numbers-only text; everything else that needs attention goes to a human | Only facts the code can decide alone should trigger a return; the owner's rule for leg 2 ([rule changes](docs/autorun/rule_changes_leg2.zh.md)) |
-| The colour comes from three flag severities in `config/rules.yaml`, not from scores | Decision 2.3 can be expressed directly, with no score threshold to tune |
-| Claimed amounts are summed with sign (credits negative) before the comparison with Delta | Comparing absolute values would accept "refund read as charge" |
-| Default redaction changed from Presidio to a word allow-list (**owner has not confirmed, P-20**) | Measured miss rate 29.0% → 10.9% with no measured harm to parsing ([comparison](docs/deliverables/T10-redaction-comparison/README.zh.md)) |
-| Review screen is built by us (standard library + SQLite), not an open-source tool | The tools evaluated cannot expand by invoice or count flags by severity; evaluation was from documentation only ([U1](docs/deliverables/U1-review-tool-evaluation/README.zh.md)) |
-| The baseline experiment is the "guardrails off" arm: one direct-extraction call, no number table, checks or flags | With checks merely switched off the two arms would not differ |
-| Wording tuning uses a "worse" threshold fixed before each run and based on measured run-to-run range; 4 of 5 rounds were reverted | Changes inside the noise must not be kept ([tuning log](docs/autorun/tuning_log.zh.md)) |
-| Real dev examples for the SKILL stay in git-ignored files; the repository holds 5 synthetic ones | Real rows may not enter the repository |
-| Annotation is 3 packs × 45 records with 15 shared (105 distinct), not "100 with 20 double" | Lets two or three people work in parallel; any two packs give 75 records with 15 double-annotated |
-| S1, H1, U1, K1 were planned as human work but were produced by CC | Their outputs came out of the autonomous runs; they still need a human check |
-| Reading the test split or raw file is refused in code unless the owner sets a switch | A deny rule alone did not cover every path |
+## 2. What we built
 
-All decisions made without the owner: [decision log](docs/autorun/decision_log.zh.md). Open ones: [pending list](docs/autorun/pending.zh.md).
-
-## 3. What can be run and looked at
-
-Data under `data/` is git-ignored: without the dev split, the mock and an API key you can run the tests and read the documents, but not the pipeline.
-
-| What | Entry |
-|---|---|
-| Tests (160 pass, 2 skipped) | `uv run pytest -q` |
-| Pipeline on a small sample | `uv run python scratch/autorun/run_sample.py demo --n 10 --seed 1` (see [`README.md`](README.md)) |
-| Review screen | `uv run python -m freight_lineitems.review_ui --run <run_id> --read-only`, then `http://127.0.0.1:8765/` ([U2](docs/deliverables/U2-review-ui/README.zh.md)) |
-| Metrics | `scratch/eval/metrics.py`, definitions in [`docs/eval/metrics.zh.md`](docs/eval/metrics.zh.md) |
-| Annotation | guide [`annotation_guide.en.md`](docs/annotation/annotation_guide.en.md); `scratch/annotation/` builds packs, imports returned files, computes agreement |
-| Rules, skill, architecture | `config/rules.yaml`, `skill/freight-dispute-line-items/`, [`docs/architecture.md`](docs/architecture.md) |
-| Questions for Jake (10, none sent) | [`QUESTIONS_FOR_JAKE.md`](QUESTIONS_FOR_JAKE.md) (tracking table and the not-asking list, in Chinese: [`docs/client/jake_questions.md`](docs/client/jake_questions.md)) |
-| Board and progress | `sh scratch/status/run.sh`, `uv run python scratch/plan/progress.py` |
-
-## 4. How to read the numbers
-
-All in-sample. "Final version" = SKILL v1.2, rules v1.1, allow-list redaction. Reports: [leg 2](docs/deliverables/T10-autorun-leg2/test_report.en.md), [guardrails](docs/deliverables/V3a-guardrails/test_report.en.md).
-
-| Number | Data and version | What it does not show |
+| Step | State | Evidence |
 |---|---|---|
-| Passed checks / human review / suggest return = 760 / 188 / 5 | All 953 dev records, **older version** (SKILL v1.1, Presidio) | Not the final version (not re-run). "Passed" means the reading is internally clean and agrees with Delta, not that it is correct or payable |
-| 44 / 54 / 2 and 79 / 19 / 2 | Dev samples A and B2, 100 each, final version | Stratified, not frequency samples; wording was tuned while looking at A |
-| Claim total correct 333 of 360 | Public mock (375 rows), final version | Mock is synthetic and its expected answers are partly out of date (M1); same version varied 327–330 over three runs, so differences of a few are noise |
-| Guardrails on vs off: invented amounts 0 vs 3 (mock) and 4 (A); claim total 333 vs 323; 26 of 27 misreads sent to a human; injection flagged 22 of 30, **threshold 27 not met** | Public mock and sample A, thresholds written before the run | Guardrails make errors visible and stop invented amounts; they do not raise the share read correctly (without one control class: on 283, off 288 of 300) |
+| Reading and redaction | Built. Names and emails are masked before any text reaches the model | Development split: 953 rows, 908 explanations, 813 shipments; redaction measured on synthetic names (miss rate 10.9%) |
+| Number finding | Built | 529 text patterns of the development split fully covered |
+| Model reading | Built and run on the full development split (all rows got a result) | One full run, plus samples of 100 and 100 rows and a 375-row synthetic test set |
+| Checks | Built; failed checks go back to the model | 184 automated tests pass |
+| Shipment roll-up | Built this week (code only) | 17 synthetic cases; both of the client's worked examples reproduced exactly; every one of the 813 development shipments gets a default total |
+| Charge names | Our 37 internal codes mapped to 40 names of the client's charge list | Replayed on the stored run, the mapping reproduces the coverage counts of the analysis exactly |
+| Flags and review screen | Built | Three recommendations, all thresholds in one settings file; local review screen |
 
-No number here says whether the model reads real records correctly: that needs the human annotation (H2a → H3) and the single test-set run (V4).
+## 3. What changed after the client's answers
 
-## 5. How to read the board and the progress file
+The client answered our questions on 13 November. Three answers changed the design.
 
-- [Board](STATUS.md), one colour per card: red = not started; yellow = partly done; light green = built, run on dev, has a deliverable, in-sample evidence only; dark green = met a threshold written in advance on independent data or by human review; grey = removed or not coloured. Now: shaped (light + dark green) 8 of 26 Must cards = 31%; verified (dark green) 0%.
-- [Progress file](docs/status/progress.zh.md), by the 23 Must tasks and plan hours (midpoint of each range, 146.5 h in total). **Workload** = hours of tasks done ÷ all hours = 62.8% (CC side 89.8%, human side 0%). **Completion** = hours × factor (accepted 1.0, done but not accepted 0.7, not done 0) ÷ all hours = 44.0%; nothing is accepted yet.
-- Card IDs and plan task IDs are two different sets; use the "plan task" column.
+- **The amount columns are the client's own spreadsheet estimates.** Delta, Invoice Amount and Invoice Dups Removed were produced by spreadsheet formulas that pick up every "$" amount; the system is meant to replace them. We therefore removed the runtime check that compared the model's reading with Delta and told the model when they disagreed. The columns are kept only as a baseline to compare against.
+- **Costs belong to the shipment.** Several orders share one truck (one SAP BOL), so one explanation appears once per order, and a shipment can have several explanations over time. We now merge the per-order copies, read each explanation once, and add a shipment roll-up that gives the client's table. When a later explanation names the same charge, it replaces the earlier one; different charges add up.
+- **Charge names follow the client's list.** The client sent a carrier's accessorial list as an example. The output shows the client's name for each charge, all candidate EDI codes, and our internal code.
 
-## 6. Not done yet
+## 4. Assumptions (please correct us if any is wrong)
 
-Hours are the plan's ranges; difficulty is CC's estimate. Unassigned: pick what you can take.
+- All amounts are in US dollars.
+- The country of a shipment comes from its origin and destination address, not from the country column.
+- Tax is a separate line, and it stays with the explanation it was written in.
+- On one shipment, a later explanation of the same charge replaces the earlier one: the charge is counted once at the later amount, and the reviewer is told.
+- A BALANCE DUE amount about 3% to 7% above an earlier amount replaces that amount.
+- "Purchased transportation" is part of line haul (the client's "Freight").
+- When one charge name on the client's list has several EDI codes, we list all of them and choose none.
+- Road-closure surcharges are kept as a charge outside the client's list.
+- When the text says only "driver detention" (or similar), we use our own general entry and list the client's candidate names next to it.
+- The total is not split across the orders on a truck; the number of orders is shown.
 
-| Item | Who can do it | Hours | Difficulty | Note |
-|---|---|---|---|---|
-| H2a annotate the packs | Human | 10–14 (about 2 per pack) | Low to medium | Packs and guide ready; nobody has trial-annotated yet |
-| J01 send questions to Jake, follow up, fill in answers | Human | 4–6 | Low | Blocks tax, currency and duplicate rules |
-| D1 mid-term report | Human | 5–8 | Medium | |
-| D2 final presentation, demo, written report | Human | 14–22 | High | Needs V4 numbers |
-| V4 final test-set run, once | Human opens the switch; CC runs | 2–3 | Low, but one shot | Only after everything else is frozen |
-| Accept the 16 done tasks; walk through the review screen as a reviewer | Human | not in plan | Low to medium | Status only changes when a person accepts |
-| M1 update mock expectations, add duplicate cases | CC | 5–8 | Medium | Mock is kept by another agent; who edits is undecided |
-| H3 score the model against annotations | CC | 3–5 | Low | Waits for H2a; threshold not written yet |
-| Re-run all dev records on the final version | CC | under 1, about $10 | Low | Waits for the redaction decision (P-20) |
+## 5. Progress
 
-Optional tasks (R1c, P4b and others) are untouched: see [`docs/plan/2026-11-05_workload_v2.zh.md`](docs/plan/2026-11-05_workload_v2.zh.md).
+On our status board, 7 of the 28 required work items are done to at least "built, run on the development data, with a deliverable" (25%); none yet has evidence from independent data or human review. The board counts a card as done only with a test report; three cards went back to "partly done" this week because their evidence relied on the Delta comparison that we removed.
 
-## 7. Reading order for an agent
+## 6. Next steps
 
-1. [`CLAUDE.md`](CLAUDE.md): hard boundaries (no pay/deny logic, no carrier-specific code, data rules, closing checks).
-2. This note, then [`docs/autorun/run_state.zh.md`](docs/autorun/run_state.zh.md): where the work stopped.
-3. [`docs/decisions/2026-11-04_framework_decisions.zh.md`](docs/decisions/2026-11-04_framework_decisions.zh.md): the frozen design decisions.
-4. [`docs/architecture.md`](docs/architecture.md) and [`README.md`](README.md): modules, data flow, commands.
-5. [`progress.zh.md`](docs/status/progress.zh.md) and the [board](STATUS.md): task and card status with evidence.
-6. [`docs/autorun/pending.zh.md`](docs/autorun/pending.zh.md) and [`decision_log.zh.md`](docs/autorun/decision_log.zh.md): what is open, what was decided and why.
-7. `config/rules.yaml` and `skill/freight-dispute-line-items/SKILL.md`: the rules and the model's instructions.
+| Week of | Plan |
+|---|---|
+| 16 November | Remove the Delta wording from the model's instructions and check, on two samples and the synthetic test set, that results stay within the measured run-to-run noise; compare the client's charge names in the instructions against ours; rerun the full development split with the chosen version; evaluate the readings against the team's hand annotations (105 explanations) and against the spreadsheet baseline |
+| 23 November | Store the shipment tables in the database and show them in the review screen; update the synthetic test set for the new rules (maintained by a separate agent); update the flag catalogue |
+| 30 November | One final run on the held-out test split; final presentation and report |
 
-## 8. Known problems and limits
+## 7. Limitations
 
-- Nothing is verified; all evidence is in-sample.
-- The full dev run is on an older version than the sample and mock numbers.
-- Injection detection is below its threshold; with allow-list redaction the model reported fewer injections on the mock (18, against 25–27 before).
-- Allow-list redaction still misses 10.9% of synthetic personal-data cases (the suggested target was 2%) and masks charge words it has not seen.
-- One known misread remains on sample A: an overpayment read as a charge instead of a credit; the wording that fixed it was reverted for lowering mock results.
-- Tax, currency and duplicate handling rest on assumptions that wait for Jake's answers; all tax goes to a human.
-- The review screen has a button named "approve": it only records the reviewer's own decision, but the name is close to what the project forbids (P-24).
-- Annotation packs cap each text template at 2 records, so they are not an unbiased frequency sample (P-25); the Excel files were checked by program only.
-- Model spend so far is $71.67 of a $110 cap (API list-price estimate, not a bill); doing every optional item would exceed the cap.
+- The roll-up results above use model readings stored before this week's changes and before the last round of instruction tuning; the final numbers need the rerun planned for the week of 16 November.
+- The client's two worked examples are in our development data and were seen while building; reproducing them is a regression check, not evidence on new data.
+- Whether the model reads the text correctly has not been evaluated yet. The hand annotations came back this week; the evaluation is planned with its thresholds written down first.
+- Without the Delta comparison, a single misread amount is caught only if the model reports a doubt; no code check covers it.
+- About 59% of development rows come from one carrier and one charge type, so overall numbers mostly describe that carrier.

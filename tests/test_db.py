@@ -1,4 +1,4 @@
-"""S2 / P5: tables from schema v1, Excel ingest, fact export holds only consistent records."""
+"""S2 / P5: tables from schema v1, Excel ingest, fact export holds only passed records with no flag to look at."""
 
 import json
 
@@ -19,9 +19,9 @@ def test_every_schema_table_is_created(tmp_path):
     assert set(db.schema()["tables"]) <= names
 
 
-def _result(rec, status, dc):
+def _result(rec, status, _dc=None):
     out = assemble(prepare(rec), None)
-    out["facts"]["parse_status"], out["facts"]["delta_consistency"] = status, dc
+    out["facts"]["parse_status"] = status
     sub = {"response_type": "FIRST", "reason": None, "relations": [], "unrecognized_reads": [],
            "numbers": [{"id": "#1", "kind": "CHARGE_AMOUNT", "status": "CLAIMED", "is_credit": False,
                         "charge_codes": ["ACCESSORIAL.LIFTGATE"], "other_phrase": None, "evidence_phrase": "LIFTGATE",
@@ -34,7 +34,8 @@ def _result(rec, status, dc):
     return out
 
 
-def test_fact_export_excludes_inconsistent_and_no_anchor(tmp_path):
+def test_fact_export_does_not_depend_on_delta(tmp_path):
+    """Task 14 C1: a passed reading is exported whatever the Excel Delta column says (differs, or zero)."""
     recs = [record("LIFTGATE $15.00", "15", rid="dev#r1"), record("LIFTGATE $15.00 X", "16", rid="dev#r2"),
             record("LIFTGATE $15.00 Y", "0", rid="dev#r3")]
     for i, r in enumerate(recs):
@@ -46,8 +47,9 @@ def test_fact_export_excludes_inconsistent_and_no_anchor(tmp_path):
     con = db.connect(tmp_path / "t.sqlite")
     db.write_run(con, "run1", "test", recs, res, {"model": "m"}, RULES)
     facts = db.export_facts(con, "run1")
-    assert [f["dispute_id"] for f in facts] == ["dev#r1"]
-    assert facts[0]["line_items"][0]["charge_code"] == "ACCESSORIAL.LIFTGATE" and facts[0]["currency"] == "CAD"
+    assert [f["dispute_id"] for f in facts] == ["dev#r1", "dev#r2", "dev#r3"]
+    assert facts[0]["line_items"][0]["charge_code"] == "ACCESSORIAL.LIFTGATE" and facts[0]["currency"] == "USD"
+    assert "delta" not in json.dumps(facts).lower()
     blob = json.dumps(facts)
     assert "flag" not in blob and "recommendation" not in blob            # fact layer carries no judgment
     review = db.export_review(con, "run1")
@@ -88,14 +90,15 @@ def test_dev_ingest_matches_task06_b1(tmp_path):
 
 
 def test_fact_export_excludes_flagged_records_even_if_consistent(tmp_path):
-    """Audit H2: a consistent record that still needs a reviewer (e.g. a row copy) must not reach downstream."""
+    """Audit H2: a passed record that still needs a reviewer (e.g. a copy without its own PK) must not reach downstream."""
     a, b = record("LIFTGATE $15.00", "15", rid="dev#r1"), record("LIFTGATE $15.00", "15", rid="dev#r2", pk="P2")
     b.row_number = 2
     res = [_result(a, "PASSED_CHECKS", "MATCH_FIRST"), _result(b, "PASSED_CHECKS", "MATCH_FIRST")]
     res[0]["judgment"] = {"flags": [], "recommendation": "PASSED_CHECKS", "decisive_flags": [], "diagnostics": []}
-    res[1]["judgment"] = {"flags": [{"code": "DUP.ROW.COPY", "severity": "attention", "origin": "CODE_RULE", "paths": [],
-                                     "evidence": [{}], "points_to": "dev#r1"}],
-                          "recommendation": "HUMAN_REVIEW", "decisive_flags": ["DUP.ROW.COPY"], "diagnostics": []}
+    b.text_raw = "LIFTGATE $15.00 AGAIN"
+    res[1]["judgment"] = {"flags": [{"code": "SHIP.COPY.SAME_OR_NO_PK", "severity": "attention", "origin": "CODE_RULE", "paths": [],
+                                     "evidence": [{}], "points_to": None}],
+                          "recommendation": "HUMAN_REVIEW", "decisive_flags": ["SHIP.COPY.SAME_OR_NO_PK"], "diagnostics": []}
     con = db.connect(tmp_path / "t.sqlite")
     db.write_run(con, "run1", "test", [a, b], res, {"model": "m"}, RULES)
     assert [f["dispute_id"] for f in db.export_facts(con, "run1")] == ["dev#r1"]

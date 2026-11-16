@@ -48,7 +48,7 @@ uv run python -m freight_lineitems.review_ui --run <run_id>
 
 | 界面上的按钮 | 存入的值 | 规则 |
 |---|---|---|
-| 批准 | `APPROVE` | 理由可不填 |
+| 认可这份读法（任务 20 前叫“批准”，P-24 改名） | `ACCEPT_READING` | 理由可不填；记录的是认可读法，不是批准付款 |
 | 退回承运商 | `RETURN_TO_CARRIER` | 理由可不填；系统不发送任何东西 |
 | 清除标识 | `CLEAR_FLAG` | 必须指明是这笔争议的哪一条标识，必须填理由 |
 | 暂缓 | `HOLD` | 理由可不填 |

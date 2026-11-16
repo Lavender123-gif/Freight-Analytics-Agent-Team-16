@@ -64,14 +64,6 @@ def country(state: str | None) -> str:
     return "OTHER"
 
 
-def currency(origin_country: str, destination_country: str) -> str:
-    """Record-level currency derived from country; always marked as derived (decision 4.3) [待 Jake J4]."""
-    cfg = RULES["currency"]
-    if origin_country != destination_country:
-        return cfg["cross_border"]
-    return cfg["by_country"].get(origin_country, cfg["unknown"])
-
-
 def file_sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
 
@@ -94,10 +86,34 @@ def versions() -> dict[str, str]:
         "taxonomy": TAXONOMY["version"],
         "tax": TAX["version"],
         "skill_sha": file_sha(SKILL_PATH) if SKILL_PATH.exists() else "missing",
+        # task 19: the whole skill folder (core and topic references) and the layout
+        "skill_folder_sha": _folder_sha(SKILL_PATH.parent),
+        "skill_layout": _skill_layout(),
+        "screen_skill_sha": file_sha(SKILL_PATH.parents[1] / "screening-for-instructions" / "SKILL.md")
+        if (SKILL_PATH.parents[1] / "screening-for-instructions" / "SKILL.md").exists() else "missing",
         # audit L4: the example library and the full system prompt (SKILL.md + taxonomy + examples) are versioned too
         "examples_sha": file_sha(ex_path) if ex_path is not None else "missing",
         "examples_source": ex_source,          # dev_redacted | synthetic | missing
+        "taxonomy_layout": _layout(),          # task 14 stage 2: internal | client_rooted
     }
+
+
+def _folder_sha(folder: Path) -> str:
+    h = hashlib.sha256()
+    for p in sorted(folder.rglob("*")):
+        if p.is_file() and p.suffix in (".md", ".json"):
+            h.update(str(p.relative_to(folder)).encode() + b"\0" + p.read_bytes())
+    return h.hexdigest()[:12]
+
+
+def _skill_layout() -> str:
+    from freight_lineitems.skilltext import layout
+    return layout()
+
+
+def _layout() -> str:
+    from freight_lineitems.tools import taxonomy_layout
+    return taxonomy_layout()
 
 
 def category(code: str) -> str:
